@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="../Frontend/frontend.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="API_Gestao_Eventos.csproj" />
+</Solution>
