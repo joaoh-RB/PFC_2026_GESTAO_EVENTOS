@@ -34,12 +34,12 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
         public void Configure(EntityTypeBuilder<Student> builder)
         {
             builder.Property(s => s.UniqueIdentifier)
-                .HasMaxLength(20);
+                .HasMaxLength(20).IsRequired(true);
 
             builder.HasIndex(s => new { s.UniqueIdentifier, s.InstitutionId })
             .IsUnique()
-            .HasFilter("'UniqueIdentifier' IS NOT NULL AND 'InstitutionId' IS NOT NULL");
-
+            .HasFilter("\"UniqueIdentifier\" IS NOT NULL AND \"InstitutionId\" IS NOT NULL");
+            
             builder.HasOne(s => s.Course)
                 .WithMany(c => c.Students)
                 .HasForeignKey(s => s.CourseId)

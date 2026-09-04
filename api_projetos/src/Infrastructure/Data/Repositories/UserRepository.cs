@@ -23,6 +23,10 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         {
             return await _context.Users.AnyAsync(u => u.Email.ToLower() == email.ToLower());
         }
+        public async Task<bool> ExistsByUniqueIdentifierAndInstitutionAsync(string uniqueIdentifier, Guid institutionId)
+        {
+            return await _context.Users.OfType<Student>().AnyAsync(s => s.UniqueIdentifier == uniqueIdentifier && institutionId == s.InstitutionId);
+        }
         public async Task AddAsync(User user)
         {
             await _context.Users.AddAsync(user);

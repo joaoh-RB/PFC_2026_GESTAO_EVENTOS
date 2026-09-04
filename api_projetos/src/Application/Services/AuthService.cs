@@ -24,13 +24,15 @@ namespace API_Gestao_Eventos.src.Application.Services
             var emailExists = await _userRepository.ExistsByEmailAsync(request.Email);
             if (emailExists)
                 throw new InvalidOperationException("E-mail já cadastrado.");
-
+            var uniqueIdentifierAndInstitutionExists = await _userRepository.ExistsByUniqueIdentifierAndInstitutionAsync(request.UniqueIdentifier, request.InstitutionId);
+            if (uniqueIdentifierAndInstitutionExists)
+                throw new InvalidOperationException("RGM/Matrícula já cadastrada para esta instituição.");
             var student = new Student
             {
                 Name = request.Name,
                 Email = request.Email,
                 PasswordHash = _passwordHasher.HashPassword(request.Password),
-                UniqueIdentifier = request.RegistrationNumber,
+                UniqueIdentifier = request.UniqueIdentifier,
                 InstitutionId = request.InstitutionId,
                 CourseId = request.CourseId
             };
