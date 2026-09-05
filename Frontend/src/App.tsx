@@ -6,7 +6,7 @@ import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { UserSettings } from './pages/UserSettings';
 import { AuthenticatedLayout } from './components/AuthenticatedLayout';
-
+import { Events } from './pages/Events';
 export default function App() {
     return (
         <BrowserRouter>
@@ -21,6 +21,11 @@ export default function App() {
                         <Route element={<AuthenticatedLayout />}>
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/settings" element={<UserSettings />} />
+                        </Route>
+                    </Route>
+                    <Route element={<ProtectedRoute allowedRoles={["Administrador", "Professor"]} />}>
+                        <Route element={<AuthenticatedLayout/>}>
+                            <Route path="/events" element={<Events />} />
                         </Route>
                     </Route>
 

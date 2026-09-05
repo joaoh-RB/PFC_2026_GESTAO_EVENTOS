@@ -16,11 +16,8 @@ import {
     CheckCircle2,
     GraduationCap
 } from 'lucide-react';
+import type { OptionItem } from '@/types/optionItem';
 
-interface OptionItem {
-    id: string;
-    name: string;
-}
 
 export const Register: React.FC = () => {
     const [institutions, setInstitutions] = useState<OptionItem[]>([]);
@@ -181,8 +178,8 @@ export const Register: React.FC = () => {
                                 >
                                     <option value="" disabled>Selecione a Instituição</option>
                                     {institutions.map((inst) => (
-                                        <option key={inst.id} value={inst.id}>
-                                            {inst.id}
+                                        <option key={inst.value} value={inst.value}>
+                                            {inst.label}
                                         </option>
                                     ))}
                                 </select>
@@ -206,8 +203,8 @@ export const Register: React.FC = () => {
                                 >
                                     <option value="" disabled>Selecione o Curso</option>
                                     {courses.map((course) => (
-                                        <option key={course.id} value={course.id}>
-                                            {course.id}
+                                        <option key={course.value} value={course.value}>
+                                            {course.label}
                                         </option>
                                     ))}
                                 </select>

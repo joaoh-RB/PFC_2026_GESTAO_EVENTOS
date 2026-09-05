@@ -16,6 +16,11 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
             .WithOne(u => u.Institution)
             .HasForeignKey(u => u.InstitutionId)
             .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasMany(i => i.Events)
+                .WithOne(e => e.Institution)
+                .HasForeignKey(e => e.InstitutionId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

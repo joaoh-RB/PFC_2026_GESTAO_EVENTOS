@@ -12,5 +12,6 @@ namespace API_Gestao_Eventos.src.Domain.Entities
 
         public Guid CourseId { get; set; }
         public Course Course { get; set; } = null!;
+        public ICollection<Event> Events { get; set; } = new List<Event>();
     }
 }

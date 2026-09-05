@@ -14,8 +14,8 @@ namespace API_Gestao_Eventos.src.Application.Services
             return institutions
                 .Select(i => new SelectItemDto
                 {
-                    Id = i.Id,
-                    Name = i.Id.ToString()
+                    Value = i.Id.ToString(),
+                    Label = i.Id.ToString()
                 });
         }
     }

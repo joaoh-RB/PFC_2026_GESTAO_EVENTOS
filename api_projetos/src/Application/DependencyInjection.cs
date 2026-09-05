@@ -1,5 +1,6 @@
 ﻿using API_Gestao_Eventos.src.Application.Services;
 using API_Gestao_Eventos.src.Application.Validators.Auth;
+using API_Gestao_Eventos.src.Application.Validators.Event;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 namespace API_Gestao_Eventos.src.Application
@@ -11,8 +12,10 @@ namespace API_Gestao_Eventos.src.Application
             services.AddScoped<AuthService>();
             services.AddScoped<CourseService>();
             services.AddScoped<InstitutionService>();
+            services.AddScoped<EventService>();
             services.AddFluentValidationAutoValidation();
             services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+            services.AddValidatorsFromAssemblyContaining<CreateEventRequestValidator>();
             return services;
         }
     }
