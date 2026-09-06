@@ -175,17 +175,6 @@ export const Users: React.FC = () => {
         }
     };
 
-    const remove = async (user: ManagedUser) => {
-        if (!window.confirm(`Excluir ${user.name}? Esta ação não pode ser desfeita.`)) return;
-        setError(null);
-        try {
-            await api.delete(`/users/${user.id}`);
-            await loadUsers();
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Não foi possível excluir o usuário.');
-        }
-    };
-
     if (loading) {
         return (
             <div className="flex min-h-[60vh] items-center justify-center text-indigo-600">
@@ -317,13 +306,6 @@ export const Users: React.FC = () => {
                                                 className="rounded p-2 text-indigo-600 hover:bg-indigo-50"
                                             >
                                                 <Pencil className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                title="Excluir"
-                                                onClick={() => remove(user)}
-                                                className="rounded p-2 text-red-600 hover:bg-red-50"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
                                     </td>
