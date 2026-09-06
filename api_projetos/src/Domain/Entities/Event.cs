@@ -13,10 +13,13 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public DateTime EndDate { get; set; }
         public int Capacity { get; set; }
         public ICollection<Student> Students { get; set; } = new List<Student>();
+        public ICollection<EventStudent> EventStudents { get; set; } = new List<EventStudent>();
         public ICollection<Course> AllowedCourses { get; set; } = new List<Course>();
+        public ICollection<EventAllowedCourse> EventAllowedCourses { get; set; } = new List<EventAllowedCourse>();
         public bool IsActive { get; set; } = true;
         public bool AllowDocuments { get; set; }
         public EventType EventType { get; set; }
+        //public EventStatus EventStatus { get; set; }
     }
     public enum RegistrationStatus
     {
@@ -24,6 +27,12 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         Canceled = 2,
         Attended = 3
     }
+    public enum EventStatus
+    {
+        Agendado = 1,
+        Cancelado = 2
+    }
+
     public class EventStudent
     {
         public Guid EventId { get; set; }

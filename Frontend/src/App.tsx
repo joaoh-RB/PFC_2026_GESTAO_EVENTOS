@@ -6,11 +6,8 @@ import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { UserSettings } from './pages/UserSettings';
 import { AuthenticatedLayout } from './components/AuthenticatedLayout';
-<<<<<<< HEAD
 import { CreateInstitution } from './pages/CreateInstitution';
 import { CreateCourse } from './pages/CreateCourse';
-
-=======
 import { Events } from './pages/Events';
 import { Users } from './pages/Users';
 export default function App() {

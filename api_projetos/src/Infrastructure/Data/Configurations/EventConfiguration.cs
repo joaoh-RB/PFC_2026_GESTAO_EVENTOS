@@ -25,6 +25,10 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
                    .HasForeignKey(i => i.InstitutionId)
                    .OnDelete(DeleteBehavior.Restrict);
 
+            //builder.Property(e => e.EventStatus)
+            //       .HasDefaultValue(EventStatus.Agendado)
+            //       .IsRequired(true);
+
             builder.HasMany(e => e.Students)
                    .WithMany(s => s.Events)
                    .UsingEntity<EventStudent>(
@@ -33,7 +37,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
                                 .HasForeignKey(es => es.StudentId)
                                 .OnDelete(DeleteBehavior.Cascade),
                         j => j.HasOne(es => es.Event)
-                                .WithMany()
+                                .WithMany(es => es.EventStudents)
                                 .HasForeignKey(es => es.EventId)
                                 .OnDelete(DeleteBehavior.Cascade),
                         j =>
@@ -52,7 +56,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
                           .HasForeignKey(eac => eac.CourseId)
                           .OnDelete(DeleteBehavior.Cascade),
                     j => j.HasOne(eac => eac.Event)
-                          .WithMany()
+                          .WithMany(eac => eac.EventAllowedCourses)
                           .HasForeignKey(eac => eac.EventId)
                           .OnDelete(DeleteBehavior.Cascade),
                     j =>

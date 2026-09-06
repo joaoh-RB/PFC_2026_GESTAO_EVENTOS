@@ -305,17 +305,11 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.HasDiscriminator().HasValue(2);
                 });
 
-<<<<<<< HEAD
-            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Course", b =>
-                {
-                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Institution", "Institution")
-                        .WithMany()
-=======
+
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Event", b =>
                 {
                     b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Institution", "Institution")
                         .WithMany("Events")
->>>>>>> 7b0c935aabc5bad94f5fb9dba2e4cece0a6b6072
                         .HasForeignKey("InstitutionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -323,8 +317,6 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Navigation("Institution");
                 });
 
-<<<<<<< HEAD
-=======
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.EventAllowedCourse", b =>
                 {
                     b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Course", "Course")
@@ -363,7 +355,6 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Navigation("Student");
                 });
 
->>>>>>> 7b0c935aabc5bad94f5fb9dba2e4cece0a6b6072
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.User", b =>
                 {
                     b.HasOne("API_Gestao_Eventos.src.Domain.Entities.User", "ApprovedByUser")

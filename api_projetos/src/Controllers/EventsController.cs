@@ -27,14 +27,42 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        [HttpPut("{id:guid}")]
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador))]
+        public async Task<IActionResult> UpdateEvent([FromRoute] Guid id, [FromBody] CreateEventRequestDto request)
+        {
+            try
+            {
+                await eventService.UpdateAsync(id, request);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        [HttpDelete("{id:guid}")]
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador))]
+        public async Task<IActionResult> DeleteEvent([FromRoute] Guid id)
+        {
+            try
+            {
+                await eventService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> GetEvents()
+        public async Task<IActionResult> GetEvents([FromQuery] EventFilterDto eventFilterDto)
         {
             try
             {
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var events = await eventService.GetAllAvailableForUserAsync(userId);
+                var events = await eventService.GetFilteredEventsPagedAsync(eventFilterDto, userId);
                 return Ok(events);
             }
             catch (Exception ex)

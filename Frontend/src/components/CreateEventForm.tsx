@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -6,8 +6,6 @@ import {
   type CreateEventFormData,
 } from "../schemas/eventSchema";
 import { Loader2, AlertCircle, CheckCircle2, CalendarPlus } from "lucide-react";
-
-// Componentes shadcn (Ajuste os caminhos conforme a sua estrutura)
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -42,6 +40,7 @@ interface CreateEventFormProps {
   institutions: OptionItem[];
   courses: OptionItem[];
   eventTypes: OptionItem[];
+  currentEventData?: CreateEventFormData | null;
   userInstitutionId?: string | null;
   onSubmit: (data: CreateEventFormData) => void;
   isSubmitting: boolean;
@@ -53,6 +52,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
   institutions,
   courses,
   eventTypes,
+  currentEventData,
   userInstitutionId,
   onSubmit,
   isSubmitting,
@@ -65,17 +65,40 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
     register,
     handleSubmit,
     control,
+    reset,
     formState: { errors },
   } = useForm<CreateEventFormData>({
     resolver: zodResolver(createEventSchema) as Resolver<CreateEventFormData>,
     mode: "onBlur",
     defaultValues: {
+      capacity: 0,
+      name: "",
+      description: "",
+      startDate: "",
+      endDate: "",
       institutionId: userInstitutionId || "",
-      eventType: undefined,
+      eventType: 0,
       allowDocuments: false,
       allowedCourses: [],
     },
   });
+
+  useEffect(() => {
+    if (currentEventData) {
+      reset({
+        name: currentEventData.name || "",
+        description: currentEventData.description || "",
+        institutionId:
+          currentEventData.institutionId || userInstitutionId || "",
+        startDate: currentEventData.startDate,
+        endDate: currentEventData.endDate,
+        capacity: currentEventData.capacity,
+        eventType: currentEventData.eventType,
+        allowDocuments: currentEventData.allowDocuments ?? false,
+        allowedCourses: currentEventData.allowedCourses || [],
+      });
+    }
+  }, [currentEventData, reset, userInstitutionId]);
 
   return (
     <Card className="max-w-4xl mx-auto shadow-xl border-slate-100">
@@ -84,10 +107,12 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
           <CalendarPlus className="h-6 w-6" />
         </div>
         <CardTitle className="text-2xl font-bold text-slate-900">
-          Criar Novo Evento
+          {currentEventData ? "Atualizar Evento" : "Criar Novo Evento"}
         </CardTitle>
         <p className="mt-1 text-sm text-slate-600">
-          Preencha os dados abaixo para cadastrar um novo evento acadêmico
+          {currentEventData
+            ? "Preencha os dados abaixo para atualizar o evento"
+            : "Preencha os dados abaixo para cadastrar um novo evento acadêmico"}
         </p>
       </CardHeader>
 
@@ -145,11 +170,14 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                   name="institutionId"
                   control={control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select
+                      items={institutions}
+                      onValueChange={field.onChange}
+                      value={field.value}>
                       <SelectTrigger className={"w-full"}>
                         <SelectValue placeholder="Selecione uma instituição" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent alignItemWithTrigger={true}>
                         {institutions.map((inst) => (
                           <SelectItem key={inst.value} value={inst.value}>
                             {inst.label}
@@ -221,7 +249,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                     <SelectTrigger className={"w-full"}>
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent alignItemWithTrigger={true}>
                       {eventTypes.map((type) => (
                         <SelectItem
                           key={type.value}
@@ -313,8 +341,10 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Criando
                 evento...
               </>
+            ) : currentEventData ? (
+              "Atualizar Evento"
             ) : (
-              "Finalizar Criação do Evento"
+              "Criar Evento"
             )}
           </Button>
         </form>

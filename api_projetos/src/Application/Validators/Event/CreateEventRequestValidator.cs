@@ -25,7 +25,7 @@ namespace API_Gestao_Eventos.src.Application.Validators.Event
                 .GreaterThan(0)
                 .WithMessage("A capacidade do evento deve ser maior que zero.");
             RuleFor(x => x.EventType)
-                .NotEmpty()
+                .IsInEnum()
                 .WithMessage("O tipo de evento é obrigatório.");
             RuleFor(x => x.Capacity)
                 .NotEmpty()

@@ -1,88 +1,174 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { CreateEventForm } from '../components/CreateEventForm'; // Importa o componente que criamos
-import { type CreateEventFormData } from '../schemas/eventSchema';
-import { useAuth } from '../hooks/useAuth';
-
-interface OptionItem {
-  id: string;
-  name: string;
-}
+import React, { useEffect, useState, useCallback } from "react";
+import { api } from "../services/api";
+import { AlertCircle, Plus, ListFilter } from "lucide-react";
+import { CreateEventForm } from "../components/CreateEventForm";
+import {
+  EventsList,
+  type EventItem,
+  type EventFilterState,
+} from "@/components/EventList";
+import { Button } from "@/components/ui/button";
+import { type CreateEventFormData } from "../schemas/eventSchema";
+import { useAuth } from "../hooks/useAuth";
+import type { OptionItem } from "@/types/optionItem";
+import { formatForDatetimeLocal} from "@/utils/format";
+import{ type PagedResult } from "@/types/utils";
+import { InitialLoading } from "@/components/InitialLoading";
 
 export const Events: React.FC = () => {
-  const navigate = useNavigate();
-
-  // Estados de dados da página
+  const pageSize = 6;
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
   const [courses, setCourses] = useState<OptionItem[]>([]);
   const [eventTypes, setEventTypes] = useState<OptionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [editing, setIsEditing] = useState(false);
 
-  // Estados de submissão
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const [eventsData, setEventsData] = useState<PagedResult<EventItem>>({
+    items: [],
+    totalItems: 0,
+    pageNumber: 1,
+    pageSize: pageSize,
+    totalPages: 1,
+    hasPreviousPage: false,
+    hasNextPage: false,
+  });
+  const [currentEventBeingUpdated, setEventBeingUpdated] =
+    useState<CreateEventFormData | null>(null);
+
+  const [isEventsLoading, setIsEventsLoading] = useState(false);
+  const [filters, setFilters] = useState<EventFilterState>({
+    fromDate: new Date().toISOString().split("T")[0],
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+
   const { user } = useAuth();
-  const userInstitutionId = user?.institutionId || null; 
+  const userInstitutionId = user?.institutionId || null;
 
-  // 1. Busca os dados ao carregar a página
   useEffect(() => {
-    let isMounted = true;
+    const controller = new AbortController();
 
-    const loadData = async () => {
+    const loadInitialData = async () => {
       try {
         const [instRes, courseRes, eventTypesRes] = await Promise.all([
-          api.get<OptionItem[]>('/institutions'),
-          api.get<OptionItem[]>('/courses'),
-          api.get<OptionItem[]>('/events/types'),
+          api.get<OptionItem[]>("/institutions"),
+          api.get<OptionItem[]>("/courses"),
+          api.get<OptionItem[]>("/events/types"),
         ]);
-
-        if (isMounted) {
-          setInstitutions(instRes.data);
-          setCourses(courseRes.data);
-          setEventTypes(eventTypesRes.data);
-          setIsLoading(false);
-        }
+        setInstitutions(instRes.data);
+        setCourses(courseRes.data);
+        setEventTypes(eventTypesRes.data);
       } catch {
-        if (isMounted) {
-          setPageError('Não foi possível carregar as informações do sistema.');
-          setIsLoading(false);
-        }
+        if (controller.signal.aborted) return;
+        setPageError("Não foi possível carregar as informações do sistema.");
+      } finally {
+        setIsInitialLoading(false);
       }
     };
 
-    loadData();
+    loadInitialData();
 
-    return () => { isMounted = false; };
+    return () => {
+      controller.abort();
+    };
   }, []);
 
+  const fetchEvents = useCallback(
+    async (appliedFilters = filters) => {
+      setIsEventsLoading(true);
+      try {
+        const params: Record<string, string | number> = {
+          pageNumber: currentPage,
+          pageSize: pageSize,
+        };
+        if (appliedFilters.fromDate) {
+          params.fromDate = new Date(
+            `${appliedFilters.fromDate}T00:00:00-03:00`,
+          ).toISOString();
+        }
+        if (appliedFilters.institutionId) {
+          params.institutionId = appliedFilters.institutionId;
+        }
+
+        const res = await api.get<PagedResult<EventItem>>("/events", {
+          params,
+        });
+
+        setEventsData(res.data);
+      } catch (err) {
+        console.error("Erro ao buscar eventos", err);
+      } finally {
+        setIsEventsLoading(false);
+      }
+    },
+    [filters, currentPage],
+  );
+
+  useEffect(() => {
+    if (!editing) {
+      fetchEvents(filters);
+    }
+  }, [editing, currentPage, fetchEvents, filters]);
+
+  //handle dos outros copmonentes
+  const handleFilterChange = (newFilters: EventFilterState) => {
+    setCurrentPage(1);
+    setFilters(newFilters);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  const handleStartEdition = (eventItem: EventItem) => {
+    setEventBeingUpdated({
+      id: eventItem.id,
+      name: eventItem.name,
+      description: eventItem.description,
+      institutionId: eventItem.institutionId,
+      startDate: formatForDatetimeLocal(eventItem.startDate),
+      endDate: formatForDatetimeLocal(eventItem.endDate),
+      capacity: eventItem.capacity,
+      eventType: eventItem.eventType,
+      allowDocuments: eventItem.allowDocuments,
+      allowedCourses: eventItem.allowedCourseIds,
+    });
+    setIsEditing(true);
+  };
+
+  //chamadas api evento
   const handleCreateEvent = async (data: CreateEventFormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
-      await api.post('/events', data);
+      if (currentEventBeingUpdated) {
+        await api.put(`/events/${currentEventBeingUpdated.id}`, data);
+      } else {
+        await api.post("/events", data);
+      }
       setIsSuccess(true);
-      
+      setTimeout(() => {
+        setIsSuccess(false);
+        setIsEditing(false);
+      }, 1500);
     } catch (err: any) {
-      setSubmitError(err.response?.data?.message || 'Erro ao criar o evento.');
+      setSubmitError(err.response?.data?.message || "Erro ao criar o evento.");
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  if (isLoading) {
+  const handleDelete = async (eventId: string) => {
+    await api.delete(`/events/${eventId}`);
+    setCurrentPage(1);
+    fetchEvents();
+  };
+  if (isInitialLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-2 text-indigo-600">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="text-sm font-medium">Carregando formulário...</span>
-        </div>
-      </div>
+      <InitialLoading></InitialLoading>
     );
   }
 
@@ -92,29 +178,76 @@ export const Events: React.FC = () => {
         <div className="flex max-w-md flex-col items-center gap-4 rounded-xl bg-white p-8 text-center shadow-lg">
           <AlertCircle className="h-12 w-12 text-red-500" />
           <p className="text-slate-800 font-medium">{pageError}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="text-sm text-indigo-600 hover:underline"
-          >
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
+            className="mt-2">
             Tentar novamente
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
-      <CreateEventForm 
-        institutions={institutions}
-        courses={courses}
-        eventTypes={eventTypes}
-        userInstitutionId={userInstitutionId}
-        onSubmit={handleCreateEvent}
-        isSubmitting={isSubmitting}
-        isSuccess={isSuccess}
-        apiError={submitError}
-      />
+    <div className="min-h-screen bg-slate-50 py-10">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-slate-900">
+            {editing
+              ? currentEventBeingUpdated
+                ? "Atualizar evento"
+                : "Novo Evento"
+              : "Eventos Disponíveis"}
+          </h1>
+
+          <Button
+            onClick={() => {
+              setIsEditing(!editing);
+              setSubmitError(null);
+              setEventBeingUpdated(null);
+            }}
+            variant={editing ? "outline" : "default"}
+            className={editing ? "" : "bg-indigo-600 hover:bg-indigo-700"}>
+            {editing ? (
+              <>
+                <ListFilter className="mr-2 h-4 w-4" />
+                Ver Lista de Eventos
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" />
+                Criar Evento
+              </>
+            )}
+          </Button>
+        </div>
+
+        {editing ? (
+          <CreateEventForm
+            institutions={institutions}
+            courses={courses}
+            eventTypes={eventTypes}
+            userInstitutionId={userInstitutionId}
+            onSubmit={handleCreateEvent}
+            isSubmitting={isSubmitting}
+            isSuccess={isSuccess}
+            apiError={submitError}
+            currentEventData={currentEventBeingUpdated}
+          />
+        ) : (
+          <EventsList
+            data={eventsData}
+            institutions={institutions}
+            isLoading={isEventsLoading}
+            currentFilters={filters}
+            onFilter={handleFilterChange}
+            onPageChange={handlePageChange}
+            handleStartEdition={handleStartEdition}
+            handleDelete={handleDelete}
+          />
+        )}
+      </div>
     </div>
   );
 };

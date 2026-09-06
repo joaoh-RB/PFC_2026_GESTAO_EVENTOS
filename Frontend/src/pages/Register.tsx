@@ -179,13 +179,8 @@ export const Register: React.FC = () => {
                                 >
                                     <option value="" disabled>Selecione a Instituição</option>
                                     {institutions.map((inst) => (
-<<<<<<< HEAD
-                                        <option key={inst.name} value={inst.name}>
-                                            {inst.name}
-=======
                                         <option key={inst.value} value={inst.value}>
                                             {inst.label}
->>>>>>> 7b0c935aabc5bad94f5fb9dba2e4cece0a6b6072
                                         </option>
                                     ))}
                                 </select>
