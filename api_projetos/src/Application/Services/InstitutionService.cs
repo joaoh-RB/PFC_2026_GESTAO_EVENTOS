@@ -43,5 +43,29 @@ namespace API_Gestao_Eventos.src.Application.Services
             await _institutionRepository.AddAsync(institution);
             return institution.Id;
         }
+        public async Task<InstitutionDetailDto?> GetByIdAsync(
+            Guid id,
+            bool isAdmin,
+            Guid? callerInstitutionId,
+            bool isInstitutionAdmin)
+        {
+            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == id);
+            if (!isAllowed)
+                throw new UnauthorizedAccessException("Você não tem permissão para consultar esta instituição.");
+
+            var institution = await _institutionRepository.GetByIdAsync(id);
+            if (institution == null) return null;
+
+            return new InstitutionDetailDto
+            {
+                Id = institution.Id,
+                Name = institution.Name,
+                Cnpj = institution.Cnpj?.ToString(),
+                Address = institution.Address,
+                Phone = institution.Phone,
+                IsActive = institution.IsActive,
+                CreatedAt = institution.CreatedAt
+            };
+        }
     }
 }

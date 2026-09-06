@@ -36,6 +36,14 @@ namespace API_Gestao_Eventos.src.Infrastructure.Services.Security
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
+            if (user.InstitutionId.HasValue)
+            {
+                claims.Add(new Claim("InstitutionId", user.InstitutionId.Value.ToString()));
+            }
+
+            var isInstitutionAdmin = user is Teacher teacher && teacher.IsInstitutionAdmin;
+            claims.Add(new Claim("IsInstitutionAdmin", isInstitutionAdmin.ToString().ToLower()));
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
