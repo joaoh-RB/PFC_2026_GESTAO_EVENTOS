@@ -42,8 +42,8 @@ namespace API_Gestao_Eventos.src.Application.Services
 
             return new AuthResponseDto
             {
-               RequiresTwoFactor = false,
-               Message = "Cadastro realizado com sucesso, seu usuário está pendente de aprovação. Entre em contato com sua instituição em caso de dúvidas. Assim que o acesso for aprovado será enviado um e-mail contendo as informações de acesso."
+                RequiresTwoFactor = false,
+                Message = "Cadastro realizado com sucesso, seu usuário está pendente de aprovação. Entre em contato com sua instituição em caso de dúvidas. Assim que o acesso for aprovado será enviado um e-mail contendo as informações de acesso."
             };
         }
 
@@ -85,7 +85,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                     Id = user.Id,
                     Name = user.Name,
                     Email = user.Email,
-                    Role = user.Role.ToString()
+                    Role = user.Role.ToString(),
+                    TwoFactorEnabled = user.TwoFactorEnabled
                 }
             };
         }

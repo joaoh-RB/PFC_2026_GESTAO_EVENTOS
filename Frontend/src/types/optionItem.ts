@@ -2,12 +2,3 @@ export interface OptionItem{
     value: string;
     label: string;
 }
-export interface PagedResult<T> {
-  items: T[];
-  totalItems: number;
-  pageNumber: number;
-  pageSize: number;
-  totalPages: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
-}
