@@ -1,5 +1,7 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.Utils;
+﻿using API_Gestao_Eventos.src.Application.DTO.Course;
+using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API_Gestao_Eventos.src.Controllers
@@ -19,6 +21,20 @@ namespace API_Gestao_Eventos.src.Controllers
         {
             var result = await _courseService.GetCoursesForSelectAsync();
             return Ok(result);
+        }
+        [Authorize(Roles = "Administrador")]
+        [HttpPost] // POST /api/courses
+        public async Task<IActionResult> Create([FromBody] CreateCourseDto request)
+        {
+            try
+            {
+                var id = await _courseService.CreateCourseAsync(request);
+                return StatusCode(StatusCodes.Status201Created, new { id });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

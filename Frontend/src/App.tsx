@@ -6,6 +6,8 @@ import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { UserSettings } from './pages/UserSettings';
 import { AuthenticatedLayout } from './components/AuthenticatedLayout';
+import { CreateInstitution } from './pages/CreateInstitution';
+import { CreateCourse } from './pages/CreateCourse';
 
 export default function App() {
     return (
@@ -21,6 +23,8 @@ export default function App() {
                         <Route element={<AuthenticatedLayout />}>
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/settings" element={<UserSettings />} />
+                            <Route path="/institutions/new" element={<CreateInstitution />} />
+                            <Route path="/courses/new" element={<CreateCourse />} />
                         </Route>
                     </Route>
 

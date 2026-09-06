@@ -15,5 +15,15 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         {
             return await _context.Courses.ToListAsync();
         }
+        public async Task<bool> ExistsByNameAsync(string name, Guid institutionId)
+        {
+            return await _context.Courses.AnyAsync(c =>
+                c.Name.ToLower() == name.ToLower() && c.InstitutionId == institutionId);
+        }
+        public async Task AddAsync(Course course)
+        {
+            await _context.Courses.AddAsync(course);
+            await _context.SaveChangesAsync();
+        }
     }
 }

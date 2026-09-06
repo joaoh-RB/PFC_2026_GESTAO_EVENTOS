@@ -15,5 +15,18 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         {
             return await _context.Institutions.ToListAsync();
         }
+        public async Task<bool> ExistsByNameAsync(string name)
+        {
+            return await _context.Institutions.AnyAsync(i => i.Name.ToLower() == name.ToLower());
+        }
+        public async Task<bool> ExistsByCnpjAsync(Domain.Cnpj cnpj)
+        {
+            return await _context.Institutions.AnyAsync(i => i.Cnpj == cnpj);
+        }
+        public async Task AddAsync(Institution institution)
+        {
+            await _context.Institutions.AddAsync(institution);
+            await _context.SaveChangesAsync();
+        }
     }
 }

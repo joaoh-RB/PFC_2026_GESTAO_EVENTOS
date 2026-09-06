@@ -1,5 +1,4 @@
 ﻿using API_Gestao_Eventos.src.Domain.Enums;
-using System.Data;
 
 namespace API_Gestao_Eventos.src.Domain.Entities
 {
