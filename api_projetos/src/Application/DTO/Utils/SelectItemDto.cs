@@ -3,7 +3,7 @@
     //Classe pra itens de Select html
     public class SelectItemDto
     {
-        public Guid Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 }

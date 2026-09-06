@@ -4,6 +4,7 @@ using API_Gestao_Eventos.src.Infrastructure.Services.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 
 namespace API_Gestao_Eventos.src.Infrastructure
@@ -24,6 +25,7 @@ namespace API_Gestao_Eventos.src.Infrastructure
             services.AddScoped<UserRepository>();
             services.AddScoped<InstitutionRepository>();
             services.AddScoped<CourseRepository>();
+            services.AddScoped<EventRepository>();
             var jwtSettings = configuration.GetSection("JwtSettings");
             var secretKey = jwtSettings["Secret"] ?? "abc";
 
@@ -41,7 +43,8 @@ namespace API_Gestao_Eventos.src.Infrastructure
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
                     ValidateIssuer = false,
-                    ValidateAudience = false
+                    ValidateAudience = false,
+                    RoleClaimType = ClaimTypes.Role
                 };
                 options.Events = new JwtBearerEvents
                 {

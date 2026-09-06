@@ -13,6 +13,7 @@ namespace API_Gestao_Eventos.src.Application.Services
             var institutions = await _institutionRepository.GetAllAsync();
             return institutions.Select(i => new SelectItemDto
                 {
+<<<<<<< HEAD
                     Id = i.Id,
                     Name = i.Name
                 }); 
@@ -42,6 +43,11 @@ namespace API_Gestao_Eventos.src.Application.Services
 
             await _institutionRepository.AddAsync(institution);
             return institution.Id;
+=======
+                    Value = i.Id.ToString(),
+                    Label = i.Id.ToString()
+                });
+>>>>>>> 7b0c935aabc5bad94f5fb9dba2e4cece0a6b6072
         }
     }
 }

@@ -10,5 +10,6 @@
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public ICollection<Student> Students { get; set; } = new List<Student>();
         public ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
+        public ICollection<Event> Events { get; set; } = new List<Event>();
     }
 }

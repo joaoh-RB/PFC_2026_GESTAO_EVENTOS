@@ -30,6 +30,12 @@ const navItems: NavItem[] = [
         path: '/settings',
         icon: Settings,
     },
+    {
+        label: 'Eventos',
+        path: '/events',
+        icon: GraduationCap,
+        roles: ['Administrador', 'Professor'],
+    }
 ];
 
 export const Header: React.FC = () => {
