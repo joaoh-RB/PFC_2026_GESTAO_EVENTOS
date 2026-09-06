@@ -18,10 +18,20 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
             builder.HasIndex(u => u.Email).IsUnique();
 
             builder.HasOne(u => u.Institution)
-            .WithMany(i => i.Users)
-            .IsRequired(false)
-            .HasForeignKey(u => u.InstitutionId)
-            .OnDelete(DeleteBehavior.Restrict);
+                .WithMany(i => i.Users)
+                .IsRequired(false)
+                .HasForeignKey(u => u.InstitutionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(u => u.ApprovalStatus)
+                .IsRequired()
+                .HasDefaultValue(UserApprovalStatus.Pendente);
+
+            builder.HasOne(u => u.ApprovedByUser)
+                .WithMany()
+                .IsRequired(false)
+                .HasForeignKey(u => u.ApprovedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasDiscriminator<UserRole>("Role")
                 .HasValue<Student>(UserRole.Aluno)
@@ -29,6 +39,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
                 .HasValue<Administrator>(UserRole.Administrador);
         }
     }
+
     public class StudentConfiguration : IEntityTypeConfiguration<Student>
     {
         public void Configure(EntityTypeBuilder<Student> builder)
@@ -37,9 +48,9 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
                 .HasMaxLength(20).IsRequired(true);
 
             builder.HasIndex(s => new { s.UniqueIdentifier, s.InstitutionId })
-            .IsUnique()
-            .HasFilter("\"UniqueIdentifier\" IS NOT NULL AND \"InstitutionId\" IS NOT NULL");
-            
+                .IsUnique()
+                .HasFilter("\"UniqueIdentifier\" IS NOT NULL AND \"InstitutionId\" IS NOT NULL");
+
             builder.HasOne(s => s.Course)
                 .WithMany(c => c.Students)
                 .HasForeignKey(s => s.CourseId)

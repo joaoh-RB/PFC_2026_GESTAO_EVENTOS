@@ -7,6 +7,7 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public Teacher()
         {
             Role = UserRole.Professor;
+            ApprovalStatus = UserApprovalStatus.Aprovado;
         }
         public ICollection<Course> Courses { get; set; } = new List<Course>();
     }

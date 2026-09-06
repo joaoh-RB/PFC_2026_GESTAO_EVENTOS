@@ -12,7 +12,7 @@ import { CreateCourse } from './pages/CreateCourse';
 
 =======
 import { Events } from './pages/Events';
->>>>>>> 7b0c935aabc5bad94f5fb9dba2e4cece0a6b6072
+import { Users } from './pages/Users';
 export default function App() {
     return (
         <BrowserRouter>
@@ -27,6 +27,7 @@ export default function App() {
                         <Route element={<AuthenticatedLayout />}>
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/settings" element={<UserSettings />} />
+                            <Route path="/users" element={<Users />} />
                             <Route path="/institutions/new" element={<CreateInstitution />} />
                             <Route path="/courses/new" element={<CreateCourse />} />
                         </Route>

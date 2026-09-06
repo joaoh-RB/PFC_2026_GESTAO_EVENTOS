@@ -3,6 +3,7 @@ using System;
 using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260906002218_AdicionarAprovacaoUsuarto")]
+    partial class AdicionarAprovacaoUsuarto
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -28,26 +31,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("InstitutionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("InstitutionId");
-
-                    b.HasIndex("Name", "InstitutionId")
-                        .IsUnique();
 
                     b.ToTable("Courses", (string)null);
                 });
@@ -149,37 +133,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Address")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<string>("Cnpj")
-                        .HasMaxLength(14)
-                        .HasColumnType("character varying(14)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("Phone")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("Cnpj")
-                        .IsUnique()
-                        .HasFilter("\"Cnpj\" IS NOT NULL");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
 
                     b.ToTable("Institutions", (string)null);
                 });
@@ -299,23 +253,13 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                 {
                     b.HasBaseType("API_Gestao_Eventos.src.Domain.Entities.User");
 
-                    b.Property<bool>("IsInstitutionAdmin")
-                        .HasColumnType("boolean");
-
                     b.HasDiscriminator().HasValue(2);
                 });
 
-<<<<<<< HEAD
-            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Course", b =>
-                {
-                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Institution", "Institution")
-                        .WithMany()
-=======
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Event", b =>
                 {
                     b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Institution", "Institution")
                         .WithMany("Events")
->>>>>>> 7b0c935aabc5bad94f5fb9dba2e4cece0a6b6072
                         .HasForeignKey("InstitutionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -323,8 +267,6 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Navigation("Institution");
                 });
 
-<<<<<<< HEAD
-=======
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.EventAllowedCourse", b =>
                 {
                     b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Course", "Course")
@@ -363,7 +305,6 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Navigation("Student");
                 });
 
->>>>>>> 7b0c935aabc5bad94f5fb9dba2e4cece0a6b6072
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.User", b =>
                 {
                     b.HasOne("API_Gestao_Eventos.src.Domain.Entities.User", "ApprovedByUser")

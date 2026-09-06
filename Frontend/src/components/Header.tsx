@@ -10,6 +10,7 @@ import {
     Menu,
     X,
     User,
+    UserRound,
 } from 'lucide-react';
 
 interface NavItem {
@@ -34,6 +35,12 @@ const navItems: NavItem[] = [
         label: 'Eventos',
         path: '/events',
         icon: GraduationCap,
+        roles: ['Administrador', 'Professor'],
+    },
+    {
+        label: 'Usuários',
+        path: '/users',
+        icon: UserRound,
         roles: ['Administrador', 'Professor'],
     }
 ];

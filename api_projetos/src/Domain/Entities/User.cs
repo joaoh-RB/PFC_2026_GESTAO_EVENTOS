@@ -17,6 +17,14 @@ namespace API_Gestao_Eventos.src.Domain.Entities
 
         public bool IsActive { get; set; } = true;
 
+        public UserApprovalStatus ApprovalStatus { get; set; } = UserApprovalStatus.Pendente;
+
+        public Guid? ApprovedByUserId { get; set; }
+
+        public User? ApprovedByUser { get; set; }
+
+        public DateTime? ApprovedDate { get; set; }
+
         public bool TwoFactorEnabled { get; set; } = false;
 
         public string? TwoFactorSecretKey { get; set; }

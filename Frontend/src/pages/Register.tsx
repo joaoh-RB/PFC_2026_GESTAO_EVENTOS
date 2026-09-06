@@ -24,6 +24,7 @@ export const Register: React.FC = () => {
     const [courses, setCourses] = useState<OptionItem[]>([]);
     const [apiError, setApiError] = useState<string | null>(null);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
 
     const navigate = useNavigate();
 
@@ -76,7 +77,7 @@ export const Register: React.FC = () => {
                 institutionId: data.institutionId,
                 courseId: data.courseId,
             });
-
+            setSuccessMessage('Cadastro realizado com sucesso, seu usuário está pendente de aprovação. Entre em contato com sua instituição em caso de dúvidas. Assim que o acesso for aprovado será enviado um e-mail.');
             setIsSuccess(true);
             setTimeout(() => navigate('/login'), 2000);
         } catch (err: any) {
@@ -105,7 +106,7 @@ export const Register: React.FC = () => {
                 {isSuccess && (
                     <div className="mb-6 flex items-center gap-2 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-700">
                         <CheckCircle2 className="h-5 w-5 shrink-0" />
-                        <span>Cadastro realizado com sucesso! Redirecionando para o login...</span>
+                        <span>{successMessage}</span>
                     </div>
                 )}
 

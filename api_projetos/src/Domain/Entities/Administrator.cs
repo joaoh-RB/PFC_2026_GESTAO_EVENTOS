@@ -7,6 +7,7 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public Administrator()
         {
             Role = UserRole.Administrador;
+            ApprovalStatus = UserApprovalStatus.Aprovado;
         }
     }
 }
