@@ -15,6 +15,10 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         {
             return await _context.Institutions.ToListAsync();
         }
+        public async Task<Institution?> GetByIdAsync(Guid id)
+        {
+            return await _context.Institutions.FindAsync(id);
+        }
         public async Task<bool> ExistsByNameAsync(string name)
         {
             return await _context.Institutions.AnyAsync(i => i.Name.ToLower() == name.ToLower());

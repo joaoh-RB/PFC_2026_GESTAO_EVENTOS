@@ -79,10 +79,6 @@ namespace API_Gestao_Eventos.src.Application.Services
             user.UpdatedAt = DateTime.UtcNow;
             await userRepository.UpdateAsync(user);
         }
-        public async Task DeleteAsync(Guid id)
-        {
-            await userRepository.DeleteAsync(await GetStudentAsync(id));
-        }
         private async Task<Student> GetStudentAsync(Guid id) =>
             await userRepository.GetStudentByIdAsync(id)
                 ?? throw new KeyNotFoundException("Usuário não encontrado.");

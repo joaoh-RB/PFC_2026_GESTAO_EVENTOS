@@ -18,6 +18,9 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         public async Task<IEnumerable<Course>> GetByInstitutionAsync(Guid institutionId)
         {
             return await _context.Courses.Where(c => c.InstitutionId == institutionId).ToListAsync();
+        public async Task<Course?> GetByIdAsync(Guid id)
+        {
+            return await _context.Courses.FindAsync(id);
         }
         public async Task<bool> ExistsByNameAsync(string name, Guid institutionId)
         {

@@ -9,7 +9,7 @@ namespace API_Gestao_Eventos.src.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "Administrador,Professor")]
     public class UsersController(UserService userService) : ControllerBase
     {
         [HttpGet]
@@ -58,20 +58,6 @@ namespace API_Gestao_Eventos.src.Controllers
                 return Ok(new { message = request.IsActive ? "Usuário ativado." : "Usuário inativado." });
             }
             catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
-        }
-        [HttpDelete("{id:guid}")]
-        public async Task<IActionResult> Delete(Guid id)
-        {
-            try
-            {
-                await userService.DeleteAsync(id);
-                return NoContent();
-            }
-            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
-            catch (Exception)
-            {
-                return Conflict(new { message = "Não foi possível excluir o usuário porque há registros vinculados. Inative-o." });
-            }
         }
         public class ApprovalRequest
         {
