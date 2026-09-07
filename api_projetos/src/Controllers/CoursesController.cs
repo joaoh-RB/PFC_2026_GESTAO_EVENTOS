@@ -17,9 +17,9 @@ namespace API_Gestao_Eventos.src.Controllers
             _courseService = courseService;
         }
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<SelectItemDto>>> GetAll()
+        public async Task<ActionResult<IEnumerable<SelectItemDto>>> GetAll([FromQuery] Guid? institutionId)
         {
-            var result = await _courseService.GetCoursesForSelectAsync();
+            var result = await _courseService.GetCoursesForSelectAsync(institutionId);
             return Ok(result);
         }
         [Authorize(Roles = "Administrador")]

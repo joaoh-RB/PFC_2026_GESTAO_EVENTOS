@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { type CreateEventFormData } from "../schemas/eventSchema";
 import { useAuth } from "../hooks/useAuth";
 import type { OptionItem } from "@/types/optionItem";
-import { formatForDatetimeLocal} from "@/utils/format";
-import{ type PagedResult } from "@/types/utils";
+import { formatForDatetimeLocal } from "@/utils/format";
+import { type PagedResult } from "@/types/utils";
 import { InitialLoading } from "@/components/InitialLoading";
 
 export const Events: React.FC = () => {
@@ -49,18 +49,23 @@ export const Events: React.FC = () => {
   const { user } = useAuth();
   const userInstitutionId = user?.institutionId || null;
 
+  const fetchCourses = async (institutionId: string | null) => {
+    await api.get<OptionItem[]>("/courses", { params: { institutionId } }).then((res) => {
+      setCourses(res.data);
+    })
+  };
+
   useEffect(() => {
     const controller = new AbortController();
 
     const loadInitialData = async () => {
       try {
-        const [instRes, courseRes, eventTypesRes] = await Promise.all([
+        const [instRes, eventTypesRes] = await Promise.all([
           api.get<OptionItem[]>("/institutions"),
-          api.get<OptionItem[]>("/courses"),
           api.get<OptionItem[]>("/events/types"),
         ]);
         setInstitutions(instRes.data);
-        setCourses(courseRes.data);
+        fetchCourses(null);
         setEventTypes(eventTypesRes.data);
       } catch {
         if (controller.signal.aborted) return;
@@ -76,6 +81,7 @@ export const Events: React.FC = () => {
       controller.abort();
     };
   }, []);
+
 
   const fetchEvents = useCallback(
     async (appliedFilters = filters) => {
@@ -120,10 +126,14 @@ export const Events: React.FC = () => {
     setFilters(newFilters);
   };
 
+  const handleInstitutionChange = (institutionId: string) => {
+    fetchCourses(institutionId);
+  };
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
   const handleStartEdition = (eventItem: EventItem) => {
+    fetchCourses(eventItem.institutionId);
     setEventBeingUpdated({
       id: eventItem.id,
       name: eventItem.name,
@@ -167,9 +177,7 @@ export const Events: React.FC = () => {
     fetchEvents();
   };
   if (isInitialLoading) {
-    return (
-      <InitialLoading></InitialLoading>
-    );
+    return <InitialLoading></InitialLoading>;
   }
 
   if (pageError) {
@@ -234,6 +242,7 @@ export const Events: React.FC = () => {
             isSuccess={isSuccess}
             apiError={submitError}
             currentEventData={currentEventBeingUpdated}
+            handleInstitutionChange={handleInstitutionChange}
           />
         ) : (
           <EventsList

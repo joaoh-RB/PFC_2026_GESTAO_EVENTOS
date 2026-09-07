@@ -7,13 +7,17 @@ namespace API_Gestao_Eventos.src.Application.Services
     public class CourseService(CourseRepository courseRepository)
     {
         private readonly CourseRepository _courseRepository = courseRepository;
-        public async Task<IEnumerable<SelectItemDto>> GetCoursesForSelectAsync()
+        public async Task<IEnumerable<SelectItemDto>> GetCoursesForSelectAsync(Guid? institutionId)
         {
-            var courses = await _courseRepository.GetAllAsync();
+            if (!institutionId.HasValue || institutionId == Guid.Empty)
+            {
+                return new List<SelectItemDto>();
+            }
+            var courses = await _courseRepository.GetByInstitutionAsync(institutionId.Value);
             return courses.Select(i => new SelectItemDto
             {
                 Value = i.Id.ToString(),
-                Label = i.Name 
+                Label = i.Name
             });
         }
         public async Task<Guid> CreateCourseAsync(CreateCourseDto request)

@@ -9,10 +9,10 @@ namespace API_Gestao_Eventos.src.Application.Services
     {
         public async Task<Event> AddAsync(CreateEventRequestDto request)
         {
-            var allowedCourses = (await courseRepository.GetAllAsync()).Where(w => request.AllowedCourses.Contains(w.Id)).ToList();
+            var allowedCourses = (await courseRepository.GetByInstitutionAsync(request.InstitutionId)).Where(w => request.AllowedCourses.Contains(w.Id)).ToList();
             if (allowedCourses.Count != request.AllowedCourses.Count)
             {
-                throw new Exception("Nem todos os cursos cadastrados são permitidos.");
+                throw new InvalidOperationException("Nem todos os cursos cadastrados são permitidos.");
             }
             var newEvent = new Event
             {
@@ -30,6 +30,11 @@ namespace API_Gestao_Eventos.src.Application.Services
         }
         public async Task UpdateAsync(Guid id, CreateEventRequestDto request)
         {
+            var allowedCourses = (await courseRepository.GetByInstitutionAsync(request.InstitutionId)).Where(w => request.AllowedCourses.Contains(w.Id)).ToList();
+            if (allowedCourses.Count != request.AllowedCourses.Count)
+            {
+                throw new InvalidOperationException("Nem todos os cursos cadastrados pertencem à instituição.");
+            }
             var eventToUpdate = new Event
             {
                 Id = id,
@@ -64,14 +69,14 @@ namespace API_Gestao_Eventos.src.Application.Services
                 Name = e.Name,
                 Description = e.Description,
                 InstitutionId = e.InstitutionId,
-                InstitutionName = e.Institution.Id.ToString(),
+                InstitutionName = e.Institution.Name.ToString(),
                 StartDate = e.StartDate,
                 EndDate = e.EndDate,
                 Capacity = e.Capacity,
                 ConfirmedRegistrations = e.EventStudents.Count(s => s.Status == RegistrationStatus.Confirmed),
                 EventType = (int)e.EventType,
                 AllowDocuments = e.AllowDocuments,
-                AllowedCourseNames = e.AllowedCourses.Select(c => c.Id.ToString()).ToList(),
+                AllowedCourseNames = e.AllowedCourses.Select(c => c.Name.ToString()).ToList(),
                 AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList()
             });
 

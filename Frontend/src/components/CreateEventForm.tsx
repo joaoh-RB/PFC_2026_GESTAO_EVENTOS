@@ -46,6 +46,7 @@ interface CreateEventFormProps {
   isSubmitting: boolean;
   isSuccess: boolean;
   apiError: string | null;
+  handleInstitutionChange: (institutionId: string) => void;
 }
 
 export const CreateEventForm: React.FC<CreateEventFormProps> = ({
@@ -58,6 +59,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
   isSubmitting,
   isSuccess,
   apiError,
+  handleInstitutionChange,
 }) => {
   const anchor = useComboboxAnchor();
 
@@ -67,6 +69,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
     control,
     reset,
     formState: { errors },
+    setValue,
   } = useForm<CreateEventFormData>({
     resolver: zodResolver(createEventSchema) as Resolver<CreateEventFormData>,
     mode: "onBlur",
@@ -127,7 +130,11 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
         {isSuccess && (
           <div className="mb-6 flex items-center gap-2 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-700">
             <CheckCircle2 className="h-5 w-5 shrink-0" />
-            <span>Evento criado com sucesso! Redirecionando...</span>
+            <span>
+              {currentEventData
+                ? "Evento atualizado com sucesso! Redirecionando..."
+                : "Evento criado com sucesso! Redirecionando..."}
+            </span>
           </div>
         )}
 
@@ -172,7 +179,11 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                   render={({ field }) => (
                     <Select
                       items={institutions}
-                      onValueChange={field.onChange}
+                      onValueChange={(institutionId) => {
+                        field.onChange(institutionId);
+                        setValue("allowedCourses", []);
+                        handleInstitutionChange(institutionId!);
+                      }}
                       value={field.value}>
                       <SelectTrigger className={"w-full"}>
                         <SelectValue placeholder="Selecione uma instituição" />
@@ -278,19 +289,21 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                 <Combobox
                   items={courses}
                   multiple
-                  value={field.value.map(
-                    (id) => courses.find((c) => c.value === id)?.label || id,
-                  )}
+                  value={field.value.map((id) => id)}
                   onValueChange={(selectedNames) => {
                     field.onChange(selectedNames);
                   }}>
                   <ComboboxChips className={"w-full"} ref={anchor}>
                     <ComboboxValue>
-                      {field.value.map((id) => (
-                        <ComboboxChip key={id}>
-                          {courses.find((c) => c.value === id)?.label || id}
-                        </ComboboxChip>
-                      ))}
+                      {field.value.map((id) => {
+                        const course = courses.find((c) => c.value === id);
+
+                        return (
+                          <ComboboxChip key={id}>
+                            {course?.label ?? id}
+                          </ComboboxChip>
+                        );
+                      })}
                     </ComboboxValue>
                   </ComboboxChips>
                   <ComboboxContent anchor={anchor}>
