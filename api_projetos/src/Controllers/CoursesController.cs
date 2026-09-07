@@ -17,6 +17,15 @@ namespace API_Gestao_Eventos.src.Controllers
         {
             _courseService = courseService;
         }
+        private (bool IsAdmin, bool IsInstitutionAdmin, Guid? CallerInstitutionId) GetAuthContext()
+        {
+            var isAdmin = User.IsInRole("Administrador");
+            var isInstitutionAdmin = User.FindFirstValue("IsInstitutionAdmin") == "true";
+            var callerInstitutionId = User.FindFirstValue("InstitutionId") is string instId
+                ? Guid.Parse(instId)
+                : (Guid?)null;
+            return (isAdmin, isInstitutionAdmin, callerInstitutionId);
+        }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<SelectItemDto>>> GetAll([FromQuery] Guid? institutionId)
@@ -25,14 +34,20 @@ namespace API_Gestao_Eventos.src.Controllers
             return Ok(result);
         }
 
-        [Authorize(Roles = "Administrador")]
+        [Authorize(Roles = "Administrador,Professor")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateCourseDto request)
         {
+            var (isAdmin, isInstitutionAdmin, callerInstitutionId) = GetAuthContext();
+
             try
             {
-                var id = await _courseService.CreateCourseAsync(request);
+                var id = await _courseService.CreateCourseAsync(request, isAdmin, callerInstitutionId, isInstitutionAdmin);
                 return StatusCode(StatusCodes.Status201Created, new { id });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
             }
             catch (InvalidOperationException ex)
             {
@@ -44,11 +59,7 @@ namespace API_Gestao_Eventos.src.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var isAdmin = User.IsInRole("Administrador");
-            var isInstitutionAdmin = User.FindFirstValue("IsInstitutionAdmin") == "true";
-            var callerInstitutionId = User.FindFirstValue("InstitutionId") is string instId
-                ? Guid.Parse(instId)
-                : (Guid?)null;
+            var (isAdmin, isInstitutionAdmin, callerInstitutionId) = GetAuthContext();
 
             try
             {
@@ -61,6 +72,56 @@ namespace API_Gestao_Eventos.src.Controllers
             catch (UnauthorizedAccessException)
             {
                 return Forbid();
+            }
+        }
+
+        [Authorize]
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCourseDto request)
+        {
+            var (isAdmin, isInstitutionAdmin, callerInstitutionId) = GetAuthContext();
+
+            try
+            {
+                await _courseService.UpdateCourseAsync(id, request, isAdmin, callerInstitutionId, isInstitutionAdmin);
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var (isAdmin, isInstitutionAdmin, callerInstitutionId) = GetAuthContext();
+
+            try
+            {
+                await _courseService.DeleteCourseAsync(id, isAdmin, callerInstitutionId, isInstitutionAdmin);
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
         }
     }

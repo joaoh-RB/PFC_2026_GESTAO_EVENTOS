@@ -28,9 +28,37 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
             return await _context.Courses.AnyAsync(c =>
                 c.Name.ToLower() == name.ToLower() && c.InstitutionId == institutionId);
         }
+        public async Task<bool> ExistsByNameExceptAsync(string name, Guid institutionId, Guid id)
+        {
+            return await _context.Courses.AnyAsync(c =>
+                c.Id != id && c.InstitutionId == institutionId && c.Name.ToLower() == name.ToLower());
+        }
+        public async Task<bool> HasDependenciesAsync(Guid id)
+        {
+            var hasStudents = await _context.Students.AnyAsync(s => s.CourseId == id);
+            var hasTeachers = await _context.Courses
+                .Where(c => c.Id == id)
+                .SelectMany(c => c.Teachers)
+                .AnyAsync();
+            var hasEvents = await _context.Courses
+                .Where(c => c.Id == id)
+                .SelectMany(c => c.Events)
+                .AnyAsync();
+            return hasStudents || hasTeachers || hasEvents;
+        }
         public async Task AddAsync(Course course)
         {
             await _context.Courses.AddAsync(course);
+            await _context.SaveChangesAsync();
+        }
+        public async Task UpdateAsync(Course course)
+        {
+            _context.Courses.Update(course);
+            await _context.SaveChangesAsync();
+        }
+        public async Task DeleteAsync(Course course)
+        {
+            course.IsActive = false;
             await _context.SaveChangesAsync();
         }
     }

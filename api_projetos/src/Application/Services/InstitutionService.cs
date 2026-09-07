@@ -67,5 +67,57 @@ namespace API_Gestao_Eventos.src.Application.Services
                 CreatedAt = institution.CreatedAt
             };
         }
+        public async Task UpdateInstitutionAsync(
+            Guid id,
+            UpdateInstitutionDto request,
+            bool isAdmin,
+            Guid? callerInstitutionId,
+            bool isInstitutionAdmin)
+        {
+            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == id);
+            if (!isAllowed)
+                throw new UnauthorizedAccessException("Você não tem permissão para editar esta instituição.");
+
+            var institution = await _institutionRepository.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException("Instituição não encontrada.");
+
+            var nameExists = await _institutionRepository.ExistsByNameExceptAsync(request.Name, id);
+            if (nameExists)
+                throw new InvalidOperationException("Já existe outra instituição com este nome.");
+
+            Domain.Cnpj? cnpj = null;
+            if (!string.IsNullOrWhiteSpace(request.Cnpj))
+            {
+                cnpj = Domain.Cnpj.Create(request.Cnpj);
+                var cnpjExists = await _institutionRepository.ExistsByCnpjExceptAsync(cnpj, id);
+                if (cnpjExists)
+                    throw new InvalidOperationException("CNPJ já cadastrado para outra instituição.");
+            }
+
+            institution.Name = request.Name;
+            institution.Cnpj = cnpj;
+            institution.Address = request.Address;
+            institution.Phone = request.Phone;
+
+            await _institutionRepository.UpdateAsync(institution);
+        }
+        public async Task DeleteInstitutionAsync(
+            Guid id,
+            bool isAdmin,
+            Guid? callerInstitutionId,
+            bool isInstitutionAdmin)
+        {
+            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == id);
+            if (!isAllowed)
+                throw new UnauthorizedAccessException("Você não tem permissão para excluir esta instituição.");
+
+            var institution = await _institutionRepository.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException("Instituição não encontrada.");
+
+            if (await _institutionRepository.HasDependenciesAsync(id))
+                throw new InvalidOperationException("Não é possível excluir: existem usuários, cursos ou eventos vinculados a esta instituição.");
+
+            await _institutionRepository.DeleteAsync(institution);
+        }
     }
 }

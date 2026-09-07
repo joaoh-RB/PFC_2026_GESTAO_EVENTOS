@@ -11,6 +11,8 @@ import {
     X,
     User,
     UserRound,
+    Landmark,
+    BookOpen,
 } from 'lucide-react';
 
 interface NavItem {
@@ -42,7 +44,19 @@ const navItems: NavItem[] = [
         path: '/users',
         icon: UserRound,
         roles: ['Administrador', 'Professor'],
-    }
+    },
+    {
+        label: 'Instituições',
+        path: '/institutions',
+        icon: Landmark,
+        roles: ['Administrador', 'Professor'],
+    },
+    {
+        label: 'Cursos',
+        path: '/courses',
+        icon: BookOpen,
+        roles: ['Administrador', 'Professor'],
+    },
 ];
 
 export const Header: React.FC = () => {

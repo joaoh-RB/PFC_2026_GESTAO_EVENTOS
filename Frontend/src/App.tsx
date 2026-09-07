@@ -10,6 +10,8 @@ import { CreateInstitution } from './pages/CreateInstitution';
 import { CreateCourse } from './pages/CreateCourse';
 import { Events } from './pages/Events';
 import { Users } from './pages/Users';
+import { Institutions } from './pages/Institutions';
+import { Courses } from './pages/Courses';
 export default function App() {
     return (
         <BrowserRouter>
@@ -25,6 +27,8 @@ export default function App() {
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/settings" element={<UserSettings />} />
                             <Route path="/users" element={<Users />} />
+                            <Route path="/institutions" element={<Institutions />} />
+                            <Route path="/courses" element={<Courses />} />
                             <Route path="/institutions/new" element={<CreateInstitution />} />
                             <Route path="/courses/new" element={<CreateCourse />} />
                         </Route>

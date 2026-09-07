@@ -20,8 +20,16 @@ namespace API_Gestao_Eventos.src.Application.Services
                 Label = i.Name
             });
         }
-        public async Task<Guid> CreateCourseAsync(CreateCourseDto request)
+        public async Task<Guid> CreateCourseAsync(
+            CreateCourseDto request,
+            bool isAdmin,
+            Guid? callerInstitutionId,
+            bool isInstitutionAdmin)
         {
+            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == request.InstitutionId);
+            if (!isAllowed)
+                throw new UnauthorizedAccessException("Você não tem permissão para cadastrar cursos nesta instituição.");
+
             var nameExists = await _courseRepository.ExistsByNameAsync(request.Name, request.InstitutionId);
             if (nameExists)
                 throw new InvalidOperationException("Curso já cadastrado nesta instituição.");
@@ -54,6 +62,45 @@ namespace API_Gestao_Eventos.src.Application.Services
                 IsActive = course.IsActive,
                 CreatedAt = course.CreatedAt
             };
+        }
+        public async Task UpdateCourseAsync(
+            Guid id,
+            UpdateCourseDto request,
+            bool isAdmin,
+            Guid? callerInstitutionId,
+            bool isInstitutionAdmin)
+        {
+            var course = await _courseRepository.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException("Curso não encontrado.");
+
+            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == course.InstitutionId);
+            if (!isAllowed)
+                throw new UnauthorizedAccessException("Você não tem permissão para editar este curso.");
+
+            var nameExists = await _courseRepository.ExistsByNameExceptAsync(request.Name, course.InstitutionId, id);
+            if (nameExists)
+                throw new InvalidOperationException("Já existe outro curso com este nome nesta instituição.");
+
+            course.Name = request.Name;
+            await _courseRepository.UpdateAsync(course);
+        }
+        public async Task DeleteCourseAsync(
+            Guid id,
+            bool isAdmin,
+            Guid? callerInstitutionId,
+            bool isInstitutionAdmin)
+        {
+            var course = await _courseRepository.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException("Curso não encontrado.");
+
+            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == course.InstitutionId);
+            if (!isAllowed)
+                throw new UnauthorizedAccessException("Você não tem permissão para excluir este curso.");
+
+            if (await _courseRepository.HasDependenciesAsync(id))
+                throw new InvalidOperationException("Não é possível excluir: existem alunos, professores ou eventos vinculados a este curso.");
+
+            await _courseRepository.DeleteAsync(course);
         }
     }
 }
