@@ -4,6 +4,8 @@
     {
         Aluno = 1,
         Professor = 2,
-        Administrador = 3
+        Administrador = 3,
+
+        Secretaria = 4
     }
 }

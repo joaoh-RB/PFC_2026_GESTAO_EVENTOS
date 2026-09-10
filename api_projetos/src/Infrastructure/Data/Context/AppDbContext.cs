@@ -11,6 +11,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Context
         public DbSet<Student> Students => Set<Student>();
         public DbSet<Teacher> Teachers => Set<Teacher>();
         public DbSet<Administrator> Administrators => Set<Administrator>();
+        public DbSet<AcademicDepartment> AcademicDepartments => Set<AcademicDepartment>();
         public DbSet<Institution> Institutions => Set<Institution>();
         public DbSet<Course> Courses => Set<Course>();
         public DbSet<Event> Events => Set<Event>();

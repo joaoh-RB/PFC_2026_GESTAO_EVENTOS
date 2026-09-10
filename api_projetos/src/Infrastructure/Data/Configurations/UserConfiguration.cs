@@ -36,7 +36,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
             builder.HasDiscriminator<UserRole>("Role")
                 .HasValue<Student>(UserRole.Aluno)
                 .HasValue<Teacher>(UserRole.Professor)
-                .HasValue<Administrator>(UserRole.Administrador);
+                .HasValue<Administrator>(UserRole.Administrador)
+                .HasValue<AcademicDepartment>(UserRole.Secretaria);
         }
     }
 
@@ -45,7 +46,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
         public void Configure(EntityTypeBuilder<Student> builder)
         {
             builder.Property(s => s.UniqueIdentifier)
-                .HasMaxLength(20).IsRequired(true);
+                .HasMaxLength(20)
+                .IsRequired(true);
 
             builder.HasIndex(s => new { s.UniqueIdentifier, s.InstitutionId })
                 .IsUnique()
