@@ -1,5 +1,6 @@
 ﻿using API_Gestao_Eventos.src.Application.DTO.Auth;
 using API_Gestao_Eventos.src.Application.DTO.User;
+using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Application.Services;
 using API_Gestao_Eventos.src.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +10,7 @@ namespace API_Gestao_Eventos.src.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Administrador,Professor")]
+    [Authorize(Roles = "Administrador,Professor,Secretaria")]
     public class UsersController(UserService userService) : ControllerBase
     {
         [HttpGet]
@@ -25,7 +26,7 @@ namespace API_Gestao_Eventos.src.Controllers
         {
             try
             {
-                var user = await userService.CreateAsync(request);
+                var user = await userService.CreateStudentAsync(request);
                 return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
             }
             catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
@@ -59,6 +60,63 @@ namespace API_Gestao_Eventos.src.Controllers
             }
             catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
         }
+        #region INstitution Members
+        [HttpGet("roles/institution-members")]
+        public IActionResult GetInstitutionMembersUserRoles()
+        {
+            try
+            {
+                var userRoles = Enum.GetValues<UserRole>().Cast<UserRole>().Where(w => w == UserRole.Professor || w == UserRole.Secretaria).Select(s => new SelectItemDto() { Label = s.ToString(), Value = ((int)s).ToString() });
+                return Ok(userRoles);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        [HttpGet("institution-members")]
+        [Authorize(Roles = nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        public async Task<IActionResult> GetInstitutionMembers([FromQuery] InstitutionMemberFilterDto filter)
+        {
+            try
+            {
+                var users = await userService.GetInstitutionMembersPagedAsync(filter);
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        [HttpPost("institution-members")]
+        [Authorize(Roles = nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        public async Task<IActionResult> CreateInstitutionMember([FromBody] CreateInstitutionMemberRequestDto createInstitutionMemberRequestDto)
+        {
+            try
+            {
+                await userService.CreateInstitutionMember(createInstitutionMemberRequestDto);
+                return StatusCode(StatusCodes.Status201Created);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        [HttpPut("institution-members/{id:guid}")]
+        [Authorize(Roles = nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        public async Task<IActionResult> UpdateInstitutionMember(Guid id, [FromBody] UpdateInstitutionMemberRequestDto updateInstitutionMemberRequestDto)
+        {
+            try
+            {
+                await userService.UpdateInstitutionMemberAsync(id, updateInstitutionMemberRequestDto);
+                return StatusCode(StatusCodes.Status204NoContent);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        #endregion
         public class ApprovalRequest
         {
             public UserApprovalStatus Status { get; set; }

@@ -1,5 +1,7 @@
 ﻿using API_Gestao_Eventos.src.Application.DTO.Auth;
+using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Application.DTO.User;
+using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
@@ -17,11 +19,94 @@ namespace API_Gestao_Eventos.src.Application.Services
             var users = await userRepository.GetAllStudentsAsync();
             return users.Select(ToResponse);
         }
+        #region Membros instituição
+
+        public async Task<InstitutionMemberResponseDto> CreateInstitutionMember(CreateInstitutionMemberRequestDto request)
+        {
+            User user;
+            if (request.UserRole == UserRole.Professor)
+            {
+                var courses = (await courseRepository.GetByInstitutionAsync(request.InstitutionId)).Where(w => request.Courses!.Contains(w.Id)).ToList();
+                if (courses.Count != request.Courses!.Count)
+                {
+                    throw new InvalidOperationException("Nem todos os cursos cadastrados são permitidos.");
+                }
+                user = new Teacher()
+                {
+                    Courses = courses
+                };
+            }
+            else
+                user = new AcademicDepartment();
+            user.Name = request.Name.Trim();
+            user.Email = request.Email.Trim();
+            user.PasswordHash = passwordHasher.HashPassword(request.Password);
+            user.InstitutionId = request.InstitutionId;
+            if (await userRepository.ExistsByEmailAsync(request.Email))
+                throw new InvalidOperationException("E-mail já cadastrado.");
+            await userRepository.AddAsync(user);
+            return ToInstitutionMemberResponse(await userRepository.GetByIdAsync(user.Id));
+        }
+        public async Task<PagedResponseDto<InstitutionMemberResponseDto>> GetInstitutionMembersPagedAsync(InstitutionMemberFilterDto filter)
+        {
+            var (users, totalCount) = await userRepository.GetFilteredInstitutionMembersAsync(filter);
+
+            var items = users.Select(ToInstitutionMemberResponse);
+
+            return new PagedResponseDto<InstitutionMemberResponseDto>
+            {
+                Items = items,
+                TotalItems = totalCount,
+                PageNumber = filter.PageNumber,
+                PageSize = filter.PageSize
+            };
+        }
+        public async Task UpdateInstitutionMemberAsync(Guid id, UpdateInstitutionMemberRequestDto request)
+        {
+            var user = await userRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException("Usuário não encontrado");
+            if (user.Role != UserRole.Professor && user.Role != UserRole.Secretaria)
+                throw new InvalidOperationException("Usuário não é um membro da instituição.");
+            if (await userRepository.ExistsByEmailExceptAsync(request.Email, id))
+                throw new InvalidOperationException("E-mail já cadastrado.");
+            user.Name = request.Name.Trim();
+            user.Email = request.Email.Trim();
+            user.UpdatedAt = DateTime.UtcNow;
+            if (!string.IsNullOrWhiteSpace(request.Password))
+                user.PasswordHash = passwordHasher.HashPassword(request.Password);
+            if (user is Teacher t)
+            {
+                var courses = (await courseRepository.GetByInstitutionAsync(user.InstitutionId!.Value)).Where(w => request.Courses!.Contains(w.Id)).ToList();
+                if (courses.Count != request.Courses!.Count)
+                {
+                    throw new InvalidOperationException("Nem todos os cursos cadastrados são permitidos.");
+                }
+                t.Courses.Clear();
+                foreach (var course in courses)
+                {
+                    t.Courses.Add(course);
+                }
+            }
+            await userRepository.UpdateAsync(user);
+        }
+        private static InstitutionMemberResponseDto ToInstitutionMemberResponse(User user) => new()
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            InstitutionId = user.InstitutionId ?? Guid.Empty,
+            UserRole = user.Role.ToString(),
+            UserRoleId = (int)user.Role,
+            InstitutionName = user.Institution!.Name,
+            CoursesIds = (user is Teacher t ? t.Courses.Select(s => s.Id) : null),
+            CoursesNames = (user is Teacher teacher ? teacher.Courses.Select(s => s.Name) : null),
+            IsActive = user.IsActive
+        };
+        #endregion
         public async Task<UserManagementResponseDto> GetByIdAsync(Guid id)
         {
             return ToResponse(await GetStudentAsync(id));
         }
-        public async Task<UserManagementResponseDto> CreateAsync(RegisterRequestDto request)
+        public async Task<UserManagementResponseDto> CreateStudentAsync(RegisterRequestDto request)
         {
             await ValidateReferencesAsync(request.InstitutionId, request.CourseId);
             if (await userRepository.ExistsByEmailAsync(request.Email))
@@ -74,8 +159,8 @@ namespace API_Gestao_Eventos.src.Application.Services
         }
         public async Task SetActiveAsync(Guid id, bool isActive)
         {
-            var user = await GetStudentAsync(id);
-            user.IsActive = isActive;
+            var user = await userRepository.GetByIdAsync(id);
+            user!.IsActive = isActive;
             user.UpdatedAt = DateTime.UtcNow;
             await userRepository.UpdateAsync(user);
         }

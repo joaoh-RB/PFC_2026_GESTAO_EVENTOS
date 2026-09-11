@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { api } from "../services/api";
 import { AlertCircle, Plus, ListFilter } from "lucide-react";
-import { CreateEventForm } from "../components/CreateEventForm";
+import { CreateEventForm } from "@/components/events/CreateEventForm";
 import {
   EventsList,
   type EventItem,
   type EventFilterState,
-} from "@/components/EventList";
+} from "@/components/events/EventList";
 import { Button } from "@/components/ui/button";
 import { type CreateEventFormData } from "../schemas/eventSchema";
 import { useAuth } from "../hooks/useAuth";
@@ -65,7 +65,7 @@ export const Events: React.FC = () => {
           api.get<OptionItem[]>("/events/types"),
         ]);
         setInstitutions(instRes.data);
-        fetchCourses(null);
+        fetchCourses(userInstitutionId);
         setEventTypes(eventTypesRes.data);
       } catch {
         if (controller.signal.aborted) return;
@@ -250,6 +250,7 @@ export const Events: React.FC = () => {
             institutions={institutions}
             isLoading={isEventsLoading}
             currentFilters={filters}
+            userInstitutionId={userInstitutionId}
             onFilter={handleFilterChange}
             onPageChange={handlePageChange}
             handleStartEdition={handleStartEdition}

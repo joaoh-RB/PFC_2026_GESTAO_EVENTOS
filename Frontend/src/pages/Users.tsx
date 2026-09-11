@@ -9,7 +9,6 @@ import {
   Pencil,
   Plus,
   Search,
-  Trash2,
   UserCheck,
   UserX,
   X,

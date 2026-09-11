@@ -86,7 +86,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                     Name = user.Name,
                     Email = user.Email,
                     Role = user.Role.ToString(),
-                    TwoFactorEnabled = user.TwoFactorEnabled
+                    TwoFactorEnabled = user.TwoFactorEnabled,
+                    InstitutionId = user.InstitutionId
                 }
             };
         }
@@ -134,7 +135,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 Role = user.Role.ToString(),
                 Id = user.Id,
                 Name = user.Name,
-                TwoFactorEnabled = user.TwoFactorEnabled
+                TwoFactorEnabled = user.TwoFactorEnabled,
+                InstitutionId = user.InstitutionId
             };
         }
     }

@@ -25,17 +25,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  Loader2,
-} from "lucide-react";
-import {  type PagedResult } from "@/types/utils";
-import {formatDateForShort} from "@/utils/format";
+import { Calendar, Clock, MapPin, Users, Loader2 } from "lucide-react";
+import { type PagedResult } from "@/types/utils";
+import { formatDateForShort } from "@/utils/format";
 import type { OptionItem } from "@/types/optionItem";
-import { DeleteConfirmation } from "./ui/deleteConfirm";
+import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 
 export interface EventItem {
   id: string;
@@ -63,6 +57,7 @@ interface EventsListProps {
   institutions: OptionItem[];
   isLoading: boolean;
   currentFilters?: EventFilterState;
+  userInstitutionId: string | null;
   onFilter: (filters: EventFilterState) => void;
   onPageChange: (page: number) => void;
   handleStartEdition: (eventData: EventItem) => void;
@@ -74,6 +69,7 @@ export const EventsList: React.FC<EventsListProps> = ({
   institutions,
   isLoading,
   currentFilters,
+  userInstitutionId,
   onFilter,
   onPageChange,
   handleStartEdition,
@@ -84,14 +80,14 @@ export const EventsList: React.FC<EventsListProps> = ({
     currentFilters?.fromDate || new Date().toISOString().split("T")[0],
   );
   const [institutionId, setInstitutionId] = useState<string>(
-    currentFilters?.institutionId || allInstitutionsName,
+    userInstitutionId || currentFilters?.institutionId || allInstitutionsName,
   );
 
   const handleApplyFilter = () => {
     onFilter({
       fromDate: fromDate || undefined,
       institutionId:
-        institutionId !== allInstitutionsName ? institutionId : undefined,
+        institutionId !== allInstitutionsName ? institutionId : userInstitutionId ?? undefined,
     });
   };
 
@@ -109,30 +105,33 @@ export const EventsList: React.FC<EventsListProps> = ({
                 onChange={(e) => setFromDate(e.target.value)}
               />
             </div>
-
-            <div className={"col-span-2"}>
-              <Label htmlFor="filter-institution" className={"mb-2 "}>
-                Instituição
-              </Label>
-              <Select
-                id="filter-institution"
-                value={institutionId}
-                onValueChange={setInstitutionId}>
-                <SelectTrigger className={"w-full"}>
-                  <SelectValue placeholder={allInstitutionsName} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={allInstitutionsName}>
-                    Todas as instituições
-                  </SelectItem>
-                  {institutions.map((inst) => (
-                    <SelectItem key={inst.value} value={inst.value}>
-                      {inst.label}
+            {!userInstitutionId && (
+              <div className={"col-span-2"}>
+                <Label htmlFor="filter-institution" className={"mb-2 "}>
+                  Instituição
+                </Label>
+                <Select
+                  id="filter-institution"
+                  value={institutionId}
+                  onValueChange={(value) =>
+                    setInstitutionId(value ?? allInstitutionsName)
+                  }>
+                  <SelectTrigger className={"w-full"}>
+                    <SelectValue placeholder={allInstitutionsName} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={allInstitutionsName}>
+                      Todas as instituições
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                    {institutions.map((inst) => (
+                      <SelectItem key={inst.value} value={inst.value}>
+                        {inst.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button
@@ -219,9 +218,7 @@ export const EventsList: React.FC<EventsListProps> = ({
 
                     {event.allowedCourseNames.length > 0 && (
                       <div>
-                        <div>
-                          Cursos permitidos:
-                        </div>
+                        <div>Cursos permitidos:</div>
                         <div className="pt-2 flex flex-wrap gap-1">
                           {event.allowedCourseNames
                             .slice(0, 3)

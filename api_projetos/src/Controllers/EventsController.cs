@@ -14,7 +14,7 @@ namespace API_Gestao_Eventos.src.Controllers
     public class EventsController(EventService eventService) : Controller
     {
         [HttpPost]
-        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador))]
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
         public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequestDto request)
         {
             try
@@ -28,7 +28,7 @@ namespace API_Gestao_Eventos.src.Controllers
             }
         }
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador))]
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
         public async Task<IActionResult> UpdateEvent([FromRoute] Guid id, [FromBody] CreateEventRequestDto request)
         {
             try
@@ -42,7 +42,7 @@ namespace API_Gestao_Eventos.src.Controllers
             }
         }
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador))]
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
         public async Task<IActionResult> DeleteEvent([FromRoute] Guid id)
         {
             try

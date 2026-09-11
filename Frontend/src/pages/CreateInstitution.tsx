@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
@@ -18,7 +18,7 @@ export const CreateInstitution: React.FC = () => {
     control,
     formState: { errors, isSubmitting },
   } = useForm<CreateInstitutionFormData>({
-    resolver: zodResolver(createInstitutionSchema),
+    resolver: zodResolver(createInstitutionSchema) as Resolver<CreateInstitutionFormData>,
     mode: 'onBlur',
   });
 

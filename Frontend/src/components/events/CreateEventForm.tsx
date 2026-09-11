@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   createEventSchema,
   type CreateEventFormData,
-} from "../schemas/eventSchema";
+} from "@/schemas/eventSchema";
 import { Loader2, AlertCircle, CheckCircle2, CalendarPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -30,11 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface OptionItem {
-  value: string;
-  label: string;
-}
+import type { OptionItem } from "@/types/optionItem";
 
 interface CreateEventFormProps {
   institutions: OptionItem[];
