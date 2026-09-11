@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface InstitutionMemberItem {
   id: string;
@@ -81,7 +82,7 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
   const [institutionId, setInstitutionId] = useState<string>(
     currentFilters?.institutionId || allInstitutionsName,
   );
-
+  const { user: currentUser } = useAuth();
   const handleApplyFilter = () => {
     onFilter({
       userRoleId:
@@ -205,7 +206,7 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                             onClick={() => handleStartEdition(user)}>
                             Editar
                           </Button>
-                          {user.isActive && (
+                          {user.isActive && user.id !== currentUser!.id &&(
                             <DeleteConfirmation
                               children={
                                 <Button
