@@ -113,6 +113,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                 <Select
                   id="filter-institution"
                   value={institutionId}
+                  items={institutions}
                   onValueChange={(value) =>
                     setInstitutionId(value ?? allInstitutionsName)
                   }>
