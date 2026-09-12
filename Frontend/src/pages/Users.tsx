@@ -26,7 +26,7 @@ interface ManagedUser {
   isActive: boolean;
   approvalStatus: ApprovalStatus;
   approvedByUserName?: string | null;
-  approvalDate?: string | null;
+  approvedDate?: string | null;
 }
 
 interface UserForm {
@@ -303,10 +303,16 @@ export const Users: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-600">
-                    <div>{user.approvedByUserName || "—"}</div>
-                    <div className="text-xs text-slate-400">
-                      {formatDate(user.approvalDate)}
-                    </div>
+                    {user.approvedByUserName ? (
+                      <>
+                        <div>{user.approvedByUserName}</div>
+                        <div className="text-xs text-slate-400">
+                          {formatDate(user.approvedDate)}
+                        </div>
+                      </>
+                    ) : (
+                      <div>—</div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span

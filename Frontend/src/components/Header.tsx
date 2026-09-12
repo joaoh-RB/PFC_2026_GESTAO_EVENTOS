@@ -40,13 +40,13 @@ const navItems: NavItem[] = [
     roles: ["Administrador", "Professor", "Secretaria"],
   },
   {
-    label: "Usuários",
+    label: "Alunos",
     path: "/users",
     icon: UserRound,
     roles: ["Administrador", "Professor", "Secretaria"],
   },
   {
-    label: "Membros da instituição",
+    label: "Membros da Instituição",
     path: "/institution-members",
     icon: UserRound,
     roles: ["Administrador", "Secretaria"],
