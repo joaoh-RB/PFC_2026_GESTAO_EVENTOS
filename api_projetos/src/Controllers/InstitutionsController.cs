@@ -17,14 +17,15 @@ namespace API_Gestao_Eventos.src.Controllers
         {
             _institutionService = institutionService;
         }
-        private (bool IsAdmin, bool IsInstitutionAdmin, Guid? CallerInstitutionId) GetAuthContext()
+
+        private (bool IsAdmin, bool IsSecretary, Guid? CallerInstitutionId) GetAuthContext()
         {
             var isAdmin = User.IsInRole("Administrador");
-            var isInstitutionAdmin = User.FindFirstValue("IsInstitutionAdmin") == "true";
+            var isSecretary = User.IsInRole("Secretaria");
             var callerInstitutionId = User.FindFirstValue("InstitutionId") is string instId
                 ? Guid.Parse(instId)
                 : (Guid?)null;
-            return (isAdmin, isInstitutionAdmin, callerInstitutionId);
+            return (isAdmin, isSecretary, callerInstitutionId);
         }
 
         [HttpGet]
@@ -53,14 +54,14 @@ namespace API_Gestao_Eventos.src.Controllers
             }
         }
 
-        [Authorize]
+        [Authorize(Roles = "Administrador,Secretaria")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var (isAdmin, isInstitutionAdmin, callerInstitutionId) = GetAuthContext();
+            var (isAdmin, isSecretary, callerInstitutionId) = GetAuthContext();
             try
             {
-                var institution = await _institutionService.GetByIdAsync(id, isAdmin, callerInstitutionId, isInstitutionAdmin);
+                var institution = await _institutionService.GetByIdAsync(id, isAdmin, callerInstitutionId, isSecretary);
                 if (institution == null)
                     return NotFound(new { message = "Instituição não encontrada." });
 
@@ -72,14 +73,14 @@ namespace API_Gestao_Eventos.src.Controllers
             }
         }
 
-        [Authorize]
+        [Authorize(Roles = "Administrador,Secretaria")]
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInstitutionDto request)
         {
-            var (isAdmin, isInstitutionAdmin, callerInstitutionId) = GetAuthContext();
+            var (isAdmin, isSecretary, callerInstitutionId) = GetAuthContext();
             try
             {
-                await _institutionService.UpdateInstitutionAsync(id, request, isAdmin, callerInstitutionId, isInstitutionAdmin);
+                await _institutionService.UpdateInstitutionAsync(id, request, isAdmin, callerInstitutionId, isSecretary);
                 return NoContent();
             }
             catch (UnauthorizedAccessException)
@@ -100,14 +101,14 @@ namespace API_Gestao_Eventos.src.Controllers
             }
         }
 
-        [Authorize]
+        [Authorize(Roles = "Administrador,Secretaria")]
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var (isAdmin, isInstitutionAdmin, callerInstitutionId) = GetAuthContext();
+            var (isAdmin, isSecretary, callerInstitutionId) = GetAuthContext();
             try
             {
-                await _institutionService.DeleteInstitutionAsync(id, isAdmin, callerInstitutionId, isInstitutionAdmin);
+                await _institutionService.DeleteInstitutionAsync(id, isAdmin, callerInstitutionId, isSecretary);
                 return NoContent();
             }
             catch (UnauthorizedAccessException)

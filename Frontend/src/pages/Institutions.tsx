@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 import type { OptionItem } from "../types/optionItem";
 import { DeleteConfirmation } from "../components/ui/deleteConfirm";
 import { maskCnpj, maskPhone, unmaskCnpj, unmaskPhone } from "../utils/masks";
 import {
     AlertCircle,
     Building2,
+    CheckCircle2,
     Loader2,
     Pencil,
     Plus,
@@ -33,9 +35,6 @@ interface InstitutionForm {
 
 const emptyForm: InstitutionForm = { name: "", cnpj: "", address: "", phone: "" };
 
-// Padroniza a mensagem de erro vinda da API. Como o Forbid() não devolve
-// corpo nenhum (só o status 403), tratamos esse caso à parte — senão a tela
-// mostraria "undefined" pro usuário.
 const extractErrorMessage = (err: any, fallback: string) => {
     if (err?.response?.status === 403) {
         return "Você não tem permissão para realizar esta ação.";
@@ -43,7 +42,137 @@ const extractErrorMessage = (err: any, fallback: string) => {
     return err?.response?.data?.message || fallback;
 };
 
-export const Institutions: React.FC = () => {
+const MyInstitutionEditor: React.FC<{ institutionId: string }> = ({ institutionId }) => {
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const [form, setForm] = useState<InstitutionForm>(emptyForm);
+
+    useEffect(() => {
+        api
+            .get<InstitutionDetail>(`/institutions/${institutionId}`)
+            .then(({ data }) => {
+                setForm({
+                    name: data.name,
+                    cnpj: data.cnpj ? maskCnpj(data.cnpj) : "",
+                    address: data.address ?? "",
+                    phone: data.phone ? maskPhone(data.phone) : "",
+                });
+            })
+            .catch((err) =>
+                setError(extractErrorMessage(err, "Não foi possível carregar sua instituição.")),
+            )
+            .finally(() => setLoading(false));
+    }, [institutionId]);
+
+    const submit = async (event: React.FormEvent) => {
+        event.preventDefault();
+        setSaving(true);
+        setError(null);
+        setIsSuccess(false);
+        try {
+            const payload = {
+                name: form.name,
+                cnpj: form.cnpj ? unmaskCnpj(form.cnpj) : undefined,
+                address: form.address || undefined,
+                phone: form.phone ? unmaskPhone(form.phone) : undefined,
+            };
+            await api.put(`/institutions/${institutionId}`, payload);
+            setIsSuccess(true);
+        } catch (err: any) {
+            setError(extractErrorMessage(err, "Não foi possível salvar a instituição."));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex min-h-[60vh] items-center justify-center text-indigo-600">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+
+    return (
+        <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-2xl">
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-slate-900">Minha instituição</h1>
+                    <p className="text-sm text-slate-600">
+                        Edite os dados da sua instituição.
+                    </p>
+                </div>
+
+                {error && (
+                    <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                        <AlertCircle className="h-5 w-5" />
+                        {error}
+                    </div>
+                )}
+                {isSuccess && (
+                    <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+                        <CheckCircle2 className="h-5 w-5" />
+                        Instituição atualizada com sucesso!
+                    </div>
+                )}
+
+                <form
+                    onSubmit={submit}
+                    className="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-white p-6 sm:grid-cols-2">
+                    <label className="sm:col-span-2 text-sm font-medium text-slate-700">
+                        Nome
+                        <input
+                            required
+                            value={form.name}
+                            onChange={(e) => setForm({ ...form, name: e.target.value })}
+                            className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                        />
+                    </label>
+                    <label className="text-sm font-medium text-slate-700">
+                        CNPJ
+                        <input
+                            value={form.cnpj}
+                            onChange={(e) => setForm({ ...form, cnpj: maskCnpj(e.target.value) })}
+                            maxLength={18}
+                            placeholder="00.000.000/0000-00"
+                            className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                        />
+                    </label>
+                    <label className="text-sm font-medium text-slate-700">
+                        Telefone
+                        <input
+                            value={form.phone}
+                            onChange={(e) => setForm({ ...form, phone: maskPhone(e.target.value) })}
+                            maxLength={15}
+                            placeholder="(11) 91234-5678"
+                            className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                        />
+                    </label>
+                    <label className="sm:col-span-2 text-sm font-medium text-slate-700">
+                        Endereço
+                        <input
+                            value={form.address}
+                            onChange={(e) => setForm({ ...form, address: e.target.value })}
+                            className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                        />
+                    </label>
+                    <div className="sm:col-span-2 flex justify-end pt-2">
+                        <button
+                            disabled={saving}
+                            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-indigo-400">
+                            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                            Salvar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    );
+};
+
+const AllInstitutionsManager: React.FC = () => {
     const [institutions, setInstitutions] = useState<OptionItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -82,8 +211,6 @@ export const Institutions: React.FC = () => {
         setError(null);
     };
 
-    // Busca o detalhe (GET /institutions/{id}) porque a listagem só traz nome —
-    // é aqui que testamos de fato o endpoint da Tarefa 8.1.
     const openEdit = async (item: OptionItem) => {
         setError(null);
         try {
@@ -118,7 +245,6 @@ export const Institutions: React.FC = () => {
                 address: form.address || undefined,
                 phone: form.phone ? unmaskPhone(form.phone) : undefined,
             };
-            // PUT quando está editando (Tarefa 8.2), POST quando é cadastro novo.
             if (editingId) await api.put(`/institutions/${editingId}`, payload);
             else await api.post("/institutions", payload);
             await loadInstitutions();
@@ -130,8 +256,6 @@ export const Institutions: React.FC = () => {
         }
     };
 
-    // DELETE (Tarefa 8.3). Se o backend acusar vínculo (HasDependenciesAsync),
-    // a mensagem de negócio já vem pronta no response.data.message.
     const remove = async (id: string) => {
         setError(null);
         try {
@@ -304,4 +428,14 @@ export const Institutions: React.FC = () => {
             )}
         </main>
     );
+};
+
+export const Institutions: React.FC = () => {
+    const { user } = useAuth();
+    const userInstitutionId = user?.institutionId || null;
+
+    if (userInstitutionId) {
+        return <MyInstitutionEditor institutionId={userInstitutionId} />;
+    }
+    return <AllInstitutionsManager />;
 };

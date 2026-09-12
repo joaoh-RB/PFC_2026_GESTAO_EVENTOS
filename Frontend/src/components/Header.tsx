@@ -55,13 +55,13 @@ const navItems: NavItem[] = [
     label: "Instituições",
     path: "/institutions",
     icon: Landmark,
-    roles: ["Administrador", "Professor", "Secretaria"],
+    roles: ["Administrador", "Secretaria"],
   },
   {
     label: "Cursos",
     path: "/courses",
     icon: BookOpen,
-    roles: ["Administrador", "Professor", "Secretaria"],
+    roles: ["Administrador", "Secretaria"],
   },
 ];
 

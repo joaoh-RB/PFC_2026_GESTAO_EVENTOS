@@ -12,10 +12,10 @@ namespace API_Gestao_Eventos.src.Application.Services
         {
             var institutions = await _institutionRepository.GetAllAsync();
             return institutions.Select(i => new SelectItemDto
-                {
-                    Value = i.Id.ToString(),
-                    Label = i.Name
-                }); 
+            {
+                Value = i.Id.ToString(),
+                Label = i.Name
+            });
         }
         public async Task<Guid> CreateInstitutionAsync(CreateInstitutionDto request)
         {
@@ -26,7 +26,7 @@ namespace API_Gestao_Eventos.src.Application.Services
             Domain.Cnpj? cnpj = null;
             if (!string.IsNullOrWhiteSpace(request.Cnpj))
             {
-                cnpj = Domain.Cnpj.Create(request.Cnpj);    
+                cnpj = Domain.Cnpj.Create(request.Cnpj);
                 var cnpjExists = await _institutionRepository.ExistsByCnpjAsync(cnpj);
                 if (cnpjExists)
                     throw new InvalidOperationException("CNPJ já cadastrado para outra instituição.");
@@ -47,9 +47,9 @@ namespace API_Gestao_Eventos.src.Application.Services
             Guid id,
             bool isAdmin,
             Guid? callerInstitutionId,
-            bool isInstitutionAdmin)
+            bool isSecretary)
         {
-            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == id);
+            var isAllowed = isAdmin || (isSecretary && callerInstitutionId == id);
             if (!isAllowed)
                 throw new UnauthorizedAccessException("Você não tem permissão para consultar esta instituição.");
 
@@ -72,9 +72,9 @@ namespace API_Gestao_Eventos.src.Application.Services
             UpdateInstitutionDto request,
             bool isAdmin,
             Guid? callerInstitutionId,
-            bool isInstitutionAdmin)
+            bool isSecretary)
         {
-            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == id);
+            var isAllowed = isAdmin || (isSecretary && callerInstitutionId == id);
             if (!isAllowed)
                 throw new UnauthorizedAccessException("Você não tem permissão para editar esta instituição.");
 
@@ -105,9 +105,9 @@ namespace API_Gestao_Eventos.src.Application.Services
             Guid id,
             bool isAdmin,
             Guid? callerInstitutionId,
-            bool isInstitutionAdmin)
+            bool isSecretary)
         {
-            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == id);
+            var isAllowed = isAdmin || (isSecretary && callerInstitutionId == id);
             if (!isAllowed)
                 throw new UnauthorizedAccessException("Você não tem permissão para excluir esta instituição.");
 

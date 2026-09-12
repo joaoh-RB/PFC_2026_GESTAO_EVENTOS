@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 import type { OptionItem } from "../types/optionItem";
 import { DeleteConfirmation } from "../components/ui/deleteConfirm";
 import {
@@ -29,8 +30,11 @@ const extractErrorMessage = (err: any, fallback: string) => {
 };
 
 export const Courses: React.FC = () => {
+    const { user } = useAuth();
+    const userInstitutionId = user?.institutionId || null;
+
     const [institutions, setInstitutions] = useState<OptionItem[]>([]);
-    const [selectedInstitutionId, setSelectedInstitutionId] = useState("");
+    const [selectedInstitutionId, setSelectedInstitutionId] = useState(userInstitutionId ?? "");
     const [courses, setCourses] = useState<OptionItem[]>([]);
 
     const [loading, setLoading] = useState(true);
@@ -43,6 +47,10 @@ export const Courses: React.FC = () => {
     const [name, setName] = useState("");
 
     useEffect(() => {
+        if (userInstitutionId) {
+            setLoading(false);
+            return;
+        }
         api
             .get<OptionItem[]>("/institutions")
             .then((res) => setInstitutions(res.data))
@@ -50,12 +58,9 @@ export const Courses: React.FC = () => {
                 setError(extractErrorMessage(err, "Não foi possível carregar as instituições.")),
             )
             .finally(() => setLoading(false));
-    }, []);
+    }, [userInstitutionId]);
 
     const loadCourses = async (institutionId: string) => {
-        // GET /courses só retorna algo quando institutionId é informado
-        // (ver CourseService.GetCoursesForSelectAsync) — por isso a tela exige
-        // escolher a instituição primeiro.
         if (!institutionId) {
             setCourses([]);
             return;
@@ -112,12 +117,8 @@ export const Courses: React.FC = () => {
         setError(null);
         try {
             if (editingId) {
-                // PUT /courses/{id} (Tarefa 8.2) — só o nome é editável, o curso
-                // continua vinculado à mesma instituição.
                 await api.put(`/courses/${editingId}`, { name });
             } else {
-                // POST /courses (Tarefa 8.4) — agora aceita Administrador OU
-                // professor-admin da própria instituição.
                 await api.post("/courses", { name, institutionId: selectedInstitutionId });
             }
             await loadCourses(selectedInstitutionId);
@@ -132,7 +133,6 @@ export const Courses: React.FC = () => {
     const remove = async (id: string) => {
         setError(null);
         try {
-            // DELETE /courses/{id} (Tarefa 8.3)
             await api.delete(`/courses/${id}`);
             await loadCourses(selectedInstitutionId);
         } catch (err: any) {
@@ -155,7 +155,9 @@ export const Courses: React.FC = () => {
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">Cursos</h1>
                         <p className="text-sm text-slate-600">
-                            Escolha uma instituição para ver, editar e remover os cursos dela.
+                            {userInstitutionId
+                                ? "Veja, edite e remova os cursos da sua instituição."
+                                : "Escolha uma instituição para ver, editar e remover os cursos dela."}
                         </p>
                     </div>
                     <button
@@ -175,17 +177,19 @@ export const Courses: React.FC = () => {
                 )}
 
                 <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row">
-                    <select
-                        value={selectedInstitutionId}
-                        onChange={(e) => setSelectedInstitutionId(e.target.value)}
-                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm sm:w-72">
-                        <option value="">Selecione a instituição</option>
-                        {institutions.map((item) => (
-                            <option key={item.value} value={item.value}>
-                                {item.label}
-                            </option>
-                        ))}
-                    </select>
+                    {!userInstitutionId && (
+                        <select
+                            value={selectedInstitutionId}
+                            onChange={(e) => setSelectedInstitutionId(e.target.value)}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm sm:w-72">
+                            <option value="">Selecione a instituição</option>
+                            {institutions.map((item) => (
+                                <option key={item.value} value={item.value}>
+                                    {item.label}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                     <label className="relative flex-1">
                         <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
                         <input

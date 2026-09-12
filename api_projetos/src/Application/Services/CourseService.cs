@@ -24,9 +24,9 @@ namespace API_Gestao_Eventos.src.Application.Services
             CreateCourseDto request,
             bool isAdmin,
             Guid? callerInstitutionId,
-            bool isInstitutionAdmin)
+            bool isSecretary)
         {
-            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == request.InstitutionId);
+            var isAllowed = isAdmin || (isSecretary && callerInstitutionId == request.InstitutionId);
             if (!isAllowed)
                 throw new UnauthorizedAccessException("Você não tem permissão para cadastrar cursos nesta instituição.");
 
@@ -45,12 +45,12 @@ namespace API_Gestao_Eventos.src.Application.Services
             Guid id,
             bool isAdmin,
             Guid? callerInstitutionId,
-            bool isInstitutionAdmin)
+            bool isSecretary)
         {
             var course = await _courseRepository.GetByIdAsync(id);
             if (course == null) return null;
 
-            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == course.InstitutionId);
+            var isAllowed = isAdmin || (isSecretary && callerInstitutionId == course.InstitutionId);
             if (!isAllowed)
                 throw new UnauthorizedAccessException("Você não tem permissão para consultar este curso.");
 
@@ -68,12 +68,12 @@ namespace API_Gestao_Eventos.src.Application.Services
             UpdateCourseDto request,
             bool isAdmin,
             Guid? callerInstitutionId,
-            bool isInstitutionAdmin)
+            bool isSecretary)
         {
             var course = await _courseRepository.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException("Curso não encontrado.");
 
-            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == course.InstitutionId);
+            var isAllowed = isAdmin || (isSecretary && callerInstitutionId == course.InstitutionId);
             if (!isAllowed)
                 throw new UnauthorizedAccessException("Você não tem permissão para editar este curso.");
 
@@ -88,12 +88,12 @@ namespace API_Gestao_Eventos.src.Application.Services
             Guid id,
             bool isAdmin,
             Guid? callerInstitutionId,
-            bool isInstitutionAdmin)
+            bool isSecretary)
         {
             var course = await _courseRepository.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException("Curso não encontrado.");
 
-            var isAllowed = isAdmin || (isInstitutionAdmin && callerInstitutionId == course.InstitutionId);
+            var isAllowed = isAdmin || (isSecretary && callerInstitutionId == course.InstitutionId);
             if (!isAllowed)
                 throw new UnauthorizedAccessException("Você não tem permissão para excluir este curso.");
 
