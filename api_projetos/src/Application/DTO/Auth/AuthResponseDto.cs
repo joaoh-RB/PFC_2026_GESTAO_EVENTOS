@@ -15,6 +15,7 @@
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public Guid? InstitutionId { get; set; }
+        public string InstitutionName { get; set; } = string.Empty;
         public bool TwoFactorEnabled { get; set; }
     }
 }

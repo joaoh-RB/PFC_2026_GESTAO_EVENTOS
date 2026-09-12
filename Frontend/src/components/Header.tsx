@@ -237,7 +237,7 @@ export function Header({ collapsed, onToggleCollapsed }: HeaderProps) {
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 md:flex">
               <Building2 className="size-3.5 text-[#14a5d1]" />
-              {user?.institutionId ? "Instituição vinculada" : "Gestão de Eventos"}
+              {user?.institutionId ? user.institutionName : "Gestão de Eventos"}
             </div>
 
             <div className="relative">
