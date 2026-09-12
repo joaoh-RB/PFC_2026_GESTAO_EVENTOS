@@ -13,11 +13,11 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         }
         public async Task<IEnumerable<Course>> GetAllAsync()
         {
-            return await _context.Courses.ToListAsync();
+            return await _context.Courses.Where(c => c.IsActive).ToListAsync();
         }
         public async Task<IEnumerable<Course>> GetByInstitutionAsync(Guid institutionId)
         {
-            return await _context.Courses.Where(c => c.InstitutionId == institutionId).ToListAsync();
+            return await _context.Courses.Where(c => c.InstitutionId == institutionId && c.IsActive).ToListAsync();
         }
         public async Task<Course?> GetByIdAsync(Guid id)
         {
@@ -26,12 +26,12 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         public async Task<bool> ExistsByNameAsync(string name, Guid institutionId)
         {
             return await _context.Courses.AnyAsync(c =>
-                c.Name.ToLower() == name.ToLower() && c.InstitutionId == institutionId);
+                c.Name.ToLower() == name.ToLower() && c.InstitutionId == institutionId && c.IsActive);
         }
         public async Task<bool> ExistsByNameExceptAsync(string name, Guid institutionId, Guid id)
         {
             return await _context.Courses.AnyAsync(c =>
-                c.Id != id && c.InstitutionId == institutionId && c.Name.ToLower() == name.ToLower());
+                c.Id != id && c.InstitutionId == institutionId && c.Name.ToLower() == name.ToLower() && c.IsActive);
         }
         public async Task<bool> HasDependenciesAsync(Guid id)
         {

@@ -11,9 +11,9 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         {
             _context = context;
         }
-        public async Task<IEnumerable<Institution>> GetAllAsync()
+        public async Task<IEnumerable<Institution>> GetAllActiveAsync()
         {
-            return await _context.Institutions.ToListAsync();
+            return await _context.Institutions.Where(i => i.IsActive).ToListAsync();
         }
         public async Task<Institution?> GetByIdAsync(Guid id)
         {
@@ -21,21 +21,21 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         }
         public async Task<bool> ExistsByNameAsync(string name)
         {
-            return await _context.Institutions.AnyAsync(i => i.Name.ToLower() == name.ToLower());
+            return await _context.Institutions.AnyAsync(i => i.Name.ToLower() == name.ToLower() && i.IsActive);
         }
         public async Task<bool> ExistsByCnpjAsync(Domain.Cnpj cnpj)
         {
-            return await _context.Institutions.AnyAsync(i => i.Cnpj == cnpj);
+            return await _context.Institutions.AnyAsync(i => i.Cnpj == cnpj && i.IsActive);
         }
         public async Task<bool> ExistsByNameExceptAsync(string name, Guid id)
         {
             return await _context.Institutions.AnyAsync(i =>
-                i.Id != id && i.Name.ToLower() == name.ToLower());
+                i.Id != id && i.Name.ToLower() == name.ToLower() && i.IsActive);
         }
         public async Task<bool> ExistsByCnpjExceptAsync(Domain.Cnpj cnpj, Guid id)
         {
             return await _context.Institutions.AnyAsync(i =>
-                i.Id != id && i.Cnpj == cnpj);
+                i.Id != id && i.Cnpj == cnpj && i.IsActive);
         }
         public async Task<bool> HasDependenciesAsync(Guid id)
         {

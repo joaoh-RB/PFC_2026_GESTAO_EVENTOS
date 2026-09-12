@@ -10,7 +10,7 @@ namespace API_Gestao_Eventos.src.Application.Services
 
         public async Task<IEnumerable<SelectItemDto>> GetInstituctionsForSelectAsync()
         {
-            var institutions = await _institutionRepository.GetAllAsync();
+            var institutions = await _institutionRepository.GetAllActiveAsync();
             return institutions.Select(i => new SelectItemDto
             {
                 Value = i.Id.ToString(),

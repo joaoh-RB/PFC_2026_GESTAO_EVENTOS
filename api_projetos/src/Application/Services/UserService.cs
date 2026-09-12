@@ -169,7 +169,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                 ?? throw new KeyNotFoundException("Usuário não encontrado.");
         private async Task ValidateReferencesAsync(Guid institutionId, Guid courseId)
         {
-            if (!(await institutionRepository.GetAllAsync()).Any(i => i.Id == institutionId))
+            if (!(await institutionRepository.GetAllActiveAsync()).Any(i => i.Id == institutionId))
                 throw new InvalidOperationException("Instituição inválida.");
             if (!(await courseRepository.GetAllAsync()).Any(c => c.Id == courseId))
                 throw new InvalidOperationException("Curso inválido.");
