@@ -54,10 +54,6 @@ export function Dashboard() {
             Olá, {firstName}. Acompanhe e gerencie sua operação acadêmica.
           </p>
         </div>
-        <span className="status-pill bg-emerald-50 text-emerald-700">
-          <span className="size-1.5 rounded-full bg-emerald-500" />
-          Sistema operacional
-        </span>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
