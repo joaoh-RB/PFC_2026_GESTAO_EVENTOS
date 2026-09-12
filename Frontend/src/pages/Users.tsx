@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 import type { OptionItem } from "../types/optionItem";
+import { PageHeader } from "../components/PageHeader";
 import {
   AlertCircle,
   Check,
@@ -12,7 +13,9 @@ import {
   UserCheck,
   UserX,
   X,
+  User2,
 } from "lucide-react";
+import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 
 type ApprovalStatus = 1 | 2 | 3;
 
@@ -26,7 +29,7 @@ interface ManagedUser {
   isActive: boolean;
   approvalStatus: ApprovalStatus;
   approvedByUserName?: string | null;
-  approvalDate?: string | null;
+  approvedDate?: string | null;
 }
 
 interface UserForm {
@@ -65,6 +68,7 @@ export const Users: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | ApprovalStatus>("all");
   const [editing, setEditing] = useState<ManagedUser | null>(null);
@@ -170,8 +174,12 @@ export const Users: React.FC = () => {
       const payload = { ...form, password: form.password || undefined };
       if (editing) await api.put(`/users/${editing.id}`, payload);
       else await api.post("/users", payload);
+      setSuccessMessage(editing ? "Usuário atualizado com sucesso! Redirecionando..." : "Usuário criado com sucesso! Redirecionando...");
       await loadUsers();
-      closeForm();
+      setTimeout(() => {
+        setSuccessMessage(null);
+        closeForm();
+      }, 1400);
     } catch (err: any) {
       setError(
         err.response?.data?.message || "Não foi possível salvar o usuário.",
@@ -198,6 +206,8 @@ export const Users: React.FC = () => {
     try {
       await api.patch(`/users/${user.id}/active`, { isActive: !user.isActive });
       await loadUsers();
+      setSuccessMessage(user.isActive ? "Usuário desativado com sucesso." : "Usuário ativado com sucesso.");
+      setTimeout(() => setSuccessMessage(null), 1400);
     } catch (err: any) {
       setError(
         err.response?.data?.message || "Não foi possível alterar a situação.",
@@ -214,23 +224,18 @@ export const Users: React.FC = () => {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              Gestão de usuários
-            </h1>
-            <p className="text-sm text-slate-600">
-              Aprove cadastros e gerencie o acesso dos alunos.
-            </p>
-          </div>
+    <main className="app-page">
+        <PageHeader
+          title="Alunos"
+          description="Aprove cadastros e gerencie o acesso dos estudantes."
+          action={
           <button
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
-            <Plus className="h-4 w-4" /> Novo usuário
+            className="primary-action">
+            <Plus className="h-4 w-4" /> Novo aluno
           </button>
-        </div>
+          }
+        />
 
         {error && (
           <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
@@ -238,15 +243,21 @@ export const Users: React.FC = () => {
             {error}
           </div>
         )}
+        {successMessage && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+            <Check className="h-5 w-5" />
+            {successMessage}
+          </div>
+        )}
 
-        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row">
+        <div className="filter-bar">
           <label className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome, e-mail ou matrícula"
-              className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-3 text-sm"
+              className="form-control pl-10"
             />
           </label>
           <select
@@ -258,7 +269,7 @@ export const Users: React.FC = () => {
                   : (Number(e.target.value) as ApprovalStatus),
               )
             }
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            className="form-control sm:w-56">
             <option value="all">Todas as aprovações</option>
             <option value="1">Pendentes</option>
             <option value="2">Aprovados</option>
@@ -266,9 +277,9 @@ export const Users: React.FC = () => {
           </select>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+        <div className="surface-card overflow-x-auto">
+          <table className="data-table">
+            <thead>
               <tr>
                 <th className="px-4 py-3">Usuário</th>
                 <th className="px-4 py-3">Matrícula</th>
@@ -278,7 +289,7 @@ export const Users: React.FC = () => {
                 <th className="px-4 py-3 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
@@ -303,10 +314,16 @@ export const Users: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-600">
-                    <div>{user.approvedByUserName || "—"}</div>
-                    <div className="text-xs text-slate-400">
-                      {formatDate(user.approvalDate)}
-                    </div>
+                    {user.approvedByUserName ? (
+                      <>
+                        <div>{user.approvedByUserName}</div>
+                        <div className="text-xs text-slate-400">
+                          {formatDate(user.approvedDate)}
+                        </div>
+                      </>
+                    ) : (
+                      <div>—</div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -326,7 +343,7 @@ export const Users: React.FC = () => {
                           <UserCheck className="h-4 w-4" />
                         </button>
                       )}
-                      {user.approvalStatus !== 3 && (
+                      {user.approvalStatus === 1 && (
                         <button
                           title="Reprovar"
                           onClick={() => setApproval(user, 3)}
@@ -334,16 +351,36 @@ export const Users: React.FC = () => {
                           <UserX className="h-4 w-4" />
                         </button>
                       )}
-                      <button
-                        title={user.isActive ? "Inativar" : "Ativar"}
-                        onClick={() => toggleActive(user)}
-                        className="rounded p-2 text-amber-600 hover:bg-amber-50">
-                        {user.isActive ? (
-                          <CircleOff className="h-4 w-4" />
-                        ) : (
-                          <Check className="h-4 w-4" />
-                        )}
-                      </button>
+                      {user.isActive ? (
+                        <DeleteConfirmation
+                          children={
+                            <button
+                              title="Inativar"
+                              className="rounded p-2 text-amber-600 hover:bg-amber-50">
+                              <CircleOff className="h-4 w-4" />
+                            </button>
+                          }
+                          onDelete={() => toggleActive(user)}
+                          onCancel={() => { setSuccessMessage(null); setError(null); }}
+                          descriptionText={"Tem certeza que deseja desativar este usuário?"}
+                          confirmationText={"Desativar"}
+                        />
+                      ) : (
+                        <DeleteConfirmation
+                          children={
+                            <button
+                              title="Ativar"
+                              className="rounded p-2 text-amber-600 hover:bg-amber-50">
+                              <Check className="h-4 w-4" />
+                            </button>
+                          }
+                          onDelete={() => toggleActive(user)}
+                          onCancel={() => { setSuccessMessage(null); setError(null); }}
+                          descriptionText={"Tem certeza que deseja ativar este usuário?"}
+                          confirmationText={"Ativar"}
+                          deleteButtonClassName={"bg-green-500 hover:bg-green-600 text-gray-100"}
+                        />
+                      )}
                       <button
                         title="Editar"
                         onClick={() => openEdit(user)}
@@ -366,21 +403,37 @@ export const Users: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
-
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+        <div className="modal-backdrop">
+          <div className="modal-panel max-w-xl">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-[#12a7d4]">
+              <User2 className="h-6 w-6" />
+            </div>
+            <div className="text-center sm:text-left mb-2">
+              <p className="text-sm text-slate-600">{editing ? "Preencha os dados abaixo para atualizar o usuário acadêmico" : "Preencha os dados abaixo para cadastrar um novo usuário acadêmico"}</p>
+            </div>
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-900">
                 {editing ? "Editar usuário" : "Novo usuário"}
               </h2>
               <button
-                onClick={closeForm}
+                onClick={() => { setSuccessMessage(null); setError(null); closeForm(); }}
                 className="rounded p-1 text-slate-500 hover:bg-slate-100">
                 <X />
               </button>
             </div>
+            {successMessage && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+                <Check className="h-5 w-5" />
+                {successMessage}
+              </div>
+            )}
+            {error && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                <AlertCircle className="h-5 w-5" />
+                {error}
+              </div>
+            )}
             <form
               onSubmit={submit}
               className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -390,7 +443,7 @@ export const Users: React.FC = () => {
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                  className="form-control mt-1"
                 />
               </label>
               <label className="text-sm font-medium text-slate-700">
@@ -400,7 +453,7 @@ export const Users: React.FC = () => {
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                  className="form-control mt-1"
                 />
               </label>
               <label className="text-sm font-medium text-slate-700">
@@ -411,7 +464,7 @@ export const Users: React.FC = () => {
                   onChange={(e) =>
                     setForm({ ...form, uniqueIdentifier: e.target.value })
                   }
-                  className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                  className="form-control mt-1"
                 />
               </label>
               <label className="text-sm font-medium text-slate-700">
@@ -422,7 +475,7 @@ export const Users: React.FC = () => {
                   onChange={(e) =>
                     setForm({ ...form, institutionId: e.target.value })
                   }
-                  className="mt-1 w-full rounded-lg border border-slate-300 p-2.5">
+                  className="form-control mt-1">
                   <option value="">Selecione</option>
                   {institutions.map((item) => (
                     <option key={item.value} value={item.value}>
@@ -439,7 +492,7 @@ export const Users: React.FC = () => {
                   onChange={(e) =>
                     setForm({ ...form, courseId: e.target.value })
                   }
-                  className="mt-1 w-full rounded-lg border border-slate-300 p-2.5">
+                  className="form-control mt-1">
                   <option value="">Selecione</option>
                   {courses.map((item) => (
                     <option key={item.value} value={item.value}>
@@ -458,19 +511,19 @@ export const Users: React.FC = () => {
                   onChange={(e) =>
                     setForm({ ...form, password: e.target.value })
                   }
-                  className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                  className="form-control mt-1"
                 />
               </label>
               <div className="sm:col-span-2 flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={closeForm}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium">
+                  className="secondary-action">
                   Cancelar
                 </button>
                 <button
                   disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-indigo-400">
+                  className="primary-action">
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   Salvar
                 </button>

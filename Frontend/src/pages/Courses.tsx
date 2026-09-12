@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
-import { useAuth } from "../hooks/useAuth";
 import type { OptionItem } from "../types/optionItem";
 import { DeleteConfirmation } from "../components/ui/deleteConfirm";
+import { PageHeader } from "../components/PageHeader";
 import {
     AlertCircle,
     BookOpen,
@@ -30,11 +30,8 @@ const extractErrorMessage = (err: any, fallback: string) => {
 };
 
 export const Courses: React.FC = () => {
-    const { user } = useAuth();
-    const userInstitutionId = user?.institutionId || null;
-
     const [institutions, setInstitutions] = useState<OptionItem[]>([]);
-    const [selectedInstitutionId, setSelectedInstitutionId] = useState(userInstitutionId ?? "");
+    const [selectedInstitutionId, setSelectedInstitutionId] = useState("");
     const [courses, setCourses] = useState<OptionItem[]>([]);
 
     const [loading, setLoading] = useState(true);
@@ -47,10 +44,6 @@ export const Courses: React.FC = () => {
     const [name, setName] = useState("");
 
     useEffect(() => {
-        if (userInstitutionId) {
-            setLoading(false);
-            return;
-        }
         api
             .get<OptionItem[]>("/institutions")
             .then((res) => setInstitutions(res.data))
@@ -58,9 +51,12 @@ export const Courses: React.FC = () => {
                 setError(extractErrorMessage(err, "Não foi possível carregar as instituições.")),
             )
             .finally(() => setLoading(false));
-    }, [userInstitutionId]);
+    }, []);
 
     const loadCourses = async (institutionId: string) => {
+        // GET /courses só retorna algo quando institutionId é informado
+        // (ver CourseService.GetCoursesForSelectAsync) — por isso a tela exige
+        // escolher a instituição primeiro.
         if (!institutionId) {
             setCourses([]);
             return;
@@ -117,8 +113,12 @@ export const Courses: React.FC = () => {
         setError(null);
         try {
             if (editingId) {
+                // PUT /courses/{id} (Tarefa 8.2) — só o nome é editável, o curso
+                // continua vinculado à mesma instituição.
                 await api.put(`/courses/${editingId}`, { name });
             } else {
+                // POST /courses (Tarefa 8.4) — agora aceita Administrador OU
+                // professor-admin da própria instituição.
                 await api.post("/courses", { name, institutionId: selectedInstitutionId });
             }
             await loadCourses(selectedInstitutionId);
@@ -133,6 +133,7 @@ export const Courses: React.FC = () => {
     const remove = async (id: string) => {
         setError(null);
         try {
+            // DELETE /courses/{id} (Tarefa 8.3)
             await api.delete(`/courses/${id}`);
             await loadCourses(selectedInstitutionId);
         } catch (err: any) {
@@ -149,25 +150,20 @@ export const Courses: React.FC = () => {
     }
 
     return (
-        <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-5xl">
-                <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Cursos</h1>
-                        <p className="text-sm text-slate-600">
-                            {userInstitutionId
-                                ? "Veja, edite e remova os cursos da sua instituição."
-                                : "Escolha uma instituição para ver, editar e remover os cursos dela."}
-                        </p>
-                    </div>
+        <main className="app-page">
+                <PageHeader
+                    title="Cursos"
+                    description="Escolha uma instituição para consultar e gerenciar seus cursos."
+                    action={
                     <button
                         onClick={openCreate}
                         disabled={!selectedInstitutionId}
                         title={!selectedInstitutionId ? "Selecione uma instituição primeiro" : undefined}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
+                        className="primary-action">
                         <Plus className="h-4 w-4" /> Novo curso
                     </button>
-                </div>
+                    }
+                />
 
                 {error && (
                     <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
@@ -176,40 +172,38 @@ export const Courses: React.FC = () => {
                     </div>
                 )}
 
-                <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row">
-                    {!userInstitutionId && (
-                        <select
-                            value={selectedInstitutionId}
-                            onChange={(e) => setSelectedInstitutionId(e.target.value)}
-                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm sm:w-72">
-                            <option value="">Selecione a instituição</option>
-                            {institutions.map((item) => (
-                                <option key={item.value} value={item.value}>
-                                    {item.label}
-                                </option>
-                            ))}
-                        </select>
-                    )}
+                <div className="filter-bar">
+                    <select
+                        value={selectedInstitutionId}
+                        onChange={(e) => setSelectedInstitutionId(e.target.value)}
+                        className="form-control sm:w-72">
+                        <option value="">Selecione a instituição</option>
+                        {institutions.map((item) => (
+                            <option key={item.value} value={item.value}>
+                                {item.label}
+                            </option>
+                        ))}
+                    </select>
                     <label className="relative flex-1">
                         <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
                         <input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Buscar por nome do curso"
-                            className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-3 text-sm"
+                            className="form-control pl-10"
                         />
                     </label>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <div className="surface-card overflow-x-auto">
+                    <table className="data-table">
+                        <thead>
                             <tr>
                                 <th className="px-4 py-3">Nome</th>
                                 <th className="px-4 py-3 text-right">Ações</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody>
                             {filteredCourses.map((item) => (
                                 <tr key={item.value} className="hover:bg-slate-50">
                                     <td className="px-4 py-3">
@@ -250,11 +244,9 @@ export const Courses: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
-            </div>
-
             {showForm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                <div className="modal-backdrop">
+                    <div className="modal-panel max-w-md">
                         <div className="mb-5 flex items-center justify-between">
                             <h2 className="text-xl font-bold text-slate-900">
                                 {editingId ? "Editar curso" : "Novo curso"}
@@ -270,19 +262,19 @@ export const Courses: React.FC = () => {
                                     required
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                                    className="form-control mt-1"
                                 />
                             </label>
                             <div className="flex justify-end gap-3 pt-2">
                                 <button
                                     type="button"
                                     onClick={closeForm}
-                                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium">
+                                    className="secondary-action">
                                     Cancelar
                                 </button>
                                 <button
                                     disabled={saving}
-                                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-indigo-400">
+                                    className="primary-action">
                                     {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                                     Salvar
                                 </button>

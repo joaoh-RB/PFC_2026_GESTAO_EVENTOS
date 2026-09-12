@@ -80,15 +80,7 @@ namespace API_Gestao_Eventos.src.Application.Services
             {
                 RequiresTwoFactor = false,
                 Token = token,
-                User = new UserResponseDto
-                {
-                    Id = user.Id,
-                    Name = user.Name,
-                    Email = user.Email,
-                    Role = user.Role.ToString(),
-                    TwoFactorEnabled = user.TwoFactorEnabled,
-                    InstitutionId = user.InstitutionId
-                }
+                User = await GetUserInfoAsync(user.Id)
             };
         }
 
@@ -136,7 +128,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 Id = user.Id,
                 Name = user.Name,
                 TwoFactorEnabled = user.TwoFactorEnabled,
-                InstitutionId = user.InstitutionId
+                InstitutionId = user.InstitutionId,
+                InstitutionName = user.Institution?.Name ?? ""
             };
         }
     }

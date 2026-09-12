@@ -93,8 +93,8 @@ export const EventsList: React.FC<EventsListProps> = ({
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white">
-        <CardContent className="pt-6">
+      <Card className="surface-card bg-white shadow-none">
+        <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
             <div className="space-y-2 col-span-2">
               <Label htmlFor="filter-from-date">A partir de</Label>
@@ -138,7 +138,7 @@ export const EventsList: React.FC<EventsListProps> = ({
               <Button
                 onClick={handleApplyFilter}
                 disabled={isLoading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700">
+                className="primary-action w-full">
                 Filtrar
               </Button>
             </div>
@@ -148,7 +148,7 @@ export const EventsList: React.FC<EventsListProps> = ({
 
       {isLoading ? (
         <div className="flex justify-center items-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#12a7d4]" />
         </div>
       ) : data.items.length === 0 ? (
         <Card className="text-center py-12">
@@ -169,7 +169,7 @@ export const EventsList: React.FC<EventsListProps> = ({
               return (
                 <Card
                   key={event.id}
-                  className="flex flex-col shadow-sm hover:shadow-md transition-shadow">
+                  className="flex flex-col border-[#e1e4ea] shadow-none transition hover:-translate-y-0.5 hover:shadow-md">
                   <CardHeader>
                     <div className="flex justify-between items-start gap-2 mb-2">
                       <Badge variant={isFull ? "destructive" : "secondary"}>
@@ -195,22 +195,22 @@ export const EventsList: React.FC<EventsListProps> = ({
 
                   <CardContent className="space-y-3 text-sm text-slate-600">
                     <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-indigo-600 shrink-0" />
+                      <MapPin className="h-4 w-4 text-[#12a7d4] shrink-0" />
                       <span className="truncate">{event.institutionName}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-indigo-600 shrink-0" />
+                      <Calendar className="h-4 w-4 text-[#12a7d4] shrink-0" />
                       <span>Início: {formatDateForShort(event.startDate)}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-indigo-600 shrink-0" />
+                      <Clock className="h-4 w-4 text-[#12a7d4] shrink-0" />
                       <span>Término: {formatDateForShort(event.endDate)}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-indigo-600 shrink-0" />
+                      <Users className="h-4 w-4 text-[#12a7d4] shrink-0" />
                       <span>
                         Inscritos: {event.confirmedRegistrations} /{" "}
                         {event.capacity}
@@ -242,7 +242,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                       <div className="flex justify-between items-center gap-2 pt-4">
                         <Button
                           className={
-                            "bg-white text-black hover:bg-gray-100 cursor-pointer"
+                            "secondary-action cursor-pointer"
                           }
                           onClick={() => handleStartEdition(event)}>
                           Editar
@@ -252,7 +252,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                           children={
                             <Button
                               className={
-                                "bg-red-500 hover:bg-red-600 cursor-pointer"
+                                "bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
                               }>
                               Excluir
                             </Button>

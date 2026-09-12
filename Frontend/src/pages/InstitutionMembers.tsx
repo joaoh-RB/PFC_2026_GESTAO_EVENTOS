@@ -14,6 +14,7 @@ import {
 import type { CreateInstitutionMemberFormData } from "@/schemas/userSchema";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CreateInstitutionMemberForm } from "@/components/users/CreateInstitutionMemberForm";
+import { PageHeader } from "@/components/PageHeader";
 
 export const InstitutionMembers: React.FC = () => {
   const pageSize = 10;
@@ -201,12 +202,11 @@ export const InstitutionMembers: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-slate-900">
-            Membros de instituição
-          </h1>
+    <div className="app-page">
+        <PageHeader
+          title="Membros"
+          description="Gerencie professores, secretarias e responsáveis das instituições."
+          action={
           <Button
             onClick={() => {
               setIsEditing(!editing);
@@ -214,11 +214,12 @@ export const InstitutionMembers: React.FC = () => {
               setUserBeingUpdated(null);
             }}
             variant={editing ? "outline" : "default"}
-            className={editing ? "" : "bg-indigo-600 hover:bg-indigo-700"}>
+            className="primary-action">
             <Plus className="mr-2 h-4 w-4" />
-            Criar Usuário
+            Novo membro
           </Button>
-        </div>
+          }
+        />
 
         <InstitutionMemberList
           data={usersData}
@@ -251,7 +252,6 @@ export const InstitutionMembers: React.FC = () => {
             </>
           </DialogContent>
         </Dialog>
-      </div>
     </div>
   );
 };

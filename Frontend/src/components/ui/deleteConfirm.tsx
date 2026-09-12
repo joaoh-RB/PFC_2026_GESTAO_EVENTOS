@@ -15,6 +15,7 @@ export interface DeleteConfirmationProps {
   confirmationText?: string;
   children: React.ReactElement;
   deleteButtonClassName?: string;
+  onCancel?: () => void;
 }
 
 export function DeleteConfirmation({
@@ -22,7 +23,8 @@ export function DeleteConfirmation({
   descriptionText,
   confirmationText,
   deleteButtonClassName,
-  children
+  children,
+  onCancel,
 }: DeleteConfirmationProps) {
   return (
     <AlertDialog>
@@ -34,7 +36,7 @@ export function DeleteConfirmation({
           <AlertDialogDescription>{descriptionText}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel onClick={onCancel}>Cancelar</AlertDialogCancel>
           <AlertDialogAction className={"bg-red-500 hover:bg-red-600 " + (deleteButtonClassName || "")} onClick={onDelete}>{confirmationText}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

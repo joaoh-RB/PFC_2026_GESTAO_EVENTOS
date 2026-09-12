@@ -14,6 +14,7 @@ import type { OptionItem } from "@/types/optionItem";
 import { formatForDatetimeLocal } from "@/utils/format";
 import { type PagedResult } from "@/types/utils";
 import { InitialLoading } from "@/components/InitialLoading";
+import { PageHeader } from "@/components/PageHeader";
 
 export const Events: React.FC = () => {
   const pageSize = 6;
@@ -198,17 +199,21 @@ export const Events: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-slate-900">
-            {editing
+    <div className="app-page">
+        <PageHeader
+          title={
+            editing
               ? currentEventBeingUpdated
                 ? "Atualizar evento"
-                : "Novo Evento"
-              : "Eventos Disponíveis"}
-          </h1>
-
+                : "Novo evento"
+              : "Eventos"
+          }
+          description={
+            editing
+              ? "Preencha os dados para salvar o evento."
+              : "Consulte, filtre e gerencie os eventos acadêmicos."
+          }
+          action={
           <Button
             onClick={() => {
               setIsEditing(!editing);
@@ -216,7 +221,7 @@ export const Events: React.FC = () => {
               setEventBeingUpdated(null);
             }}
             variant={editing ? "outline" : "default"}
-            className={editing ? "" : "bg-indigo-600 hover:bg-indigo-700"}>
+            className={editing ? "secondary-action" : "primary-action"}>
             {editing ? (
               <>
                 <ListFilter className="mr-2 h-4 w-4" />
@@ -229,7 +234,8 @@ export const Events: React.FC = () => {
               </>
             )}
           </Button>
-        </div>
+          }
+        />
 
         {editing ? (
           <CreateEventForm
@@ -257,7 +263,6 @@ export const Events: React.FC = () => {
             handleDelete={handleDelete}
           />
         )}
-      </div>
     </div>
   );
 };
