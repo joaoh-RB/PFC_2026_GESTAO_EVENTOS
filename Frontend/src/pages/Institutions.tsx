@@ -1,20 +1,21 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import type { OptionItem } from "../types/optionItem";
 import { DeleteConfirmation } from "../components/ui/deleteConfirm";
 import { PageHeader } from "../components/PageHeader";
-import { maskCnpj, maskPhone, unmaskCnpj, unmaskPhone } from "../utils/masks";
+import { CreateInstitutionForm } from "../components/institutions/CreateInstitutionForm";
+import { type CreateInstitutionFormData } from "../schemas/institutionSchema";
+import { unmaskCnpj } from "../utils/masks";
 import {
     AlertCircle,
     Building2,
-    CheckCircle2,
+    ListFilter,
     Loader2,
     Pencil,
     Plus,
     Search,
     Trash2,
-    X,
 } from "lucide-react";
 
 interface InstitutionDetail {
@@ -27,64 +28,62 @@ interface InstitutionDetail {
     createdAt: string;
 }
 
-interface InstitutionForm {
-    name: string;
-    cnpj: string;
-    address: string;
-    phone: string;
-}
-
-const emptyForm: InstitutionForm = { name: "", cnpj: "", address: "", phone: "" };
-
 const extractErrorMessage = (err: any, fallback: string) => {
     if (err?.response?.status === 403) {
         return "Você não tem permissão para realizar esta ação.";
     }
-    return err?.response?.data?.message || fallback;
+    const data = err?.response?.data;
+    if (data?.message) return data.message;
+    if (data?.errors) {
+        const firstField = Object.values(data.errors)[0];
+        if (Array.isArray(firstField) && firstField.length) return firstField[0] as string;
+    }
+    return fallback;
 };
+
+const toPayload = (data: CreateInstitutionFormData) => ({
+    name: data.name,
+    cnpj: data.cnpj ? unmaskCnpj(data.cnpj) : undefined,
+    address: data.address,
+    phone: data.phone,
+});
 
 const MyInstitutionEditor: React.FC<{ institutionId: string }> = ({ institutionId }) => {
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [currentData, setCurrentData] = useState<CreateInstitutionFormData | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const [isSuccess, setIsSuccess] = useState(false);
-    const [form, setForm] = useState<InstitutionForm>(emptyForm);
 
     useEffect(() => {
         api
             .get<InstitutionDetail>(`/institutions/${institutionId}`)
             .then(({ data }) => {
-                setForm({
+                setCurrentData({
                     name: data.name,
-                    cnpj: data.cnpj ? maskCnpj(data.cnpj) : "",
+                    cnpj: data.cnpj ?? "",
                     address: data.address ?? "",
-                    phone: data.phone ? maskPhone(data.phone) : "",
+                    phone: data.phone ?? "",
                 });
             })
             .catch((err) =>
-                setError(extractErrorMessage(err, "Não foi possível carregar sua instituição.")),
+                setLoadError(extractErrorMessage(err, "Não foi possível carregar sua instituição.")),
             )
             .finally(() => setLoading(false));
     }, [institutionId]);
 
-    const submit = async (event: React.FormEvent) => {
-        event.preventDefault();
-        setSaving(true);
-        setError(null);
-        setIsSuccess(false);
+    const handleUpdate = async (data: CreateInstitutionFormData) => {
+        setIsSubmitting(true);
+        setSubmitError(null);
         try {
-            const payload = {
-                name: form.name,
-                cnpj: form.cnpj ? unmaskCnpj(form.cnpj) : undefined,
-                address: form.address || undefined,
-                phone: form.phone ? unmaskPhone(form.phone) : undefined,
-            };
-            await api.put(`/institutions/${institutionId}`, payload);
+            await api.put(`/institutions/${institutionId}`, toPayload(data));
             setIsSuccess(true);
+            setTimeout(() => setIsSuccess(false), 1500);
         } catch (err: any) {
-            setError(extractErrorMessage(err, "Não foi possível salvar a instituição."));
+            setSubmitError(extractErrorMessage(err, "Não foi possível salvar a instituição."));
         } finally {
-            setSaving(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -98,71 +97,20 @@ const MyInstitutionEditor: React.FC<{ institutionId: string }> = ({ institutionI
 
     return (
         <main className="app-page">
-            <PageHeader
-                title="Minha instituição"
-                description="Edite os dados da sua instituição."
-            />
-
-            {error && (
+            <PageHeader title="Minha instituição" description="Edite os dados da sua instituição." />
+            {loadError && (
                 <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
                     <AlertCircle className="h-5 w-5" />
-                    {error}
+                    {loadError}
                 </div>
             )}
-            {isSuccess && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
-                    <CheckCircle2 className="h-5 w-5" />
-                    Instituição atualizada com sucesso!
-                </div>
-            )}
-
-            <form
-                onSubmit={submit}
-                className="surface-card grid max-w-2xl grid-cols-1 gap-4 p-6 sm:grid-cols-2">
-                <label className="sm:col-span-2 text-sm font-medium text-slate-700">
-                    Nome
-                    <input
-                        required
-                        value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        className="form-control mt-1"
-                    />
-                </label>
-                <label className="text-sm font-medium text-slate-700">
-                    CNPJ
-                    <input
-                        value={form.cnpj}
-                        onChange={(e) => setForm({ ...form, cnpj: maskCnpj(e.target.value) })}
-                        maxLength={18}
-                        placeholder="00.000.000/0000-00"
-                        className="form-control mt-1"
-                    />
-                </label>
-                <label className="text-sm font-medium text-slate-700">
-                    Telefone
-                    <input
-                        value={form.phone}
-                        onChange={(e) => setForm({ ...form, phone: maskPhone(e.target.value) })}
-                        maxLength={15}
-                        placeholder="(11) 91234-5678"
-                        className="form-control mt-1"
-                    />
-                </label>
-                <label className="sm:col-span-2 text-sm font-medium text-slate-700">
-                    Endereço
-                    <input
-                        value={form.address}
-                        onChange={(e) => setForm({ ...form, address: e.target.value })}
-                        className="form-control mt-1"
-                    />
-                </label>
-                <div className="sm:col-span-2 flex justify-end pt-2">
-                    <button disabled={saving} className="primary-action">
-                        {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                        Salvar
-                    </button>
-                </div>
-            </form>
+            <CreateInstitutionForm
+                currentInstitutionData={currentData}
+                onSubmit={handleUpdate}
+                isSubmitting={isSubmitting}
+                isSuccess={isSuccess}
+                apiError={submitError}
+            />
         </main>
     );
 };
@@ -170,94 +118,88 @@ const MyInstitutionEditor: React.FC<{ institutionId: string }> = ({ institutionI
 const AllInstitutionsManager: React.FC = () => {
     const [institutions, setInstitutions] = useState<OptionItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [listError, setListError] = useState<string | null>(null);
     const [search, setSearch] = useState("");
 
-    const [showForm, setShowForm] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [form, setForm] = useState<InstitutionForm>(emptyForm);
+    const [editing, setEditing] = useState(false);
+    const [currentInstitutionBeingUpdated, setCurrentInstitutionBeingUpdated] = useState<
+        (CreateInstitutionFormData & { id: string }) | null
+        >(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [isSuccess, setIsSuccess] = useState(false);
 
-    const loadInstitutions = async () => {
-        const response = await api.get<OptionItem[]>("/institutions");
-        setInstitutions(response.data);
-    };
-
-    useEffect(() => {
-        loadInstitutions()
-            .catch((err) =>
-                setError(extractErrorMessage(err, "Não foi possível carregar as instituições.")),
-            )
-            .finally(() => setLoading(false));
+    const loadInstitutions = useCallback(async () => {
+        try {
+            const response = await api.get<OptionItem[]>("/institutions");
+            setInstitutions(response.data);
+        } catch (err: any) {
+            setListError(extractErrorMessage(err, "Não foi possível carregar as instituições."));
+        }
     }, []);
 
+    useEffect(() => {
+        loadInstitutions().finally(() => setLoading(false));
+    }, [loadInstitutions]);
+
     const filteredInstitutions = useMemo(
-        () =>
-            institutions.filter((item) =>
-                item.label.toLowerCase().includes(search.toLowerCase()),
-            ),
+        () => institutions.filter((item) => item.label.toLowerCase().includes(search.toLowerCase())),
         [institutions, search],
     );
 
     const openCreate = () => {
-        setEditingId(null);
-        setForm(emptyForm);
-        setShowForm(true);
-        setError(null);
+        setCurrentInstitutionBeingUpdated(null);
+        setSubmitError(null);
+        setEditing(true);
     };
 
-    const openEdit = async (item: OptionItem) => {
-        setError(null);
+    const handleStartEdition = async (item: OptionItem) => {
+        setListError(null);
         try {
             const { data } = await api.get<InstitutionDetail>(`/institutions/${item.value}`);
-            setEditingId(data.id);
-            setForm({
+            setCurrentInstitutionBeingUpdated({
+                id: data.id,
                 name: data.name,
-                cnpj: data.cnpj ? maskCnpj(data.cnpj) : "",
+                cnpj: data.cnpj ?? "",
                 address: data.address ?? "",
-                phone: data.phone ? maskPhone(data.phone) : "",
+                phone: data.phone ?? "",
             });
-            setShowForm(true);
+            setSubmitError(null);
+            setEditing(true);
         } catch (err: any) {
-            setError(extractErrorMessage(err, "Não foi possível carregar esta instituição."));
+            setListError(extractErrorMessage(err, "Não foi possível carregar esta instituição."));
         }
     };
 
-    const closeForm = () => {
-        setShowForm(false);
-        setEditingId(null);
-        setForm(emptyForm);
-    };
-
-    const submit = async (event: React.FormEvent) => {
-        event.preventDefault();
-        setSaving(true);
-        setError(null);
+    const handleCreateInstitution = async (data: CreateInstitutionFormData) => {
+        setIsSubmitting(true);
+        setSubmitError(null);
         try {
-            const payload = {
-                name: form.name,
-                cnpj: form.cnpj ? unmaskCnpj(form.cnpj) : undefined,
-                address: form.address || undefined,
-                phone: form.phone ? unmaskPhone(form.phone) : undefined,
-            };
-            if (editingId) await api.put(`/institutions/${editingId}`, payload);
-            else await api.post("/institutions", payload);
+            if (currentInstitutionBeingUpdated) {
+                await api.put(`/institutions/${currentInstitutionBeingUpdated.id}`, toPayload(data));
+            } else {
+                await api.post("/institutions", toPayload(data));
+            }
             await loadInstitutions();
-            closeForm();
+            setIsSuccess(true);
+            setTimeout(() => {
+                setIsSuccess(false);
+                setEditing(false);
+            }, 1200);
         } catch (err: any) {
-            setError(extractErrorMessage(err, "Não foi possível salvar a instituição."));
+            setSubmitError(extractErrorMessage(err, "Não foi possível salvar a instituição."));
         } finally {
-            setSaving(false);
+            setIsSubmitting(false);
         }
     };
 
-    const remove = async (id: string) => {
-        setError(null);
+    const handleDelete = async (id: string) => {
+        setListError(null);
         try {
             await api.delete(`/institutions/${id}`);
             await loadInstitutions();
         } catch (err: any) {
-            setError(extractErrorMessage(err, "Não foi possível excluir a instituição."));
+            setListError(extractErrorMessage(err, "Não foi possível excluir a instituição."));
         }
     };
 
@@ -272,146 +214,112 @@ const AllInstitutionsManager: React.FC = () => {
     return (
         <main className="app-page">
             <PageHeader
-                title="Instituições"
-                description="Cadastre, edite e gerencie as instituições parceiras."
+                title={
+                    editing
+                        ? currentInstitutionBeingUpdated
+                            ? "Atualizar instituição"
+                            : "Nova instituição"
+                        : "Instituições"
+                }
+                description={
+                    editing
+                        ? "Preencha os dados para salvar a instituição."
+                        : "Cadastre, edite e gerencie as instituições parceiras."
+                }
                 action={
-                    <button onClick={openCreate} className="primary-action">
-                        <Plus className="h-4 w-4" /> Nova instituição
+                    <button
+                        onClick={() => (editing ? setEditing(false) : openCreate())}
+                        className={editing ? "secondary-action" : "primary-action"}>
+                        {editing ? (
+                            <>
+                                <ListFilter className="h-4 w-4" /> Ver lista
+                            </>
+                        ) : (
+                            <>
+                                <Plus className="h-4 w-4" /> Nova instituição
+                            </>
+                        )}
                     </button>
                 }
             />
 
-            {error && (
+            {listError && !editing && (
                 <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
                     <AlertCircle className="h-5 w-5" />
-                    {error}
+                    {listError}
                 </div>
             )}
 
-            <div className="filter-bar">
-                <label className="relative block">
-                    <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Buscar por nome"
-                        className="form-control pl-10"
-                    />
-                </label>
-            </div>
-
-            <div className="surface-card overflow-x-auto">
-                <table className="data-table">
-                    <thead>
-                        <tr>
-                            <th className="px-4 py-3">Nome</th>
-                            <th className="px-4 py-3 text-right">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredInstitutions.map((item) => (
-                            <tr key={item.value} className="hover:bg-slate-50">
-                                <td className="px-4 py-3">
-                                    <div className="flex items-center gap-2 font-medium text-slate-900">
-                                        <Building2 className="h-4 w-4 text-slate-400" />
-                                        {item.label}
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <div className="flex justify-end gap-1">
-                                        <button
-                                            title="Editar"
-                                            onClick={() => openEdit(item)}
-                                            className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
-                                            <Pencil className="h-4 w-4" />
-                                        </button>
-                                        <DeleteConfirmation
-                                            descriptionText={`Excluir "${item.label}"? Essa ação não pode ser desfeita e vai falhar se houver usuários, cursos ou eventos vinculados.`}
-                                            confirmationText="Excluir"
-                                            onDelete={() => remove(item.value)}>
-                                            <button title="Excluir" className="rounded p-2 text-red-600 hover:bg-red-50">
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </DeleteConfirmation>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                        {!filteredInstitutions.length && (
-                            <tr>
-                                <td colSpan={2} className="px-4 py-10 text-center text-slate-500">
-                                    Nenhuma instituição encontrada.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {showForm && (
-                <div className="modal-backdrop">
-                    <div className="modal-panel max-w-lg">
-                        <div className="mb-5 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-slate-900">
-                                {editingId ? "Editar instituição" : "Nova instituição"}
-                            </h2>
-                            <button onClick={closeForm} className="rounded p-1 text-slate-500 hover:bg-slate-100">
-                                <X />
-                            </button>
-                        </div>
-                        <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <label className="sm:col-span-2 text-sm font-medium text-slate-700">
-                                Nome
-                                <input
-                                    required
-                                    value={form.name}
-                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                    className="form-control mt-1"
-                                />
-                            </label>
-                            <label className="text-sm font-medium text-slate-700">
-                                CNPJ
-                                <input
-                                    value={form.cnpj}
-                                    onChange={(e) => setForm({ ...form, cnpj: maskCnpj(e.target.value) })}
-                                    maxLength={18}
-                                    placeholder="00.000.000/0000-00"
-                                    className="form-control mt-1"
-                                />
-                            </label>
-                            <label className="text-sm font-medium text-slate-700">
-                                Telefone
-                                <input
-                                    value={form.phone}
-                                    onChange={(e) => setForm({ ...form, phone: maskPhone(e.target.value) })}
-                                    maxLength={15}
-                                    placeholder="(11) 91234-5678"
-                                    className="form-control mt-1"
-                                />
-                            </label>
-                            <label className="sm:col-span-2 text-sm font-medium text-slate-700">
-                                Endereço
-                                <input
-                                    value={form.address}
-                                    onChange={(e) => setForm({ ...form, address: e.target.value })}
-                                    className="form-control mt-1"
-                                />
-                            </label>
-                            <div className="sm:col-span-2 flex justify-end gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={closeForm}
-                                    className="secondary-action">
-                                    Cancelar
-                                </button>
-                                <button disabled={saving} className="primary-action">
-                                    {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                                    Salvar
-                                </button>
-                            </div>
-                        </form>
+            {editing ? (
+                <CreateInstitutionForm
+                    currentInstitutionData={currentInstitutionBeingUpdated}
+                    onSubmit={handleCreateInstitution}
+                    isSubmitting={isSubmitting}
+                    isSuccess={isSuccess}
+                    apiError={submitError}
+                />
+            ) : (
+                <>
+                    <div className="filter-bar">
+                        <label className="relative block">
+                            <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                            <input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Buscar por nome"
+                                className="form-control pl-10"
+                            />
+                        </label>
                     </div>
-                </div>
+
+                    <div className="surface-card overflow-x-auto">
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th className="px-4 py-3">Nome</th>
+                                    <th className="px-4 py-3 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredInstitutions.map((item) => (
+                                    <tr key={item.value} className="hover:bg-slate-50">
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2 font-medium text-slate-900">
+                                                <Building2 className="h-4 w-4 text-slate-400" />
+                                                {item.label}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex justify-end gap-1">
+                                                <button
+                                                    title="Editar"
+                                                    onClick={() => handleStartEdition(item)}
+                                                    className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                <DeleteConfirmation
+                                                    descriptionText={`Excluir "${item.label}"? Essa ação não pode ser desfeita e vai falhar se houver usuários, cursos ou eventos vinculados.`}
+                                                    confirmationText="Excluir"
+                                                    onDelete={() => handleDelete(item.value)}>
+                                                    <button title="Excluir" className="rounded p-2 text-red-600 hover:bg-red-50">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </DeleteConfirmation>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {!filteredInstitutions.length && (
+                                    <tr>
+                                        <td colSpan={2} className="px-4 py-10 text-center text-slate-500">
+                                            Nenhuma instituição encontrada.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
             )}
         </main>
     );

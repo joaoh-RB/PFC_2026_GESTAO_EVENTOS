@@ -6,8 +6,6 @@ import { Register } from "./pages/Register";
 import { Dashboard } from "./pages/Dashboard";
 import { UserSettings } from "./pages/UserSettings";
 import { AuthenticatedLayout } from "./components/AuthenticatedLayout";
-import { CreateInstitution } from "./pages/CreateInstitution";
-import { CreateCourse } from "./pages/CreateCourse";
 import { Events } from "./pages/Events";
 import { Users } from "./pages/Users";
 import { Institutions } from "./pages/Institutions";
@@ -30,8 +28,6 @@ export default function App() {
               <Route path="/users" element={<Users />} />
               <Route path="/institutions" element={<Institutions />} />
               <Route path="/courses" element={<Courses />} />
-              <Route path="/institutions/new" element={<CreateInstitution />} />
-              <Route path="/courses/new" element={<CreateCourse />} />
             </Route>
           </Route>
           <Route
