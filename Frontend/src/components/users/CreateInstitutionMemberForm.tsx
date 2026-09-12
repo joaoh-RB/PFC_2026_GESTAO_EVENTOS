@@ -98,7 +98,7 @@ export const CreateInstitutionMemberForm: React.FC<
 
   return (
     <div>
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-[#12a7d4]">
         <User2 className="h-6 w-6" />
       </div>
       {currentUserData ? "Atualizar Usuário" : "Criar Novo Usuário"}
@@ -283,7 +283,7 @@ export const CreateInstitutionMemberForm: React.FC<
         <Button
           type="submit"
           disabled={isSubmitting || isSuccess}
-          className="w-full text-md h-12 mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">
+          className="primary-action mt-4 h-11 w-full">
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Criando

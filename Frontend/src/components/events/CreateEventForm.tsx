@@ -100,9 +100,9 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
   }, [currentEventData, reset, userInstitutionId]);
 
   return (
-    <Card className="max-w-4xl mx-auto shadow-xl border-slate-100">
+    <Card className="surface-card max-w-4xl mx-auto shadow-none">
       <CardHeader className="text-center pb-8 pt-6">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-[#12a7d4]">
           <CalendarPlus className="h-6 w-6" />
         </div>
         <CardTitle className="text-2xl font-bold text-slate-900">
@@ -344,7 +344,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
           <Button
             type="submit"
             disabled={isSubmitting || isSuccess}
-            className="w-full text-md h-12 mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">
+            className="primary-action mt-4 h-11 w-full">
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Criando

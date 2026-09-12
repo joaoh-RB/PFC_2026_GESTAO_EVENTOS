@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { ShieldCheck, ShieldAlert, KeyRound, Copy, Check, Loader2, AlertCircle } from 'lucide-react';
+import { PageHeader } from '../components/PageHeader';
 
 interface Setup2FAResponse {
     secretKey: string;
@@ -60,8 +61,9 @@ export const UserSettings: React.FC = () => {
     };
 
     return (
-        <div className="mx-auto max-w-4xl p-6">
-            <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="app-page">
+            <PageHeader title="Segurança" description="Gerencie a proteção e as preferências de acesso da sua conta." />
+            <div className="surface-card p-6 sm:p-8">
                 <div className="flex items-start justify-between border-b border-slate-100 pb-6">
                     <div>
                         <h2 className="text-xl font-bold text-slate-900">Segurança da Conta</h2>
@@ -110,7 +112,7 @@ export const UserSettings: React.FC = () => {
                         <button
                             onClick={handleStartSetup}
                             disabled={isLoading}
-                            className="mt-4 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-indigo-400"
+                            className="primary-action mt-4"
                         >
                             {isLoading ? (
                                 <>
@@ -127,7 +129,7 @@ export const UserSettings: React.FC = () => {
                 {/* Estado: Assistente de Configuração do 2FA */}
                 {setupData && (
                     <div className="mt-6 space-y-6">
-                        <div className="rounded-xl bg-indigo-50/50 p-6">
+                        <div className="rounded-xl bg-cyan-50/60 p-6">
                             <h3 className="text-sm font-semibold text-slate-900">Passo 1: Escanear o QR Code</h3>
                             <p className="mt-1 text-xs text-slate-600">
                                 Abra o aplicativo autenticador no seu celular (Google Authenticator, Microsoft Authenticator, etc.) e escaneie o código abaixo:
@@ -175,14 +177,14 @@ export const UserSettings: React.FC = () => {
                                         value={code}
                                         onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                                         placeholder="000000"
-                                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm tracking-widest font-mono focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                                        className="form-control pl-9 font-mono tracking-widest"
                                     />
                                 </div>
 
                                 <button
                                     type="submit"
                                     disabled={isActivating || code.length !== 6}
-                                    className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none disabled:bg-indigo-400"
+                                    className="primary-action"
                                 >
                                     {isActivating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Ativar'}
                                 </button>

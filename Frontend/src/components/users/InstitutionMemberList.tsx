@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -17,7 +16,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil, CircleOff, Check } from "lucide-react";
 import { type PagedResult } from "@/types/utils";
 import type { OptionItem } from "@/types/optionItem";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
@@ -83,29 +82,38 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
     currentFilters?.institutionId || allInstitutionsName,
   );
   const { user: currentUser } = useAuth();
-  const handleApplyFilter = () => {
+  const applyFilters = (
+    newUserRoleId?: number | string,
+    newInstitutionId?: string,
+  ) => {
+    const roleVal = newUserRoleId ?? userRoleId;
+    const instVal = newInstitutionId ?? institutionId;
     onFilter({
       userRoleId:
-        userRoleId !== "Todos os cargos"
-          ? parseInt(userRoleId as string)
+        roleVal !== "Todos os cargos"
+          ? parseInt(roleVal as string)
           : undefined,
       institutionId:
-        institutionId !== allInstitutionsName ? institutionId : undefined,
+        instVal !== allInstitutionsName ? instVal : undefined,
     });
   };
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white">
-        <CardContent className="pt-6">
+      <Card className="surface-card bg-white shadow-none">
+        <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
-            <div className="col-span-2">
+              <div className="col-span-2">
               <Label htmlFor="filter-user-role" className={"mb-2"}>Cargo</Label>
               <Select
                 id="filter-user-role"
                 items={roles}
                 value={userRoleId.toString()}
-                onValueChange={(e) => setUserRoleId(e || "Todos os cargos")}>
+                onValueChange={(e) => {
+                  const v = e || "Todos os cargos";
+                  setUserRoleId(v);
+                  applyFilters(v, undefined);
+                }}>
                 <SelectTrigger className={"w-full"}>
                   <SelectValue placeholder={"Todos os cargos"} />
                 </SelectTrigger>
@@ -121,7 +129,7 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            {!userInstitutionId && ( 
+            {!userInstitutionId && (
             <div className={"col-span-2"}>
               <Label htmlFor="filter-institution" className={"mb-2 "}>
                 Instituição
@@ -130,9 +138,11 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                 id="filter-institution"
                 value={institutionId}
                 items={institutions}
-                onValueChange={(value) =>
-                  setInstitutionId(value ?? allInstitutionsName)
-                }>
+                onValueChange={(value) => {
+                  const v = value ?? allInstitutionsName;
+                  setInstitutionId(v);
+                  applyFilters(undefined, v);
+                }}>
                 <SelectTrigger className={"w-full"}>
                   <SelectValue placeholder={allInstitutionsName} />
                 </SelectTrigger>
@@ -149,21 +159,14 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
               </Select>
             </div>
             )}
-            <div className="flex gap-2">
-              <Button
-                onClick={handleApplyFilter}
-                disabled={isLoading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700">
-                Filtrar
-              </Button>
-            </div>
+            {/* filtro aplicado automaticamente ao alterar selects */}
           </div>
         </CardContent>
       </Card>
 
       {isLoading ? (
         <div className="flex justify-center items-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#12a7d4]" />
         </div>
       ) : (
         <>
@@ -175,7 +178,7 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
             )}
           </div>
           {data.items.length > 0 && (
-            <div className={"bg-white rounded-lg shadow-md overflow-hidden"}>
+            <div className="surface-card overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -201,20 +204,22 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                       <TableCell>{user.isActive ? "Sim" : "Não"}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button
-                            className="bg-indigo-600 hover:bg-indigo-700"
-                            onClick={() => handleStartEdition(user)}>
-                            Editar
-                          </Button>
+                          <button
+                            title="Editar"
+                            onClick={() => handleStartEdition(user)}
+                            className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
+                            <Pencil className="h-4 w-4" />
+                          </button>
                           {user.isActive && user.id !== currentUser!.id &&(
                             <DeleteConfirmation
                               children={
-                                <Button
+                                <button
+                                  title="Desativar"
                                   className={
-                                    "bg-red-500 hover:bg-red-600 cursor-pointer"
+                                    "rounded p-2 text-red-600 hover:bg-red-50"
                                   }>
-                                  Desativar
-                                </Button>
+                                  <CircleOff className="h-4 w-4" />
+                                </button>
                               }
                               onDelete={() => handleDelete(user.id, false)}
                               descriptionText={
@@ -225,12 +230,13 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                           {!user.isActive && (
                             <DeleteConfirmation
                               children={
-                                <Button
+                                <button
+                                  title="Ativar"
                                   className={
-                                    "bg-green-500 hover:bg-green-600 text-gray-100 cursor-pointer"
+                                    "rounded p-2 text-emerald-600 hover:bg-emerald-50"
                                   }>
-                                  Ativar
-                                </Button>
+                                  <Check className="h-4 w-4" />
+                                </button>
                               }
                               onDelete={() => handleDelete(user.id, true)}
                               descriptionText={

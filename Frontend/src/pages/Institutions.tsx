@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 import type { OptionItem } from "../types/optionItem";
 import { DeleteConfirmation } from "../components/ui/deleteConfirm";
+import { PageHeader } from "../components/PageHeader";
 import { maskCnpj, maskPhone, unmaskCnpj, unmaskPhone } from "../utils/masks";
 import {
     AlertCircle,
@@ -151,21 +152,18 @@ export const Institutions: React.FC = () => {
     }
 
     return (
-        <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-5xl">
-                <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Instituições</h1>
-                        <p className="text-sm text-slate-600">
-                            Cadastre, edite e remova instituições parceiras.
-                        </p>
-                    </div>
+        <main className="app-page">
+                <PageHeader
+                    title="Instituições"
+                    description="Cadastre, edite e gerencie as instituições parceiras."
+                    action={
                     <button
                         onClick={openCreate}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                        className="primary-action">
                         <Plus className="h-4 w-4" /> Nova instituição
                     </button>
-                </div>
+                    }
+                />
 
                 {error && (
                     <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
@@ -174,27 +172,27 @@ export const Institutions: React.FC = () => {
                     </div>
                 )}
 
-                <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+                <div className="filter-bar">
                     <label className="relative block">
                         <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
                         <input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Buscar por nome"
-                            className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-3 text-sm"
+                            className="form-control pl-10"
                         />
                     </label>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <div className="surface-card overflow-x-auto">
+                    <table className="data-table">
+                        <thead>
                             <tr>
                                 <th className="px-4 py-3">Nome</th>
                                 <th className="px-4 py-3 text-right">Ações</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody>
                             {filteredInstitutions.map((item) => (
                                 <tr key={item.value} className="hover:bg-slate-50">
                                     <td className="px-4 py-3">
@@ -233,11 +231,9 @@ export const Institutions: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
-            </div>
-
             {showForm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-                    <div className="w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+                <div className="modal-backdrop">
+                    <div className="modal-panel max-w-lg">
                         <div className="mb-5 flex items-center justify-between">
                             <h2 className="text-xl font-bold text-slate-900">
                                 {editingId ? "Editar instituição" : "Nova instituição"}
@@ -253,7 +249,7 @@ export const Institutions: React.FC = () => {
                                     required
                                     value={form.name}
                                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                                    className="form-control mt-1"
                                 />
                             </label>
                             <label className="text-sm font-medium text-slate-700">
@@ -263,7 +259,7 @@ export const Institutions: React.FC = () => {
                                     onChange={(e) => setForm({ ...form, cnpj: maskCnpj(e.target.value) })}
                                     maxLength={18}
                                     placeholder="00.000.000/0000-00"
-                                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                                    className="form-control mt-1"
                                 />
                             </label>
                             <label className="text-sm font-medium text-slate-700">
@@ -273,7 +269,7 @@ export const Institutions: React.FC = () => {
                                     onChange={(e) => setForm({ ...form, phone: maskPhone(e.target.value) })}
                                     maxLength={15}
                                     placeholder="(11) 91234-5678"
-                                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                                    className="form-control mt-1"
                                 />
                             </label>
                             <label className="sm:col-span-2 text-sm font-medium text-slate-700">
@@ -281,19 +277,19 @@ export const Institutions: React.FC = () => {
                                 <input
                                     value={form.address}
                                     onChange={(e) => setForm({ ...form, address: e.target.value })}
-                                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5"
+                                    className="form-control mt-1"
                                 />
                             </label>
                             <div className="sm:col-span-2 flex justify-end gap-3 pt-2">
                                 <button
                                     type="button"
                                     onClick={closeForm}
-                                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium">
+                                    className="secondary-action">
                                     Cancelar
                                 </button>
                                 <button
                                     disabled={saving}
-                                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-indigo-400">
+                                    className="primary-action">
                                     {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                                     Salvar
                                 </button>
