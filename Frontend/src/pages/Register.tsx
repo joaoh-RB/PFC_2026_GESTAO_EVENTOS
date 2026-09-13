@@ -144,7 +144,6 @@ export const Register: React.FC = () => {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {/* Nome Completo */}
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-slate-700">
                 Nome Completo
@@ -167,7 +166,6 @@ export const Register: React.FC = () => {
               )}
             </div>
 
-            {/* E-mail Institucional */}
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 E-mail
@@ -190,7 +188,6 @@ export const Register: React.FC = () => {
               )}
             </div>
 
-            {/* RA / Matrícula */}
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 RA / Matrícula
@@ -213,7 +210,6 @@ export const Register: React.FC = () => {
               )}
             </div>
 
-            {/* Instituição */}
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Instituição
@@ -243,7 +239,6 @@ export const Register: React.FC = () => {
               )}
             </div>
 
-            {/* Curso */}
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Curso
@@ -273,7 +268,6 @@ export const Register: React.FC = () => {
               )}
             </div>
 
-            {/* Senha */}
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Senha
@@ -296,7 +290,6 @@ export const Register: React.FC = () => {
               )}
             </div>
 
-            {/* Confirmação de Senha */}
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Confirmar Senha

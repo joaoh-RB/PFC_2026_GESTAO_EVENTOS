@@ -159,7 +159,6 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
               </Select>
             </div>
             )}
-            {/* filtro aplicado automaticamente ao alterar selects */}
           </div>
         </CardContent>
       </Card>

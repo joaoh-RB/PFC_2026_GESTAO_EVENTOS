@@ -120,7 +120,6 @@ export const InstitutionMembers: React.FC = () => {
     }
   }, [editing, currentPage, fetchUsers, filters]);
 
-  //handle dos outros copmonentes
   const handleFilterChange = (newFilters: InstitutionMemberFilterState) => {
     setCurrentPage(1);
     setFilters(newFilters);
@@ -146,7 +145,6 @@ export const InstitutionMembers: React.FC = () => {
     setIsEditing(true);
   };
 
-  //chamadas api evento
   const handleCreateInstitutionMember = async (
     data: CreateInstitutionMemberFormData,
   ) => {

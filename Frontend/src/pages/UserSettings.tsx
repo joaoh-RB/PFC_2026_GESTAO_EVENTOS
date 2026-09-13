@@ -21,7 +21,6 @@ export const UserSettings: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
 
-    // Etapa 1: Inicia o setup gerando a chave secreta e URI do QR Code
     const handleStartSetup = async () => {
         setError(null);
         setIsLoading(true);
@@ -35,7 +34,6 @@ export const UserSettings: React.FC = () => {
         }
     };
 
-    // Etapa 2: Valida o código gerado no app do usuário e ativa o 2FA
     const handleEnable2FA = async (e: React.SubmitEvent) => {
         e.preventDefault();
         setError(null);
@@ -91,7 +89,6 @@ export const UserSettings: React.FC = () => {
                     </div>
                 )}
 
-                {/* Estado: 2FA Já Ativado */}
                 {is2FAEnabled && !setupData && (
                     <div className="mt-6 rounded-xl bg-slate-50 p-6 text-sm text-slate-600">
                         <p className="font-medium text-slate-800">
@@ -103,7 +100,6 @@ export const UserSettings: React.FC = () => {
                     </div>
                 )}
 
-                {/* Estado: 2FA Inativo - Botão de Iniciar */}
                 {!is2FAEnabled && !setupData && (
                     <div className="mt-6">
                         <p className="text-sm text-slate-600">
@@ -126,7 +122,6 @@ export const UserSettings: React.FC = () => {
                     </div>
                 )}
 
-                {/* Estado: Assistente de Configuração do 2FA */}
                 {setupData && (
                     <div className="mt-6 space-y-6">
                         <div className="rounded-xl bg-cyan-50/60 p-6">

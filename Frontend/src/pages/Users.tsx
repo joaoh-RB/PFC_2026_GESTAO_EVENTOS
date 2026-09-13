@@ -16,6 +16,7 @@ import {
   User2,
 } from "lucide-react";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
+import { useAuth } from "../hooks/useAuth";
 
 type ApprovalStatus = 1 | 2 | 3;
 
@@ -62,6 +63,8 @@ const formatDate = (value?: string | null) => {
 };
 
 export const Users: React.FC = () => {
+  const { user } = useAuth();
+  const userInstitutionId = user?.institutionId ?? "";
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
   const [courses, setCourses] = useState<OptionItem[]>([]);
@@ -73,7 +76,13 @@ export const Users: React.FC = () => {
   const [status, setStatus] = useState<"all" | ApprovalStatus>("all");
   const [editing, setEditing] = useState<ManagedUser | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<UserForm>(emptyForm);
+  const getInitialForm = (institutionId = ""): UserForm => ({
+    ...emptyForm,
+    institutionId,
+  });
+  const [form, setForm] = useState<UserForm>(() =>
+    getInitialForm(userInstitutionId),
+  );
 
   const loadUsers = async () => {
     const response = await api.get<ManagedUser[]>("/users");
@@ -122,22 +131,26 @@ export const Users: React.FC = () => {
 
   const filteredUsers = useMemo(
     () =>
-      users.filter((user) => {
+      users.filter((managedUser) => {
         const term = search.toLowerCase();
         const matchesSearch =
-          user.name.toLowerCase().includes(term) ||
-          user.email.toLowerCase().includes(term) ||
-          user.uniqueIdentifier.toLowerCase().includes(term);
-        return (
-          matchesSearch && (status === "all" || user.approvalStatus === status)
-        );
+          managedUser.name.toLowerCase().includes(term) ||
+          managedUser.email.toLowerCase().includes(term) ||
+          managedUser.uniqueIdentifier.toLowerCase().includes(term);
+        const matchesStatus =
+          status === "all" || managedUser.approvalStatus === status;
+        const matchesInstitution =
+          user?.role === "Administrador" ||
+          (!!userInstitutionId && managedUser.institutionId === userInstitutionId);
+
+        return matchesSearch && matchesStatus && matchesInstitution;
       }),
-    [users, search, status],
+    [users, search, status, user?.role, userInstitutionId],
   );
 
   const openCreate = () => {
     setEditing(null);
-    setForm(emptyForm);
+    setForm(getInitialForm(userInstitutionId));
     setShowForm(true);
     setError(null);
   };
@@ -159,7 +172,7 @@ export const Users: React.FC = () => {
   const closeForm = () => {
     setShowForm(false);
     setEditing(null);
-    setForm(emptyForm);
+    setForm(getInitialForm(userInstitutionId));
   };
 
   const submit = async (event: React.FormEvent) => {
@@ -467,23 +480,25 @@ export const Users: React.FC = () => {
                   className="form-control mt-1"
                 />
               </label>
-              <label className="text-sm font-medium text-slate-700">
-                Instituição
-                <select
-                  required
-                  value={form.institutionId}
-                  onChange={(e) =>
-                    setForm({ ...form, institutionId: e.target.value })
-                  }
-                  className="form-control mt-1">
-                  <option value="">Selecione</option>
-                  {institutions.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {!userInstitutionId && (
+                <label className="text-sm font-medium text-slate-700">
+                  Instituição
+                  <select
+                    required
+                    value={form.institutionId}
+                    onChange={(e) =>
+                      setForm({ ...form, institutionId: e.target.value })
+                    }
+                    className="form-control mt-1">
+                    <option value="">Selecione</option>
+                    {institutions.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label className="text-sm font-medium text-slate-700">
                 Curso
                 <select

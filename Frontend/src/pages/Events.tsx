@@ -121,7 +121,6 @@ export const Events: React.FC = () => {
     }
   }, [editing, currentPage, fetchEvents, filters]);
 
-  //handle dos outros copmonentes
   const handleFilterChange = (newFilters: EventFilterState) => {
     setCurrentPage(1);
     setFilters(newFilters);
@@ -150,7 +149,6 @@ export const Events: React.FC = () => {
     setIsEditing(true);
   };
 
-  //chamadas api evento
   const handleCreateEvent = async (data: CreateEventFormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
