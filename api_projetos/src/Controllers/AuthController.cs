@@ -62,7 +62,7 @@ namespace API_Gestao_Eventos.src.Controllers
             try
             {
                 var result = await _authService.LoginAsync(request);
-                if (result.RequiresTwoFactor)
+                if (result.RequiresTwoFactor || result.RequiresPasswordChange)
                     return Ok(result);
 
                 var cookieOptions = new CookieOptions
@@ -107,6 +107,38 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = "Código inválido." });
 
             return Ok(new { message = "Autenticação 2FA ativada com sucesso." });
+        }
+
+        [HttpPost("change-initial-password")]
+        public async Task<IActionResult> ChangeInitialPassword([FromBody] ChangeInitialPasswordDto request)
+        {
+            if (request.NewPassword != request.ConfirmPassword)
+                return BadRequest(new { message = "A confirmação de senha não coincide com a nova senha." });
+
+            try
+            {
+                var result = await _authService.ChangeInitialPasswordAsync(request);
+
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Expires = DateTime.UtcNow.AddHours(8)
+                };
+
+                Response.Cookies.Append("jwt_access_token", result.Token!, cookieOptions);
+
+                return Ok(new { message = "Senha definida com sucesso!", user = result.User });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

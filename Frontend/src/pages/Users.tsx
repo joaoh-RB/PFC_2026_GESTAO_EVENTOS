@@ -161,7 +161,6 @@ export const Users: React.FC = () => {
       uniqueIdentifier: user.uniqueIdentifier,
       institutionId: user.institutionId,
       courseId: user.courseId,
-      password: "",
     });
     setShowForm(true);
     setError(null);

@@ -8,12 +8,6 @@ import {
   type RegisterStudentFormData,
 } from "../schemas/authSchema";
 import {
-  User,
-  Mail,
-  Lock,
-  BookOpen,
-  Building2,
-  Hash,
   AlertCircle,
   Loader2,
   CheckCircle2,

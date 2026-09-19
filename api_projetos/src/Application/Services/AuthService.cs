@@ -124,6 +124,39 @@ namespace API_Gestao_Eventos.src.Application.Services
             await _userRepository.UpdateAsync(user);
             return true;
         }
+        public async Task<AuthResponseDto> ChangeInitialPasswordAsync(ChangeInitialPasswordDto dto)
+        {
+            var user = await _userRepository.GetByEmailAsync(dto.Email);
+            if (user == null || !user.IsActive)
+                throw new UnauthorizedAccessException("Credenciais inválidas ou conta inativa.");
+
+            var verificationResult = _passwordHasher.VerifyPassword(dto.CurrentPassword, user.PasswordHash);
+            if (!verificationResult)
+                throw new UnauthorizedAccessException("A senha atual informada está incorreta.");
+
+            if (!user.IsPasswordChangeRequired)
+                throw new InvalidOperationException("Este usuário não possui pendência de redefinição obrigatória de senha.");
+
+            var checkSamePassword = _passwordHasher.VerifyPassword(dto.NewPassword, user.PasswordHash);
+            if (checkSamePassword)
+                throw new InvalidOperationException("A nova senha não pode ser idêntica à senha temporária.");
+
+            user.PasswordHash = _passwordHasher.HashPassword(dto.NewPassword);
+            user.IsPasswordChangeRequired = false;
+
+            await _userRepository.UpdateAsync(user);
+
+            var token = _jwtTokenGenerator.GenerateToken(user);
+
+            return new AuthResponseDto
+            {
+                RequiresTwoFactor = false,
+                RequiresPasswordChange = false,
+                Token = token,
+                Message = "Senha alterada e conta ativada com sucesso!",
+                User = await GetUserInfoAsync(user.Id)
+            };
+        }
         public async Task<UserResponseDto> GetUserInfoAsync(Guid userId)
         {
             var user = await _userRepository.GetByIdAsync(userId)

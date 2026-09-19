@@ -17,6 +17,8 @@ namespace API_Gestao_Eventos.src.Domain.Entities
 
         public bool IsActive { get; set; } = true;
         public bool IsPasswordChangeRequired { get; set; } = false;
+        public string? PasswordResetTokenHash { get; set; }
+        public DateTime? PasswordResetExpiresAt { get; set; }
         public UserApprovalStatus ApprovalStatus { get; set; } = UserApprovalStatus.Pendente;
 
         public Guid? ApprovedByUserId { get; set; }

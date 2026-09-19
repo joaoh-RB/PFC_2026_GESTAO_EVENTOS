@@ -21,7 +21,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
                 .OfType<Teacher>()
                 .Include(t => t.Courses)
                 .Include(i => i.Institution)
-                .FirstOrDefaultAsync(t => t.Id == id);
+                .FirstOrDefaultAsync(t => t.Id == id);  
 
             if (teacher != null)
                 return teacher;

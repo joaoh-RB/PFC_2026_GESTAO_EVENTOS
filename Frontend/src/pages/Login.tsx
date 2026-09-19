@@ -18,12 +18,23 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import type { AxiosError } from "axios";
-
+import api from "@/services/api";
+interface ChangePasswordFormData {
+  newPassword: string;
+  confirmPassword: string;
+}
 export function Login() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [requires2FA, setRequires2FA] = useState(false);
+  const [requiresPasswordChange, setRequiresPasswordChange] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isSubmittingNewPassword, setIsSubmittingNewPassword] = useState(false);
+  const [pendingCredentials, setPendingCredentials] = useState<{
+    email: string;
+    currentPassword: string;
+  } | null>(null);
+  const { login, syncAuth } = useAuth();
   const navigate = useNavigate();
 
   const {
@@ -35,11 +46,24 @@ export function Login() {
     resolver: zodResolver(loginSchema),
     mode: "onBlur",
   });
+  const {
+    register: registerPasswordChange,
+    handleSubmit: handleSubmitPasswordChange,
+    formState: { errors: passwordChangeErrors },
+  } = useForm<ChangePasswordFormData>();
 
   const onSubmit = async (data: LoginFormData) => {
     setApiError(null);
     try {
       const response = await login(data);
+      if (response.requiresPasswordChange) {
+        setPendingCredentials({
+          email: data.email,
+          currentPassword: data.password,
+        });
+        setRequiresPasswordChange(true);
+        return;
+      }
       if (response.requiresTwoFactor) {
         setRequires2FA(true);
         return;
@@ -53,10 +77,37 @@ export function Login() {
       );
     }
   };
+  const onSubmitNewPassword = async (data: ChangePasswordFormData) => {
+    setApiError(null);
 
+    if (data.newPassword !== data.confirmPassword) {
+      setApiError("A confirmação de senha não coincide com a nova senha.");
+      return;
+    }
+    setIsSubmittingNewPassword(true);
+    try {
+      await api.post("/auth/change-initial-password", {
+        email: pendingCredentials?.email,
+        currentPassword: pendingCredentials?.currentPassword,
+        newPassword: data.newPassword,
+        confirmPassword: data.confirmPassword,
+      });
+      await syncAuth();
+      navigate("/dashboard");
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message: string }>;
+      setApiError(
+        error.response?.data?.message ?? "Erro ao redefinir a nova senha.",
+      );
+    } finally {
+      setIsSubmittingNewPassword(false);
+    }
+  };
   const handleBackToCredentials = () => {
+    setRequiresPasswordChange(false);
     setRequires2FA(false);
     setValue("twoFactorCode", "");
+    setIsSubmittingNewPassword(false);
     setApiError(null);
   };
 
@@ -115,15 +166,25 @@ export function Login() {
           <div className="rounded-2xl border border-[#e2e4e9] bg-white p-7 shadow-[0_16px_50px_rgba(26,22,64,0.08)] sm:p-9">
             <div className="mb-7">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#139dc7]">
-                {requires2FA ? "Segunda etapa" : "Bem-vindo"}
+                {requiresPasswordChange
+                  ? "Troca de senha"
+                  : requires2FA
+                    ? "Segunda etapa"
+                    : "Bem-vindo"}
               </p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#1d193d]">
-                {requires2FA ? "Confirme sua identidade" : "Acesse sua conta"}
+                {requiresPasswordChange
+                  ? "Altere sua senha"
+                  : requires2FA
+                    ? "Confirme sua identidade"
+                    : "Acesse sua conta"}
               </h2>
               <p className="mt-1.5 text-sm text-slate-500">
-                {requires2FA
-                  ? "Digite o código do seu aplicativo autenticador."
-                  : "Informe seu e-mail e senha para continuar."}
+                {requiresPasswordChange
+                  ? "Altere sua senha para continuar."
+                  : requires2FA
+                    ? "Digite o código do seu aplicativo autenticador."
+                    : "Informe seu e-mail e senha para continuar."}
               </p>
             </div>
 
@@ -134,98 +195,181 @@ export function Login() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {!requires2FA ? (
-                <>
-                  <div className="block">
-                    <Label htmlFor={"email"} className="mb-1 ml-1">
-                      E-mail
-                    </Label>
-                    <Input
-                      {...register("email")}
-                      type="email"
-                      name="email"
-                      placeholder="seu@email.com"
-                    />
-                    {errors.email && (
-                      <span className="mt-1 block text-xs text-red-600">
-                        {errors.email.message}
-                      </span>
-                    )}
-                  </div>
-                  <div className="block">
-                    <Label htmlFor={"password"} className="mb-1 ml-1">
-                      Senha
-                    </Label>
-                    <span className="relative mt-1.5 block">
-                      <Input
-                        {...register("password")}
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Digite sua senha"
-                        name="password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((value) => !value)}
-                        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-600"
-                        aria-label={
-                          showPassword ? "Ocultar senha" : "Mostrar senha"
-                        }>
-                        {showPassword ? (
-                          <EyeOff className="size-4" />
-                        ) : (
-                          <Eye className="size-4" />
-                        )}
-                      </button>
-                    </span>
-                    {errors.password && (
-                      <span className="mt-1 block text-xs text-red-600">
-                        {errors.password.message}
-                      </span>
-                    )}
-                  </div>
-                </>
-              ) : (
+            {requiresPasswordChange ? (
+              <form
+                onSubmit={handleSubmitPasswordChange(onSubmitNewPassword)}
+                className="space-y-4">
                 <div className="block">
-                  <Label className="mb-1" htmlFor={"twoFactorCode"}>
-                    Código de autenticação
+                  <Label htmlFor="newPassword" className="mb-1 ml-1">
+                    Nova Senha
+                  </Label>
+                  <div className="relative mt-1.5 block">
+                    <Input
+                      {...registerPasswordChange("newPassword", {
+                        required: "Informe a nova senha",
+                        minLength: {
+                          value: 8,
+                          message: "A senha deve ter pelo menos 8 caracteres",
+                        },
+                      })}
+                      id="newPassword"
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((v) => !v)}
+                      className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-600"
+                      aria-label={
+                        showNewPassword ? "Ocultar senha" : "Mostrar senha"
+                      }>
+                      {showNewPassword ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </button>
+                  </div>
+                  {passwordChangeErrors.newPassword && (
+                    <span className="mt-1 block text-xs text-red-600">
+                      {passwordChangeErrors.newPassword.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="block">
+                  <Label htmlFor="confirmPassword" className="mb-1 ml-1">
+                    Confirmar Nova Senha
                   </Label>
                   <Input
-                    {...register("twoFactorCode")}
-                    type="text"
-                    maxLength={6}
-                    autoFocus
-                    placeholder="000000"
-                    name="twoFactorCode"
-                    className="text-center font-mono text-lg tracking-[0.35em]"
+                    {...registerPasswordChange("confirmPassword", {
+                      required: "Confirme a nova senha",
+                    })}
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="••••••••"
                   />
+                  {passwordChangeErrors.confirmPassword && (
+                    <span className="mt-1 block text-xs text-red-600">
+                      {passwordChangeErrors.confirmPassword.message}
+                    </span>
+                  )}
                 </div>
-              )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="primary-action mt-2 w-full">
-                {isSubmitting && <Loader2 className="size-4 animate-spin" />}
-                {isSubmitting
-                  ? "Validando..."
-                  : requires2FA
-                    ? "Confirmar código"
-                    : "Entrar"}
-              </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingNewPassword}
+                  className="primary-action mt-2 w-full">
+                  {isSubmittingNewPassword && (
+                    <Loader2 className="size-4 animate-spin" />
+                  )}
+                  {isSubmittingNewPassword
+                    ? "Atualizando senha..."
+                    : "Salvar senha e entrar"}
+                </button>
 
-              {requires2FA && (
                 <button
                   type="button"
                   onClick={handleBackToCredentials}
                   className="flex w-full items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#17104f]">
                   <ArrowLeft className="size-3.5" />
-                  Voltar para as credenciais
+                  Cancelar e voltar
                 </button>
-              )}
-            </form>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {!requires2FA ? (
+                  <>
+                    <div className="block">
+                      <Label htmlFor={"email"} className="mb-1 ml-1">
+                        E-mail
+                      </Label>
+                      <Input
+                        {...register("email")}
+                        type="email"
+                        name="email"
+                        placeholder="seu@email.com"
+                      />
+                      {errors.email && (
+                        <span className="mt-1 block text-xs text-red-600">
+                          {errors.email.message}
+                        </span>
+                      )}
+                    </div>
+                    <div className="block">
+                      <Label htmlFor={"password"} className="mb-1 ml-1">
+                        Senha
+                      </Label>
+                      <span className="relative mt-1.5 block">
+                        <Input
+                          {...register("password")}
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Digite sua senha"
+                          name="password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((value) => !value)}
+                          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-600"
+                          aria-label={
+                            showPassword ? "Ocultar senha" : "Mostrar senha"
+                          }>
+                          {showPassword ? (
+                            <EyeOff className="size-4" />
+                          ) : (
+                            <Eye className="size-4" />
+                          )}
+                        </button>
+                      </span>
+                      {errors.password && (
+                        <span className="mt-1 block text-xs text-red-600">
+                          {errors.password.message}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="block">
+                    <Label className="mb-1" htmlFor={"twoFactorCode"}>
+                      Código de autenticação
+                    </Label>
+                    <Input
+                      {...register("twoFactorCode")}
+                      type="text"
+                      maxLength={6}
+                      autoFocus
+                      placeholder="000000"
+                      name="twoFactorCode"
+                      className="text-center font-mono text-lg tracking-[0.35em]"
+                    />
+                  </div>
+                )}
 
-            {!requires2FA && (
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="primary-action mt-2 w-full">
+                  {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+                  {isSubmitting
+                    ? "Validando..."
+                    : requires2FA
+                      ? "Confirmar código"
+                      : "Entrar"}
+                </button>
+
+                {requires2FA && (
+                  <button
+                    type="button"
+                    onClick={handleBackToCredentials}
+                    className="flex w-full items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#17104f]">
+                    <ArrowLeft className="size-3.5" />
+                    Voltar para as credenciais
+                  </button>
+                )}
+              </form>
+            )}
+            {!requires2FA && !requiresPasswordChange && (
               <p className="mt-6 border-t border-slate-100 pt-5 text-center text-xs text-slate-500">
                 Ainda não possui acesso?{" "}
                 <Link
