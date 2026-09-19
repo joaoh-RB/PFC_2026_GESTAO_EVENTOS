@@ -101,15 +101,24 @@ namespace API_Gestao_Eventos.src.Controllers
             }
         }
 
-        [Authorize(Roles = "Administrador,Secretaria")]
-        [HttpDelete("{id:guid}")]
-        public async Task<IActionResult> Delete(Guid id)
+        [Authorize(Roles = "Administrador")]
+        [HttpGet("management")]
+        public async Task<IActionResult> GetAllForManagement()
         {
-            var (isAdmin, isSecretary, callerInstitutionId) = GetAuthContext();
+            var result = await _institutionService.GetAllForManagementAsync();
+            return Ok(result);
+        }
+
+        [Authorize(Roles = "Administrador")]
+        [HttpPatch("{id:guid}/active")]
+        public async Task<IActionResult> SetActive(Guid id, [FromBody] ActiveRequest request)
+        {
+            var (isAdmin, _, _) = GetAuthContext();
+
             try
             {
-                await _institutionService.DeleteInstitutionAsync(id, isAdmin, callerInstitutionId, isSecretary);
-                return NoContent();
+                await _institutionService.SetInstitutionActiveAsync(id, request.IsActive, isAdmin);
+                return Ok(new { message = request.IsActive ? "Instituição ativada." : "Instituição inativada." });
             }
             catch (UnauthorizedAccessException)
             {
@@ -123,6 +132,11 @@ namespace API_Gestao_Eventos.src.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        public class ActiveRequest
+        {
+            public bool IsActive { get; set; }
         }
     }
 }

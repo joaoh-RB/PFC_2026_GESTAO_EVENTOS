@@ -101,23 +101,27 @@ namespace API_Gestao_Eventos.src.Application.Services
 
             await _institutionRepository.UpdateAsync(institution);
         }
-        public async Task DeleteInstitutionAsync(
-            Guid id,
-            bool isAdmin,
-            Guid? callerInstitutionId,
-            bool isSecretary)
+        public async Task<IEnumerable<InstitutionManagementItemDto>> GetAllForManagementAsync()
         {
-            var isAllowed = isAdmin || (isSecretary && callerInstitutionId == id);
-            if (!isAllowed)
-                throw new UnauthorizedAccessException("Você não tem permissão para excluir esta instituição.");
+            var institutions = await _institutionRepository.GetAllForManagementAsync();
+            return institutions.Select(i => new InstitutionManagementItemDto
+            {
+                Id = i.Id,
+                Name = i.Name,
+                IsActive = i.IsActive
+            });
+        }
+        public async Task SetInstitutionActiveAsync(Guid id, bool isActive, bool isAdmin)
+        {
+            if (!isAdmin)
+                throw new UnauthorizedAccessException("Você não tem permissão para alterar o status desta instituição.");
 
             var institution = await _institutionRepository.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException("Instituição não encontrada.");
+            if (!isActive && await _institutionRepository.HasDependenciesAsync(id))
+                throw new InvalidOperationException("Não é possível inativar: existem usuários, cursos ou eventos vinculados a esta instituição.");
 
-            if (await _institutionRepository.HasDependenciesAsync(id))
-                throw new InvalidOperationException("Não é possível excluir: existem usuários, cursos ou eventos vinculados a esta instituição.");
-
-            await _institutionRepository.DeleteAsync(institution);
+            await _institutionRepository.SetActiveAsync(institution, isActive);
         }
     }
 }

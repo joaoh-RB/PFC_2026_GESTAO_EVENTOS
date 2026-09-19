@@ -196,10 +196,10 @@ const AllInstitutionsManager: React.FC = () => {
     const handleDelete = async (id: string) => {
         setListError(null);
         try {
-            await api.delete(`/institutions/${id}`);
+            await api.patch(`/institutions/${id}/active`, { isActive: false });
             await loadInstitutions();
         } catch (err: any) {
-            setListError(extractErrorMessage(err, "Não foi possível excluir a instituição."));
+            setListError(extractErrorMessage(err, "Não foi possível inativar a instituição."));
         }
     };
 

@@ -54,9 +54,16 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
             _context.Institutions.Update(institution);
             await _context.SaveChangesAsync();
         }
-        public async Task DeleteAsync(Institution institution)
+        public async Task<IEnumerable<Institution>> GetAllForManagementAsync()
         {
-            institution.IsActive = false;
+            return await _context.Institutions
+                .OrderByDescending(i => i.IsActive)
+                .ThenBy(i => i.Name)
+                .ToListAsync();
+        }
+        public async Task SetActiveAsync(Institution institution, bool isActive)
+        {
+            institution.IsActive = isActive;
             await _context.SaveChangesAsync();
         }
     }
