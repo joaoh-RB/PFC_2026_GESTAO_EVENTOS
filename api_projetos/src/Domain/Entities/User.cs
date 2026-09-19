@@ -16,7 +16,7 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public UserRole Role { get; set; }
 
         public bool IsActive { get; set; } = true;
-
+        public bool IsPasswordChangeRequired { get; set; } = false;
         public UserApprovalStatus ApprovalStatus { get; set; } = UserApprovalStatus.Pendente;
 
         public Guid? ApprovedByUserId { get; set; }

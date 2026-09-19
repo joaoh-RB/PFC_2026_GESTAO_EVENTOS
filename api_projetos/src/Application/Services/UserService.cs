@@ -45,6 +45,7 @@ namespace API_Gestao_Eventos.src.Application.Services
             user.Name = request.Name.Trim();
             user.Email = request.Email.Trim();
             user.InstitutionId = request.InstitutionId;
+            user.IsPasswordChangeRequired = true;
             if (await userRepository.ExistsByEmailAsync(request.Email))
                 throw new InvalidOperationException("E-mail já cadastrado.");
             string password = GeneratePassword.Generate();
@@ -124,6 +125,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                 ApprovalStatus = UserApprovalStatus.Aprovado,
                 Email = request.Email.Trim(),
                 PasswordHash = passwordHasher.HashPassword(password),
+                IsPasswordChangeRequired = true,
                 UniqueIdentifier = request.UniqueIdentifier.Trim(),
                 InstitutionId = request.InstitutionId,
                 CourseId = request.CourseId

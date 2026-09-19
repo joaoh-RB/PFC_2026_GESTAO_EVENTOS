@@ -43,6 +43,7 @@ namespace API_Gestao_Eventos.src.Application.Services
             return new AuthResponseDto
             {
                 RequiresTwoFactor = false,
+                RequiresPasswordChange = false,
                 Message = "Cadastro realizado com sucesso, seu usuário está pendente de aprovação. Entre em contato com sua instituição em caso de dúvidas. Assim que o acesso for aprovado será enviado um e-mail contendo as informações de acesso."
             };
         }
@@ -58,6 +59,12 @@ namespace API_Gestao_Eventos.src.Application.Services
                 throw new UnauthorizedAccessException("Seu cadastro ainda não foi aprovado. Entre em contato com a sua instituição.");
             if (user.ApprovalStatus == UserApprovalStatus.Reprovado)
                 throw new UnauthorizedAccessException("Seu cadastro ainda não foi aprovado. Entre em contato com a sua instituição.");
+            if (user.IsPasswordChangeRequired)
+                return new AuthResponseDto()
+                {
+                    RequiresPasswordChange = true,
+                    Message = "É necessário alterar a senha antes de prosseguir."
+                };
             if (user.TwoFactorEnabled)
             {
                 if (string.IsNullOrWhiteSpace(request.TwoFactorCode))

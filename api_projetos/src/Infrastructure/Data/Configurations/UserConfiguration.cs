@@ -27,6 +27,10 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
                 .IsRequired()
                 .HasDefaultValue(UserApprovalStatus.Pendente);
 
+            builder.Property(u => u.IsPasswordChangeRequired)
+                .IsRequired()
+                .HasDefaultValue(false);
+
             builder.HasOne(u => u.ApprovedByUser)
                 .WithMany()
                 .IsRequired(false)
