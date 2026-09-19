@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -172,11 +173,13 @@ export const CreateInstitutionMemberForm: React.FC<
                       <SelectValue placeholder="Selecione uma instituição" />
                     </SelectTrigger>
                     <SelectContent alignItemWithTrigger={true}>
-                      {institutions.map((inst) => (
-                        <SelectItem key={inst.value} value={inst.value}>
-                          {inst.label}
-                        </SelectItem>
-                      ))}
+                      <SelectGroup>
+                        {institutions.map((inst) => (
+                          <SelectItem key={inst.value} value={inst.value}>
+                            {inst.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                 )}
@@ -206,11 +209,13 @@ export const CreateInstitutionMemberForm: React.FC<
                     <SelectValue placeholder="Selecione um cargo" />
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={true}>
-                    {userRoles.map((inst) => (
-                      <SelectItem key={inst.value} value={inst.value}>
-                        {inst.label}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      {userRoles.map((inst) => (
+                        <SelectItem key={inst.value} value={inst.value}>
+                          {inst.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               )}

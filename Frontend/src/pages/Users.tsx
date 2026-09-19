@@ -17,6 +17,30 @@ import {
 } from "lucide-react";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 import { useAuth } from "../hooks/useAuth";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 type ApprovalStatus = 1 | 2 | 3;
 
@@ -109,7 +133,7 @@ export const Users: React.FC = () => {
     if (!selectedInstitutionId) {
       (async () => {
         setCourses([]);
-        setForm(prev => ({ ...prev, courseId: "" }));
+        setForm((prev) => ({ ...prev, courseId: "" }));
         return;
       })();
     }
@@ -139,7 +163,8 @@ export const Users: React.FC = () => {
           status === "all" || managedUser.approvalStatus === status;
         const matchesInstitution =
           user?.role === "Administrador" ||
-          (!!userInstitutionId && managedUser.institutionId === userInstitutionId);
+          (!!userInstitutionId &&
+            managedUser.institutionId === userInstitutionId);
 
         return matchesSearch && matchesStatus && matchesInstitution;
       }),
@@ -177,10 +202,14 @@ export const Users: React.FC = () => {
     setSaving(true);
     setError(null);
     try {
-      const payload = { ...form};
+      const payload = { ...form };
       if (editing) await api.put(`/users/${editing.id}`, payload);
       else await api.post("/users", payload);
-      setSuccessMessage(editing ? "Usuário atualizado com sucesso! Redirecionando..." : "Usuário criado com sucesso! Redirecionando...");
+      setSuccessMessage(
+        editing
+          ? "Usuário atualizado com sucesso! Redirecionando..."
+          : "Usuário criado com sucesso! Redirecionando...",
+      );
       await loadUsers();
       setTimeout(() => {
         setSuccessMessage(null);
@@ -212,7 +241,11 @@ export const Users: React.FC = () => {
     try {
       await api.patch(`/users/${user.id}/active`, { isActive: !user.isActive });
       await loadUsers();
-      setSuccessMessage(user.isActive ? "Usuário desativado com sucesso." : "Usuário ativado com sucesso.");
+      setSuccessMessage(
+        user.isActive
+          ? "Usuário desativado com sucesso."
+          : "Usuário ativado com sucesso.",
+      );
       setTimeout(() => setSuccessMessage(null), 1400);
     } catch (err: any) {
       setError(
@@ -231,184 +264,208 @@ export const Users: React.FC = () => {
 
   return (
     <main className="app-page">
-        <PageHeader
-          title="Alunos"
-          description="Aprove cadastros e gerencie o acesso dos estudantes."
-          action={
-          <button
-            onClick={openCreate}
-            className="primary-action">
+      <PageHeader
+        title="Alunos"
+        description="Aprove cadastros e gerencie o acesso dos estudantes."
+        action={
+          <button onClick={openCreate} className="primary-action">
             <Plus className="h-4 w-4" /> Novo aluno
           </button>
-          }
-        />
+        }
+      />
 
-        {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-            <AlertCircle className="h-5 w-5" />
-            {error}
-          </div>
-        )}
-        {successMessage && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
-            <Check className="h-5 w-5" />
-            {successMessage}
-          </div>
-        )}
-
-        <div className="filter-bar">
-          <label className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome, e-mail ou matrícula"
-              className="form-control pl-10"
-            />
-          </label>
-          <select
-            value={status}
-            onChange={(e) =>
-              setStatus(
-                e.target.value === "all"
-                  ? "all"
-                  : (Number(e.target.value) as ApprovalStatus),
-              )
-            }
-            className="form-control sm:w-56">
-            <option value="all">Todas as aprovações</option>
-            <option value="1">Pendentes</option>
-            <option value="2">Aprovados</option>
-            <option value="3">Reprovados</option>
-          </select>
+      {error && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          <AlertCircle className="h-5 w-5" />
+          {error}
         </div>
+      )}
+      {successMessage && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          <Check className="h-5 w-5" />
+          {successMessage}
+        </div>
+      )}
 
-        <div className="surface-card overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="px-4 py-3">Usuário</th>
-                <th className="px-4 py-3">Matrícula</th>
-                <th className="px-4 py-3">Aprovação</th>
-                <th className="px-4 py-3">Aprovado por</th>
-                <th className="px-4 py-3">Acesso</th>
-                <th className="px-4 py-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900">
-                      {user.name}
-                    </div>
-                    <div className="text-xs text-slate-500">{user.email}</div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {user.uniqueIdentifier}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        user.approvalStatus === 2
-                          ? "bg-emerald-100 text-emerald-700"
-                          : user.approvalStatus === 3
-                            ? "bg-red-100 text-red-700"
-                            : "bg-amber-100 text-amber-700"
-                      }`}>
-                      {statusLabel[user.approvalStatus]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {user.approvedByUserName ? (
-                      <>
-                        <div>{user.approvedByUserName}</div>
-                        <div className="text-xs text-slate-400">
-                          {formatDate(user.approvedDate)}
-                        </div>
-                      </>
-                    ) : (
-                      <div>—</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={
-                        user.isActive ? "text-emerald-700" : "text-slate-500"
-                      }>
-                      {user.isActive ? "Ativo" : "Inativo"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1">
-                      {user.approvalStatus !== 2 && (
-                        <button
-                          title="Aprovar"
-                          onClick={() => setApproval(user, 2)}
-                          className="rounded p-2 text-emerald-600 hover:bg-emerald-50">
-                          <UserCheck className="h-4 w-4" />
-                        </button>
-                      )}
-                      {user.approvalStatus === 1 && (
-                        <button
-                          title="Reprovar"
-                          onClick={() => setApproval(user, 3)}
-                          className="rounded p-2 text-red-600 hover:bg-red-50">
-                          <UserX className="h-4 w-4" />
-                        </button>
-                      )}
-                      {user.isActive ? (
-                        <DeleteConfirmation
-                          children={
-                            <button
-                              title="Inativar"
-                              className="rounded p-2 text-amber-600 hover:bg-amber-50">
-                              <CircleOff className="h-4 w-4" />
-                            </button>
-                          }
-                          onDelete={() => toggleActive(user)}
-                          onCancel={() => { setSuccessMessage(null); setError(null); }}
-                          descriptionText={"Tem certeza que deseja desativar este usuário?"}
-                          confirmationText={"Desativar"}
-                        />
-                      ) : (
-                        <DeleteConfirmation
-                          children={
-                            <button
-                              title="Ativar"
-                              className="rounded p-2 text-amber-600 hover:bg-amber-50">
-                              <Check className="h-4 w-4" />
-                            </button>
-                          }
-                          onDelete={() => toggleActive(user)}
-                          onCancel={() => { setSuccessMessage(null); setError(null); }}
-                          descriptionText={"Tem certeza que deseja ativar este usuário?"}
-                          confirmationText={"Ativar"}
-                          deleteButtonClassName={"bg-green-500 hover:bg-green-600 text-gray-100"}
-                        />
-                      )}
+      <div className="filter-bar">
+        <InputGroup>
+          <InputGroupInput
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome, e-mail ou matrícula"></InputGroupInput>
+          <InputGroupAddon>
+            <Search></Search>
+          </InputGroupAddon>
+        </InputGroup>
+        <Select
+          items={[
+            { value: "all", label: "Todas as aprovações" },
+            { value: "1", label: "Pendentes" },
+            { value: "2", label: "Aprovados" },
+            { value: "3", label: "Reprovados" },
+          ]}
+          value={status == "all" ? "all" : String(status)}
+          onValueChange={(e) =>
+            setStatus(e === "all" ? "all" : (Number(e) as ApprovalStatus))
+          }>
+          <SelectTrigger className={"w-full"}>
+            <SelectValue placeholder={"Todas as Aprovações"}></SelectValue>
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={true}>
+            <SelectGroup>
+              <SelectItem key={"all"} value={"all"}>
+                Todas as aprovações
+              </SelectItem>
+              <SelectItem key={"1"} value={"1"}>
+                Pendentes
+              </SelectItem>
+              <SelectItem key={"2"} value={"2"}>
+                Aprovados
+              </SelectItem>
+              <SelectItem key={"3"} value={"3"}>
+                Reprovados
+              </SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="surface-card overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Usuário</TableHead>
+              <TableHead>Matrícula</TableHead>
+              <TableHead>Aprovação</TableHead>
+              <TableHead>Aprovado por</TableHead>
+              <TableHead>Acesso</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredUsers.map((user) => (
+              <TableRow key={user.id} className="hover:bg-slate-50">
+                <TableCell className="px-4 py-3">
+                  <div className="font-medium text-slate-900">{user.name}</div>
+                  <div className="text-xs text-slate-500">{user.email}</div>
+                </TableCell>
+                <TableCell className="px-4 py-3 text-slate-600">
+                  {user.uniqueIdentifier}
+                </TableCell>
+                <TableCell className="px-4 py-3">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      user.approvalStatus === 2
+                        ? "bg-emerald-100 text-emerald-700"
+                        : user.approvalStatus === 3
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
+                    }`}>
+                    {statusLabel[user.approvalStatus]}
+                  </span>
+                </TableCell>
+                <TableCell className="px-4 py-3 text-slate-600">
+                  {user.approvedByUserName ? (
+                    <>
+                      <div>{user.approvedByUserName}</div>
+                      <div className="text-xs text-slate-400">
+                        {formatDate(user.approvedDate)}
+                      </div>
+                    </>
+                  ) : (
+                    <div>—</div>
+                  )}
+                </TableCell>
+                <TableCell className="px-4 py-3">
+                  <span
+                    className={
+                      user.isActive ? "text-emerald-700" : "text-slate-500"
+                    }>
+                    {user.isActive ? "Ativo" : "Inativo"}
+                  </span>
+                </TableCell>
+                <TableCell className="px-4 py-3">
+                  <div className="flex justify-end gap-1">
+                    {user.approvalStatus !== 2 && (
                       <button
-                        title="Editar"
-                        onClick={() => openEdit(user)}
-                        className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
-                        <Pencil className="h-4 w-4" />
+                        title="Aprovar"
+                        onClick={() => setApproval(user, 2)}
+                        className="rounded p-2 text-emerald-600 hover:bg-emerald-50">
+                        <UserCheck className="h-4 w-4" />
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!filteredUsers.length && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-10 text-center text-slate-500">
-                    Nenhum usuário encontrado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    )}
+                    {user.approvalStatus === 1 && (
+                      <button
+                        title="Reprovar"
+                        onClick={() => setApproval(user, 3)}
+                        className="rounded p-2 text-red-600 hover:bg-red-50">
+                        <UserX className="h-4 w-4" />
+                      </button>
+                    )}
+                    {user.isActive ? (
+                      <DeleteConfirmation
+                        children={
+                          <button
+                            title="Inativar"
+                            className="rounded p-2 text-amber-600 hover:bg-amber-50">
+                            <CircleOff className="h-4 w-4" />
+                          </button>
+                        }
+                        onDelete={() => toggleActive(user)}
+                        onCancel={() => {
+                          setSuccessMessage(null);
+                          setError(null);
+                        }}
+                        descriptionText={
+                          "Tem certeza que deseja desativar este usuário?"
+                        }
+                        confirmationText={"Desativar"}
+                      />
+                    ) : (
+                      <DeleteConfirmation
+                        children={
+                          <button
+                            title="Ativar"
+                            className="rounded p-2 text-amber-600 hover:bg-amber-50">
+                            <Check className="h-4 w-4" />
+                          </button>
+                        }
+                        onDelete={() => toggleActive(user)}
+                        onCancel={() => {
+                          setSuccessMessage(null);
+                          setError(null);
+                        }}
+                        descriptionText={
+                          "Tem certeza que deseja ativar este usuário?"
+                        }
+                        confirmationText={"Ativar"}
+                        deleteButtonClassName={
+                          "bg-green-500 hover:bg-green-600 text-gray-100"
+                        }
+                      />
+                    )}
+                    <button
+                      title="Editar"
+                      onClick={() => openEdit(user)}
+                      className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {!filteredUsers.length && (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="px-4 py-10 text-center text-slate-500">
+                  Nenhum usuário encontrado.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
       {showForm && (
         <div className="modal-backdrop">
           <div className="modal-panel max-w-xl">
@@ -416,14 +473,22 @@ export const Users: React.FC = () => {
               <User2 className="h-6 w-6" />
             </div>
             <div className="text-center sm:text-left mb-2">
-              <p className="text-sm text-slate-600">{editing ? "Preencha os dados abaixo para atualizar o usuário acadêmico" : "Preencha os dados abaixo para cadastrar um novo usuário acadêmico"}</p>
+              <p className="text-sm text-slate-600">
+                {editing
+                  ? "Preencha os dados abaixo para atualizar o usuário acadêmico"
+                  : "Preencha os dados abaixo para cadastrar um novo usuário acadêmico"}
+              </p>
             </div>
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-900">
                 {editing ? "Editar usuário" : "Novo usuário"}
               </h2>
               <button
-                onClick={() => { setSuccessMessage(null); setError(null); closeForm(); }}
+                onClick={() => {
+                  setSuccessMessage(null);
+                  setError(null);
+                  closeForm();
+                }}
                 className="rounded p-1 text-slate-500 hover:bg-slate-100">
                 <X />
               </button>
@@ -443,72 +508,84 @@ export const Users: React.FC = () => {
             <form
               onSubmit={submit}
               className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="sm:col-span-2 text-sm font-medium text-slate-700">
-                Nome
-                <input
+              <div className="sm:col-span-2 text-sm font-medium text-slate-700">
+                <Label className={"mb-1"}>Nome</Label>
+                <Input
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="form-control mt-1"
                 />
-              </label>
-              <label className="text-sm font-medium text-slate-700">
-                E-mail
-                <input
+              </div>
+              <div className="text-sm font-medium text-slate-700">
+                <Label className={"mb-1"}>E-mail</Label>
+                <Input
                   required
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="form-control mt-1"
                 />
-              </label>
-              <label className="text-sm font-medium text-slate-700">
-                RA / Matrícula
-                <input
+              </div>
+              <div className="text-sm font-medium text-slate-700">
+                <Label className={"mb-1"}>RA / Matrícula</Label>
+                <Input
                   required
                   value={form.uniqueIdentifier}
                   onChange={(e) =>
                     setForm({ ...form, uniqueIdentifier: e.target.value })
                   }
-                  className="form-control mt-1"
                 />
-              </label>
+              </div>
               {!userInstitutionId && (
-                <label className="text-sm font-medium text-slate-700">
-                  Instituição
-                  <select
+                <div className="text-sm font-medium text-slate-700">
+                  <Label className={"mb-1"}> Instituição</Label>
+                  <Select
                     required
                     value={form.institutionId}
-                    onChange={(e) =>
-                      setForm({ ...form, institutionId: e.target.value })
+                    onValueChange={(e) =>
+                      setForm({ ...form, institutionId: e ?? "" })
                     }
-                    className="form-control mt-1">
-                    <option value="">Selecione</option>
-                    {institutions.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    items={institutions}>
+                    <SelectTrigger className={"w-full !h-10"}>
+                      <SelectValue placeholder="Selecione"></SelectValue>
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={true}>
+                      <SelectGroup>
+                        {institutions.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
-              <label className="text-sm font-medium text-slate-700">
-                Curso
-                <select
+              <div className="text-sm font-medium text-slate-700">
+                <Label className={"mb-1"}>Curso</Label>
+                <Select
                   required
                   value={form.courseId}
-                  onChange={(e) =>
-                    setForm({ ...form, courseId: e.target.value })
-                  }
-                  className="form-control mt-1">
-                  <option value="">Selecione</option>
-                  {courses.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  onValueChange={(e) => setForm({ ...form, courseId: e ?? "" })}
+                  items={courses}>
+                  <SelectTrigger className={"w-full !h-10"}>
+                    <SelectValue placeholder="Selecione"></SelectValue>
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={true}>
+                    <SelectGroup>
+                      {form.institutionId === "" && (
+                        <SelectItem value="" disabled>
+                          Selecione uma instituição primeiro
+                        </SelectItem>
+                      )}
+                      {courses.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="sm:col-span-2 flex justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -516,9 +593,7 @@ export const Users: React.FC = () => {
                   className="secondary-action">
                   Cancelar
                 </button>
-                <button
-                  disabled={saving}
-                  className="primary-action">
+                <button disabled={saving} className="primary-action">
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   Salvar
                 </button>

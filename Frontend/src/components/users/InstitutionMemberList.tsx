@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -90,11 +91,8 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
     const instVal = newInstitutionId ?? institutionId;
     onFilter({
       userRoleId:
-        roleVal !== "Todos os cargos"
-          ? parseInt(roleVal as string)
-          : undefined,
-      institutionId:
-        instVal !== allInstitutionsName ? instVal : undefined,
+        roleVal !== "Todos os cargos" ? parseInt(roleVal as string) : undefined,
+      institutionId: instVal !== allInstitutionsName ? instVal : undefined,
     });
   };
 
@@ -103,8 +101,10 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
       <Card className="surface-card bg-white shadow-none">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
-              <div className="col-span-2">
-              <Label htmlFor="filter-user-role" className={"mb-2"}>Cargo</Label>
+            <div className="col-span-2">
+              <Label htmlFor="filter-user-role" className={"mb-2"}>
+                Cargo
+              </Label>
               <Select
                 id="filter-user-role"
                 items={roles}
@@ -118,46 +118,50 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                   <SelectValue placeholder={"Todos os cargos"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Todos os cargos">
-                    Todos os cargos
-                  </SelectItem>
-                  {roles.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
+                  <SelectGroup>
+                    <SelectItem value="Todos os cargos">
+                      Todos os cargos
                     </SelectItem>
-                  ))}
+                    {roles.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
             {!userInstitutionId && (
-            <div className={"col-span-2"}>
-              <Label htmlFor="filter-institution" className={"mb-2 "}>
-                Instituição
-              </Label>
-              <Select
-                id="filter-institution"
-                value={institutionId}
-                items={institutions}
-                onValueChange={(value) => {
-                  const v = value ?? allInstitutionsName;
-                  setInstitutionId(v);
-                  applyFilters(undefined, v);
-                }}>
-                <SelectTrigger className={"w-full"}>
-                  <SelectValue placeholder={allInstitutionsName} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={allInstitutionsName}>
-                    Todas as instituições
-                  </SelectItem>
-                  {institutions.map((inst) => (
-                    <SelectItem key={inst.value} value={inst.value}>
-                      {inst.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className={"col-span-2"}>
+                <Label htmlFor="filter-institution" className={"mb-2 "}>
+                  Instituição
+                </Label>
+                <Select
+                  id="filter-institution"
+                  value={institutionId}
+                  items={institutions}
+                  onValueChange={(value) => {
+                    const v = value ?? allInstitutionsName;
+                    setInstitutionId(v);
+                    applyFilters(undefined, v);
+                  }}>
+                  <SelectTrigger className={"w-full"}>
+                    <SelectValue placeholder={allInstitutionsName} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value={allInstitutionsName}>
+                        Todas as instituições
+                      </SelectItem>
+                      {institutions.map((inst) => (
+                        <SelectItem key={inst.value} value={inst.value}>
+                          {inst.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
             )}
           </div>
         </CardContent>
@@ -209,7 +213,7 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                             className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
                             <Pencil className="h-4 w-4" />
                           </button>
-                          {user.isActive && user.id !== currentUser!.id &&(
+                          {user.isActive && user.id !== currentUser!.id && (
                             <DeleteConfirmation
                               children={
                                 <button
@@ -224,7 +228,9 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                               descriptionText={
                                 "Tem certeza que deseja desativar este usuário?"
                               }
-                              confirmationText={"Desativar"}></DeleteConfirmation>
+                              confirmationText={
+                                "Desativar"
+                              }></DeleteConfirmation>
                           )}
                           {!user.isActive && (
                             <DeleteConfirmation
@@ -242,8 +248,9 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                                 "Tem certeza que deseja ativar este usuário?"
                               }
                               confirmationText={"Ativar"}
-                              deleteButtonClassName={"bg-green-500 hover:bg-green-600 text-gray-100"}>
-                            </DeleteConfirmation>
+                              deleteButtonClassName={
+                                "bg-green-500 hover:bg-green-600 text-gray-100"
+                              }></DeleteConfirmation>
                           )}
                         </div>
                       </TableCell>
