@@ -11,11 +11,13 @@ import {
   CalendarDays,
   Eye,
   EyeOff,
-  KeyRound,
   Loader2,
   ShieldCheck,
   UsersRound,
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import type { AxiosError } from "axios";
 
 export function Login() {
   const [apiError, setApiError] = useState<string | null>(null);
@@ -43,9 +45,11 @@ export function Login() {
         return;
       }
       navigate("/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message: string }>;
+
       setApiError(
-        err.response?.data?.message || "E-mail, senha ou código inválidos.",
+        error.response?.data?.message ?? "E-mail, senha ou código inválidos.",
       );
     }
   };
@@ -63,20 +67,27 @@ export function Login() {
         <div className="absolute -right-16 top-[17%] size-[440px] rounded-full border border-cyan-300/10" />
         <div className="absolute -right-5 top-[22%] size-[340px] rounded-full border border-cyan-300/15" />
         <div className="absolute right-[12%] top-[29%] grid size-[220px] place-items-center rounded-[42%_58%_58%_42%] border border-white/10 bg-white/[0.04] shadow-[0_0_80px_rgba(25,176,216,0.15)] backdrop-blur-sm">
-          <CalendarDays className="size-24 text-cyan-300/75" strokeWidth={0.9} />
+          <CalendarDays
+            className="size-24 text-cyan-300/75"
+            strokeWidth={0.9}
+          />
         </div>
         <div className="absolute left-[14%] top-[27%] flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-white/80 backdrop-blur">
           <UsersRound className="size-5 text-cyan-300" />
           <div>
             <p className="text-xs font-semibold">Comunidade conectada</p>
-            <p className="text-[10px] text-white/45">Eventos, alunos e instituições</p>
+            <p className="text-[10px] text-white/45">
+              Eventos, alunos e instituições
+            </p>
           </div>
         </div>
         <div className="absolute right-[17%] top-[58%] flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-white/80 backdrop-blur">
           <ShieldCheck className="size-5 text-emerald-300" />
           <div>
             <p className="text-xs font-semibold">Gestão segura</p>
-            <p className="text-[10px] text-white/45">Controle de acesso integrado</p>
+            <p className="text-[10px] text-white/45">
+              Controle de acesso integrado
+            </p>
           </div>
         </div>
 
@@ -126,34 +137,40 @@ export function Login() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {!requires2FA ? (
                 <>
-                  <label className="block">
-                    <span className="form-label">E-mail</span>
-                    <input
+                  <div className="block">
+                    <Label htmlFor={"email"} className="mb-1 ml-1">
+                      E-mail
+                    </Label>
+                    <Input
                       {...register("email")}
                       type="email"
+                      name="email"
                       placeholder="seu@email.com"
-                      className="form-control mt-1.5"
                     />
                     {errors.email && (
                       <span className="mt-1 block text-xs text-red-600">
                         {errors.email.message}
                       </span>
                     )}
-                  </label>
-                  <label className="block">
-                    <span className="form-label">Senha</span>
+                  </div>
+                  <div className="block">
+                    <Label htmlFor={"password"} className="mb-1 ml-1">
+                      Senha
+                    </Label>
                     <span className="relative mt-1.5 block">
-                      <input
+                      <Input
                         {...register("password")}
                         type={showPassword ? "text" : "password"}
                         placeholder="Digite sua senha"
-                        className="form-control pr-11"
+                        name="password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword((value) => !value)}
                         className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-600"
-                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}>
+                        aria-label={
+                          showPassword ? "Ocultar senha" : "Mostrar senha"
+                        }>
                         {showPassword ? (
                           <EyeOff className="size-4" />
                         ) : (
@@ -166,23 +183,23 @@ export function Login() {
                         {errors.password.message}
                       </span>
                     )}
-                  </label>
+                  </div>
                 </>
               ) : (
-                <label className="block">
-                  <span className="form-label">Código de autenticação</span>
-                  <span className="relative mt-1.5 block">
-                    <KeyRound className="absolute left-3 top-3 size-4 text-slate-400" />
-                    <input
-                      {...register("twoFactorCode")}
-                      type="text"
-                      maxLength={6}
-                      autoFocus
-                      placeholder="000000"
-                      className="form-control pl-10 text-center font-mono text-lg tracking-[0.35em]"
-                    />
-                  </span>
-                </label>
+                <div className="block">
+                  <Label className="mb-1" htmlFor={"twoFactorCode"}>
+                    Código de autenticação
+                  </Label>
+                  <Input
+                    {...register("twoFactorCode")}
+                    type="text"
+                    maxLength={6}
+                    autoFocus
+                    placeholder="000000"
+                    name="twoFactorCode"
+                    className="text-center font-mono text-lg tracking-[0.35em]"
+                  />
+                </div>
               )}
 
               <button

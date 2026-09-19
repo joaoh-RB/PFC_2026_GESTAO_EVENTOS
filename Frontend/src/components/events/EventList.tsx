@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -87,7 +88,9 @@ export const EventsList: React.FC<EventsListProps> = ({
     onFilter({
       fromDate: fromDate || undefined,
       institutionId:
-        institutionId !== allInstitutionsName ? institutionId : userInstitutionId ?? undefined,
+        institutionId !== allInstitutionsName
+          ? institutionId
+          : (userInstitutionId ?? undefined),
     });
   };
 
@@ -103,6 +106,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
+                className="w-full h-10"
               />
             </div>
             {!userInstitutionId && (
@@ -117,18 +121,20 @@ export const EventsList: React.FC<EventsListProps> = ({
                   onValueChange={(value) =>
                     setInstitutionId(value ?? allInstitutionsName)
                   }>
-                  <SelectTrigger className={"w-full"}>
+                  <SelectTrigger className={"w-full !h-10"}>
                     <SelectValue placeholder={allInstitutionsName} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={allInstitutionsName}>
-                      Todas as instituições
-                    </SelectItem>
-                    {institutions.map((inst) => (
-                      <SelectItem key={inst.value} value={inst.value}>
-                        {inst.label}
+                    <SelectGroup>
+                      <SelectItem value={allInstitutionsName}>
+                        Todas as instituições
                       </SelectItem>
-                    ))}
+                      {institutions.map((inst) => (
+                        <SelectItem key={inst.value} value={inst.value}>
+                          {inst.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </div>
@@ -241,9 +247,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                     {event.startDate > new Date().toISOString() && (
                       <div className="flex justify-between items-center gap-2 pt-4">
                         <Button
-                          className={
-                            "secondary-action cursor-pointer"
-                          }
+                          className={"secondary-action cursor-pointer"}
                           onClick={() => handleStartEdition(event)}>
                           Editar
                         </Button>

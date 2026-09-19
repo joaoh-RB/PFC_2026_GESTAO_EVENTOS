@@ -26,6 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -185,11 +186,13 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                         <SelectValue placeholder="Selecione uma instituição" />
                       </SelectTrigger>
                       <SelectContent alignItemWithTrigger={true}>
-                        {institutions.map((inst) => (
-                          <SelectItem key={inst.value} value={inst.value}>
-                            {inst.label}
-                          </SelectItem>
-                        ))}
+                        <SelectGroup>
+                          {institutions.map((inst) => (
+                            <SelectItem key={inst.value} value={inst.value}>
+                              {inst.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                   )}
@@ -253,17 +256,19 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                     items={eventTypes}
                     onValueChange={(val) => field.onChange(Number(val))}
                     value={field.value?.toString()}>
-                    <SelectTrigger className={"w-full"}>
+                    <SelectTrigger className={"w-full !h-10"}>
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent alignItemWithTrigger={true}>
-                      {eventTypes.map((type) => (
-                        <SelectItem
-                          key={type.value}
-                          value={type.value.toString()}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
+                      <SelectGroup>
+                        {eventTypes.map((type) => (
+                          <SelectItem
+                            key={type.value}
+                            value={type.value.toString()}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                 )}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
@@ -21,6 +21,17 @@ import {
 } from "lucide-react";
 import type { OptionItem } from "@/types/optionItem";
 import { Brand } from "@/components/Brand";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 export const Register: React.FC = () => {
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
@@ -36,6 +47,7 @@ export const Register: React.FC = () => {
     formState: { errors, isSubmitting },
     watch,
     setValue,
+    control,
   } = useForm<RegisterStudentFormData>({
     resolver: zodResolver(registerStudentSchema),
     mode: "onBlur",
@@ -114,7 +126,9 @@ export const Register: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[linear-gradient(135deg,#17104f_0%,#20166b_35%,#f6f7fb_35%,#f6f7fb_100%)] p-4 py-10">
-      <div className="mx-auto mb-7 w-full max-w-2xl"><Brand inverse /></div>
+      <div className="mx-auto mb-7 w-full max-w-2xl">
+        <Brand inverse />
+      </div>
       <div className="mx-auto w-full max-w-2xl rounded-2xl border border-[#e2e4e9] bg-white p-8 shadow-[0_18px_50px_rgba(20,15,65,0.14)]">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-[#12a7d4]">
@@ -145,18 +159,14 @@ export const Register: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-700">
+              <Label className="block text-sm font-medium text-slate-700">
                 Nome Completo
-              </label>
+              </Label>
               <div className="relative mt-1">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <User className="h-5 w-5" />
-                </span>
-                <input
+                <Input
                   {...register("name")}
                   type="text"
                   placeholder="Nome do Estudante"
-                  className="form-control pl-10"
                 />
               </div>
               {errors.name && (
@@ -167,18 +177,14 @@ export const Register: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <Label className="block text-sm font-medium text-slate-700">
                 E-mail
-              </label>
+              </Label>
               <div className="relative mt-1">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <Mail className="h-5 w-5" />
-                </span>
-                <input
+                <Input
                   {...register("email")}
                   type="email"
                   placeholder="aluno@instituicao.edu.br"
-                  className="form-control pl-10"
                 />
               </div>
               {errors.email && (
@@ -189,18 +195,14 @@ export const Register: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <Label className="block text-sm font-medium text-slate-700">
                 RA / Matrícula
-              </label>
+              </Label>
               <div className="relative mt-1">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <Hash className="h-5 w-5" />
-                </span>
-                <input
+                <Input
                   {...register("uniqueIdentifier")}
                   type="text"
                   placeholder="Ex: 202610098"
-                  className="form-control pl-10"
                 />
               </div>
               {errors.uniqueIdentifier && (
@@ -211,26 +213,37 @@ export const Register: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <Label className="block text-sm font-medium text-slate-700">
                 Instituição
-              </label>
+              </Label>
               <div className="relative mt-1">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <Building2 className="h-5 w-5" />
-                </span>
-                <select
-                  {...register("institutionId")}
-                  defaultValue=""
-                  className="form-control pl-10">
-                  <option value="" disabled>
-                    Selecione a Instituição
-                  </option>
-                  {institutions.map((inst) => (
-                    <option key={inst.value} value={inst.value}>
-                      {inst.label}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  name="institutionId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      items={institutions}
+                      onValueChange={(institutionId) => {
+                        field.onChange(institutionId);
+                        setValue("courseId", "");
+                      }}
+                      value={field.value}>
+                      <SelectTrigger className={"w-full"}>
+                        <SelectValue placeholder="Selecione uma instituição" />
+                      </SelectTrigger>
+
+                      <SelectContent alignItemWithTrigger={true}>
+                        <SelectGroup>
+                          {institutions.map((inst) => (
+                            <SelectItem key={inst.value} value={inst.value}>
+                              {inst.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               {errors.institutionId && (
                 <p className="mt-1 text-xs text-red-600">
@@ -240,26 +253,42 @@ export const Register: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <Label className="block text-sm font-medium text-slate-700">
                 Curso
-              </label>
-              <div className="relative mt-1">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <BookOpen className="h-5 w-5" />
-                </span>
-                <select
-                  {...register("courseId")}
-                  defaultValue=""
-                  className="form-control pl-10">
-                  <option value="" disabled>
-                    Selecione o Curso
-                  </option>
-                  {courses.map((course) => (
-                    <option key={course.value} value={course.value}>
-                      {course.label}
-                    </option>
-                  ))}
-                </select>
+              </Label>
+              <div className=" mt-1">
+                <Controller
+                  name="courseId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      items={courses}
+                      onValueChange={(courseId) => {
+                        field.onChange(courseId);
+                      }}
+                      value={field.value}>
+                      <SelectTrigger className={"w-full"}>
+                        <SelectValue placeholder="Selecione um curso" />
+                      </SelectTrigger>
+                      <SelectContent alignItemWithTrigger={true}>
+                        <SelectGroup>
+                          {courses.length == 0 && (
+                            <SelectItem value="" disabled>
+                              {!selectedInstitutionId
+                                ? "Selecione uma instituição antes"
+                                : "Nenhum curso disponível"}
+                            </SelectItem>
+                          )}
+                          {courses.map((course) => (
+                            <SelectItem key={course.value} value={course.value}>
+                              {course.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               {errors.courseId && (
                 <p className="mt-1 text-xs text-red-600">
@@ -269,18 +298,14 @@ export const Register: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <Label className="block text-sm font-medium text-slate-700">
                 Senha
-              </label>
+              </Label>
               <div className="relative mt-1">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <Lock className="h-5 w-5" />
-                </span>
-                <input
+                <Input
                   {...register("password")}
                   type="password"
                   placeholder="••••••••"
-                  className="form-control pl-10"
                 />
               </div>
               {errors.password && (
@@ -291,18 +316,14 @@ export const Register: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <Label className="block text-sm font-medium text-slate-700">
                 Confirmar Senha
-              </label>
+              </Label>
               <div className="relative mt-1">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <Lock className="h-5 w-5" />
-                </span>
-                <input
+                <Input
                   {...register("confirmPassword")}
                   type="password"
                   placeholder="••••••••"
-                  className="form-control pl-10"
                 />
               </div>
               {errors.confirmPassword && (
@@ -313,7 +334,7 @@ export const Register: React.FC = () => {
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting || isSuccess}
             className="primary-action mt-6 w-full">
@@ -325,7 +346,7 @@ export const Register: React.FC = () => {
             ) : (
               "Finalizar Cadastro"
             )}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-6 text-center text-sm text-slate-600">
