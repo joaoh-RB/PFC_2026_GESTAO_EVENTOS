@@ -21,15 +21,6 @@ export const createInstitutionMemberSchema = z
         })
         .min(1, "Selecione um cargo"),
     ),
-    password: z.preprocess(
-      (value) => (value === "" ? undefined : value),
-      z
-        .string()
-        .regex(/[A-Z]/, "A senha deve conter ao menos uma letra maiúscula.")
-        .regex(/[0-9]/, "A senha deve conter ao menos um número.")
-        .regex(/[\W\_]/, "A senha deve conter ao menos um caractere especial.")
-        .optional(),
-    ),
   })
   .superRefine((data, ctx) => {
     if (data.userRole === 2 && (!data.courses || data.courses.length === 0)) {
@@ -40,15 +31,8 @@ export const createInstitutionMemberSchema = z
       });
     }
     console.log("Dados no refine:", data);
-
-    if (!data.id && !data.password) {
-      ctx.addIssue({
-        code: "custom",
-        message: "A senha é obrigatória",
-        path: ["password"],
-      });
     }
-  });
+);
 
 export type CreateInstitutionMemberFormData = z.infer<
   typeof createInstitutionMemberSchema

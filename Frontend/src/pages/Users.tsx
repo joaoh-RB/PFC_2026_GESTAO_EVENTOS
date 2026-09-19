@@ -39,7 +39,6 @@ interface UserForm {
   uniqueIdentifier: string;
   institutionId: string;
   courseId: string;
-  password: string;
 }
 
 const emptyForm: UserForm = {
@@ -48,7 +47,6 @@ const emptyForm: UserForm = {
   uniqueIdentifier: "",
   institutionId: "",
   courseId: "",
-  password: "",
 };
 
 const statusLabel: Record<ApprovalStatus, string> = {
@@ -177,14 +175,10 @@ export const Users: React.FC = () => {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!editing && form.password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres.");
-      return;
-    }
     setSaving(true);
     setError(null);
     try {
-      const payload = { ...form, password: form.password || undefined };
+      const payload = { ...form};
       if (editing) await api.put(`/users/${editing.id}`, payload);
       else await api.post("/users", payload);
       setSuccessMessage(editing ? "Usuário atualizado com sucesso! Redirecionando..." : "Usuário criado com sucesso! Redirecionando...");
@@ -515,19 +509,6 @@ export const Users: React.FC = () => {
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="sm:col-span-2 text-sm font-medium text-slate-700">
-                {editing ? "Nova senha (opcional)" : "Senha"}
-                <input
-                  required={!editing}
-                  minLength={6}
-                  type="password"
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm({ ...form, password: e.target.value })
-                  }
-                  className="form-control mt-1"
-                />
               </label>
               <div className="sm:col-span-2 flex justify-end gap-3 pt-2">
                 <button

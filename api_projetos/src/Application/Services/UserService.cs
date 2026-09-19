@@ -2,19 +2,23 @@
 using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Application.DTO.User;
 using API_Gestao_Eventos.src.Application.DTO.Utils;
+using API_Gestao_Eventos.src.Common.Utils;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
+using API_Gestao_Eventos.src.Infrastructure.Services.Email;
 using API_Gestao_Eventos.src.Infrastructure.Services.Security;
+using SendGrid.Helpers.Mail;
 namespace API_Gestao_Eventos.src.Application.Services
 {
     public class UserService(
         UserRepository userRepository,
         InstitutionRepository institutionRepository,
         CourseRepository courseRepository,
+        EmailService emailService,
         IHasher passwordHasher)
     {
-        public async Task<IEnumerable<UserManagementResponseDto>> GetAllAsync()
+        public async Task<IEnumerable<StudentManagementResponseDto>> GetAllAsync()
         {
             var users = await userRepository.GetAllStudentsAsync();
             return users.Select(ToResponse);
@@ -40,12 +44,14 @@ namespace API_Gestao_Eventos.src.Application.Services
                 user = new AcademicDepartment();
             user.Name = request.Name.Trim();
             user.Email = request.Email.Trim();
-            user.PasswordHash = passwordHasher.HashPassword(request.Password);
             user.InstitutionId = request.InstitutionId;
             if (await userRepository.ExistsByEmailAsync(request.Email))
                 throw new InvalidOperationException("E-mail já cadastrado.");
+            string password = GeneratePassword.Generate();
+            user.PasswordHash = passwordHasher.HashPassword(password);
             await userRepository.AddAsync(user);
-            return ToInstitutionMemberResponse(await userRepository.GetByIdAsync(user.Id));
+            await emailService.SendEmailAsync(new EmailAddress(user.Email, user.Name), "Bem-vindo ao Sistema", GenerateNewUserEmail(user.Name, password));
+            return ToInstitutionMemberResponse(await userRepository.GetByIdAsync(user!.Id));
         }
         public async Task<PagedResponseDto<InstitutionMemberResponseDto>> GetInstitutionMembersPagedAsync(InstitutionMemberFilterDto filter)
         {
@@ -71,8 +77,6 @@ namespace API_Gestao_Eventos.src.Application.Services
             user.Name = request.Name.Trim();
             user.Email = request.Email.Trim();
             user.UpdatedAt = DateTime.UtcNow;
-            if (!string.IsNullOrWhiteSpace(request.Password))
-                user.PasswordHash = passwordHasher.HashPassword(request.Password);
             if (user is Teacher t)
             {
                 var courses = (await courseRepository.GetByInstitutionAsync(user.InstitutionId!.Value)).Where(w => request.Courses!.Contains(w.Id)).ToList();
@@ -102,30 +106,33 @@ namespace API_Gestao_Eventos.src.Application.Services
             IsActive = user.IsActive
         };
         #endregion
-        public async Task<UserManagementResponseDto> GetByIdAsync(Guid id)
+        public async Task<StudentManagementResponseDto> GetByIdAsync(Guid id)
         {
             return ToResponse(await GetStudentAsync(id));
         }
-        public async Task<UserManagementResponseDto> CreateStudentAsync(RegisterRequestDto request)
+        public async Task<StudentManagementResponseDto> CreateStudentAsync(CreateStudentRequestDto request)
         {
             await ValidateReferencesAsync(request.InstitutionId, request.CourseId);
             if (await userRepository.ExistsByEmailAsync(request.Email))
                 throw new InvalidOperationException("E-mail já cadastrado.");
             if (await userRepository.ExistsByUniqueIdentifierAndInstitutionAsync(request.UniqueIdentifier, request.InstitutionId))
                 throw new InvalidOperationException("RGM/Matrícula já cadastrada para esta instituição.");
+            var password = GeneratePassword.Generate();
             var student = new Student
             {
                 Name = request.Name.Trim(),
+                ApprovalStatus = UserApprovalStatus.Aprovado,
                 Email = request.Email.Trim(),
-                PasswordHash = passwordHasher.HashPassword(request.Password),
+                PasswordHash = passwordHasher.HashPassword(password),
                 UniqueIdentifier = request.UniqueIdentifier.Trim(),
                 InstitutionId = request.InstitutionId,
                 CourseId = request.CourseId
             };
             await userRepository.AddAsync(student);
+            await emailService.SendEmailAsync(new EmailAddress(student.Email, student.Name), "Bem-vindo ao Sistema", GenerateNewUserEmail(student.Name, password));
             return ToResponse(student);
         }
-        public async Task<UserManagementResponseDto> UpdateAsync(Guid id, UpdateUserRequestDto request)
+        public async Task<StudentManagementResponseDto> UpdateAsync(Guid id, UpdateStudentRequestDto request)
         {
             var user = await GetStudentAsync(id);
             await ValidateReferencesAsync(request.InstitutionId, request.CourseId);
@@ -174,7 +181,7 @@ namespace API_Gestao_Eventos.src.Application.Services
             if (!(await courseRepository.GetAllAsync()).Any(c => c.Id == courseId))
                 throw new InvalidOperationException("Curso inválido.");
         }
-        private static UserManagementResponseDto ToResponse(Student user) => new()
+        private static StudentManagementResponseDto ToResponse(Student user) => new()
         {
             Id = user.Id,
             Name = user.Name,
@@ -190,5 +197,9 @@ namespace API_Gestao_Eventos.src.Application.Services
             ApprovedDate = user.ApprovedDate,
             CreatedAt = user.CreatedAt
         };
+        private static string GenerateNewUserEmail(string userName, string password)
+        {
+            return $"Olá, {userName}! Seja bem-vindo ao Sistema de Gestão de Eventos. A sua senha é: {password}";
+        }
     }
 }

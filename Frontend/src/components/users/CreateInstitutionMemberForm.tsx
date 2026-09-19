@@ -77,7 +77,6 @@ export const CreateInstitutionMemberForm: React.FC<
       institutionId: userInstitutionId || "",
       userRole: 0,
       email: "",
-      password: "",
     },
   });
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -90,7 +89,6 @@ export const CreateInstitutionMemberForm: React.FC<
         institutionId: currentUserData.institutionId || userInstitutionId || "",
         userRole: currentUserData.userRole,
         email: currentUserData.email,
-        password: currentUserData.password,
         courses: currentUserData.courses || [],
       });
     }
@@ -219,14 +217,6 @@ export const CreateInstitutionMemberForm: React.FC<
             />
             {errors.userRole && (
               <p className="text-xs text-red-600">{errors.userRole.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-1 col-span-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input type="password" id="password" {...register("password")} />
-            {errors.password && (
-              <p className="text-xs text-red-600">{errors.password.message}</p>
             )}
           </div>
 

@@ -22,7 +22,7 @@ namespace API_Gestao_Eventos.src.Controllers
             catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
         }
         [HttpPost]
-        public async Task<IActionResult> Create(RegisterRequestDto request)
+        public async Task<IActionResult> Create(CreateStudentRequestDto request)
         {
             try
             {
@@ -32,7 +32,7 @@ namespace API_Gestao_Eventos.src.Controllers
             catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         }
         [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Update(Guid id, UpdateUserRequestDto request)
+        public async Task<IActionResult> Update(Guid id, UpdateStudentRequestDto request)
         {
             try { return Ok(await userService.UpdateAsync(id, request)); }
             catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }

@@ -1,7 +1,16 @@
 ﻿using API_Gestao_Eventos.src.Domain.Enums;
 namespace API_Gestao_Eventos.src.Application.DTO.User
 {
-    public class UserManagementResponseDto
+    public class CreateStudentRequestDto
+    {
+        public required string Name { get; set; }
+        public required string Email { get; set; }
+        public UserRole Role { get; set; } = UserRole.Aluno;
+        public required Guid InstitutionId { get; set; }
+        public required Guid CourseId { get; set; }
+        public required string UniqueIdentifier { get; set; }
+    }
+    public class StudentManagementResponseDto
     {
         public Guid Id { get; set; }
         public required string Name { get; set; }
@@ -17,7 +26,7 @@ namespace API_Gestao_Eventos.src.Application.DTO.User
         public DateTime? ApprovedDate { get; set; }
         public DateTime CreatedAt { get; set; }
     }
-    public class UpdateUserRequestDto
+    public class UpdateStudentRequestDto
     {
         public required string Name { get; set; }
         public required string Email { get; set; }
