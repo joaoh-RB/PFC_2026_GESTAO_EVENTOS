@@ -148,8 +148,6 @@ namespace API_Gestao_Eventos.src.Application.Services
             user.InstitutionId = request.InstitutionId;
             user.CourseId = request.CourseId;
             user.UpdatedAt = DateTime.UtcNow;
-            if (!string.IsNullOrWhiteSpace(request.Password))
-                user.PasswordHash = passwordHasher.HashPassword(request.Password);
             await userRepository.UpdateAsync(user);
             return ToResponse(user);
         }

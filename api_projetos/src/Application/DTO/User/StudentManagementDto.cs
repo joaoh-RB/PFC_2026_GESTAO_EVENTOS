@@ -33,6 +33,5 @@ namespace API_Gestao_Eventos.src.Application.DTO.User
         public required string UniqueIdentifier { get; set; }
         public required Guid InstitutionId { get; set; }
         public required Guid CourseId { get; set; }
-        public string? Password { get; set; }
     }
 }

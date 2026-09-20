@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { loginSchema, type LoginFormData } from "../schemas/authSchema";
+import { changePasswordSchema, loginSchema, type ChangePasswordFormData, type LoginFormData } from "../schemas/authSchema";
 import { Brand } from "../components/Brand";
 import {
   AlertCircle,
@@ -19,10 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import type { AxiosError } from "axios";
 import api from "@/services/api";
-interface ChangePasswordFormData {
-  newPassword: string;
-  confirmPassword: string;
-}
+
 export function Login() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [requires2FA, setRequires2FA] = useState(false);
@@ -50,7 +47,10 @@ export function Login() {
     register: registerPasswordChange,
     handleSubmit: handleSubmitPasswordChange,
     formState: { errors: passwordChangeErrors },
-  } = useForm<ChangePasswordFormData>();
+  } = useForm<ChangePasswordFormData>({
+    resolver: zodResolver(changePasswordSchema),
+    mode: "onBlur",
+  });
 
   const onSubmit = async (data: LoginFormData) => {
     setApiError(null);
@@ -80,7 +80,7 @@ export function Login() {
   const onSubmitNewPassword = async (data: ChangePasswordFormData) => {
     setApiError(null);
 
-    if (data.newPassword !== data.confirmPassword) {
+    if (data.password !== data.confirmPassword) {
       setApiError("A confirmação de senha não coincide com a nova senha.");
       return;
     }
@@ -89,7 +89,7 @@ export function Login() {
       await api.post("/auth/change-initial-password", {
         email: pendingCredentials?.email,
         currentPassword: pendingCredentials?.currentPassword,
-        newPassword: data.newPassword,
+        newPassword: data.password,
         confirmPassword: data.confirmPassword,
       });
       await syncAuth();
@@ -205,13 +205,7 @@ export function Login() {
                   </Label>
                   <div className="relative mt-1.5 block">
                     <Input
-                      {...registerPasswordChange("newPassword", {
-                        required: "Informe a nova senha",
-                        minLength: {
-                          value: 8,
-                          message: "A senha deve ter pelo menos 8 caracteres",
-                        },
-                      })}
+                      {...registerPasswordChange("password")}
                       id="newPassword"
                       type={showNewPassword ? "text" : "password"}
                       placeholder="••••••••"
@@ -231,9 +225,9 @@ export function Login() {
                       )}
                     </button>
                   </div>
-                  {passwordChangeErrors.newPassword && (
+                  {passwordChangeErrors.password && (
                     <span className="mt-1 block text-xs text-red-600">
-                      {passwordChangeErrors.newPassword.message}
+                      {passwordChangeErrors.password.message}
                     </span>
                   )}
                 </div>
@@ -243,9 +237,7 @@ export function Login() {
                     Confirmar Nova Senha
                   </Label>
                   <Input
-                    {...registerPasswordChange("confirmPassword", {
-                      required: "Confirme a nova senha",
-                    })}
+                    {...registerPasswordChange("confirmPassword")}
                     id="confirmPassword"
                     type="password"
                     placeholder="••••••••"
