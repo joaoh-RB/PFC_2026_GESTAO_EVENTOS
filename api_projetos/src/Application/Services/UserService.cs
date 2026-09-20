@@ -16,6 +16,8 @@ namespace API_Gestao_Eventos.src.Application.Services
         InstitutionRepository institutionRepository,
         CourseRepository courseRepository,
         EmailService emailService,
+        EmailTemplateRenderer emailTemplateRenderer,
+        IConfiguration configuration,
         IHasher passwordHasher)
     {
         public async Task<IEnumerable<StudentManagementResponseDto>> GetAllAsync()
@@ -51,7 +53,8 @@ namespace API_Gestao_Eventos.src.Application.Services
             string password = GeneratePassword.Generate();
             user.PasswordHash = passwordHasher.HashPassword(password);
             await userRepository.AddAsync(user);
-            await emailService.SendEmailAsync(new EmailAddress(user.Email, user.Name), "Bem-vindo ao Sistema", GenerateNewUserEmail(user.Name, password));
+            var newMemberEmail = await GenerateNewUserEmailAsync(user.Name, password);
+            await emailService.SendEmailAsync(new EmailAddress(user.Email, user.Name), "Bem-vindo ao Sistema", newMemberEmail);
             return ToInstitutionMemberResponse(await userRepository.GetByIdAsync(user!.Id));
         }
         public async Task<PagedResponseDto<InstitutionMemberResponseDto>> GetInstitutionMembersPagedAsync(InstitutionMemberFilterDto filter)
@@ -131,7 +134,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 CourseId = request.CourseId
             };
             await userRepository.AddAsync(student);
-            await emailService.SendEmailAsync(new EmailAddress(student.Email, student.Name), "Bem-vindo ao Sistema", GenerateNewUserEmail(student.Name, password));
+            var newStudentEmail = await GenerateNewUserEmailAsync(student.Name, password);
+            await emailService.SendEmailAsync(new EmailAddress(student.Email, student.Name), "Bem-vindo ao Sistema", newStudentEmail);
             return ToResponse(student);
         }
         public async Task<StudentManagementResponseDto> UpdateAsync(Guid id, UpdateStudentRequestDto request)
@@ -199,9 +203,17 @@ namespace API_Gestao_Eventos.src.Application.Services
             ApprovedDate = user.ApprovedDate,
             CreatedAt = user.CreatedAt
         };
-        private static string GenerateNewUserEmail(string userName, string password)
+        private async Task<string> GenerateNewUserEmailAsync(string userName, string password)
         {
-            return $"Olá, {userName}! Seja bem-vindo ao Sistema de Gestão de Eventos. A sua senha é: {password}";
+            var siteAddress = configuration.GetSection("FrontendInfo")["BaseUrl"] ?? "http://localhost:3000";
+            return await emailTemplateRenderer.RenderAsync("notificacao-generica.html", new Dictionary<string, string>
+            {
+                ["titulo"] = "Bem-vindo ao SYMPLOSIO",
+                ["nome"] = userName,
+                ["mensagem"] = $"Seu cadastro foi criado com sucesso. Sua senha temporária é: <strong>{password}</strong>. No primeiro acesso, você poderá alterá-la.",
+                ["link_acao"] = siteAddress + "/login",
+                ["texto_botao"] = "Acessar sistema"
+            });
         }
     }
 }

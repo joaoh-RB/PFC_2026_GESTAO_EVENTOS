@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using API_Gestao_Eventos.src.Common.Utils;
 using API_Gestao_Eventos.src.Infrastructure.Services.Email;
-using System.Text;
 
 namespace API_Gestao_Eventos.src.Application.Services
 {
@@ -17,6 +16,7 @@ namespace API_Gestao_Eventos.src.Application.Services
         IJwtTokenGenerator jwtTokenGenerator,
         IGoogleAuthService googleAuthService,
         EmailService emailService,
+        EmailTemplateRenderer emailTemplateRenderer,
         IConfiguration configuration,
         UserRepository userRepository)
     {
@@ -24,6 +24,7 @@ namespace API_Gestao_Eventos.src.Application.Services
         private readonly IJwtTokenGenerator _jwtTokenGenerator = jwtTokenGenerator;
         private readonly IGoogleAuthService _googleAuthService = googleAuthService;
         private readonly EmailService _emailService = emailService;
+        private readonly EmailTemplateRenderer _emailTemplateRenderer = emailTemplateRenderer;
         private readonly UserRepository _userRepository = userRepository;
 
         public async Task<AuthResponseDto> RegisterStudentAsync(RegisterRequestDto request)
@@ -172,15 +173,17 @@ namespace API_Gestao_Eventos.src.Application.Services
                 user.PasswordResetTokenHash = _passwordHasher.HashPassword(resetToken);
                 user.PasswordResetExpiresAt = DateTime.UtcNow.AddHours(1);
                 await _userRepository.UpdateAsync(user);
-                var sbEmailBody = new StringBuilder();
-                sbEmailBody.Append("Olá, " + user.Name + "<br/>");
-                sbEmailBody.Append("Você solicitou a redefinição de senha. <br/>");
-                sbEmailBody.Append("Para alterar a senha, clique no link abaixo e utilize o código temporário: <br/>");
                 var siteAddress = configuration.GetSection("FrontendInfo")["BaseUrl"];
-                var accessLink = siteAddress + "/reset-password?token=" + resetToken + "&email=" + user.Email;
-                sbEmailBody.Append("<a href='" + siteAddress + "'>Alterar Senha</a><br/>");
-                sbEmailBody.Append("Caso o link não tenha funcionado, copie e cole no seu navegador: " + accessLink);
-                await _emailService.SendEmailAsync(new SendGrid.Helpers.Mail.EmailAddress(user.Email, user.Name), "Redefinição de Senha", sbEmailBody.ToString());
+                var accessLink = siteAddress + "/reset-password?token=" + resetToken + "&email=" + Uri.EscapeDataString(user.Email);
+                var resetPasswordEmail = await _emailTemplateRenderer.RenderAsync("notificacao-generica.html", new Dictionary<string, string>
+                {
+                    ["titulo"] = "Redefinição de senha",
+                    ["nome"] = user.Name,
+                    ["mensagem"] = $"Você solicitou a redefinição de senha. Use o código temporário <strong>{resetToken}</strong> e siga para a tela de redefinição.",
+                    ["link_acao"] = accessLink,
+                    ["texto_botao"] = "Alterar senha"
+                });
+                await _emailService.SendEmailAsync(new SendGrid.Helpers.Mail.EmailAddress(user.Email, user.Name), "Redefinição de Senha", resetPasswordEmail);
             }
             else
             {
