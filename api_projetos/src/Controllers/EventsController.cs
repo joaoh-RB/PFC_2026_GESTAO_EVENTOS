@@ -41,22 +41,9 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-        [HttpDelete("{id:guid}")]
-        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
-        public async Task<IActionResult> DeleteEvent([FromRoute] Guid id)
-        {
-            try
-            {
-                await eventService.DeleteAsync(id);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
+
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = nameof(UserRole.Aluno))]
         public async Task<IActionResult> GetEvents([FromQuery] EventFilterDto eventFilterDto)
         {
             try
@@ -70,6 +57,38 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpGet("all")]
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        public async Task<IActionResult> GetAllEvents([FromQuery] EventFilterDto eventFilterDto)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var events = await eventService.GetAllFilteredEventsPagedAsync(eventFilterDto, userId);
+                return Ok(events);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPatch("{id:guid}/active")]
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        public async Task<IActionResult> SetActive([FromRoute] Guid id, [FromBody] ActiveRequest request)
+        {
+            try
+            {
+                await eventService.SetActiveAsync(id, request.IsActive);
+                return Ok(new { message = request.IsActive ? "Evento ativado." : "Evento inativado." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpGet("types")]
         public IActionResult GetEventTypes()
         {
@@ -82,6 +101,11 @@ namespace API_Gestao_Eventos.src.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        public class ActiveRequest
+        {
+            public bool IsActive { get; set; }
         }
     }
 }

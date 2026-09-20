@@ -1,7 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
-import type { OptionItem } from "../types/optionItem";
 import { DeleteConfirmation } from "../components/ui/deleteConfirm";
 import { PageHeader } from "../components/PageHeader";
 import { CreateInstitutionForm } from "../components/institutions/CreateInstitutionForm";
@@ -10,12 +9,13 @@ import { unmaskCnpj } from "../utils/masks";
 import {
   AlertCircle,
   Building2,
+  Check,
+  CircleOff,
   ListFilter,
   Loader2,
   Pencil,
   Plus,
   Search,
-  Trash2,
 } from "lucide-react";
 import {
   InputGroup,
@@ -32,6 +32,12 @@ interface InstitutionDetail {
   phone?: string | null;
   isActive: boolean;
   createdAt: string;
+}
+
+interface InstitutionManagementItem {
+  id: string;
+  name: string;
+  isActive: boolean;
 }
 
 const extractErrorMessage = (err: any, fallback: string) => {
@@ -136,9 +142,10 @@ const MyInstitutionEditor: React.FC<{ institutionId: string }> = ({
 };
 
 const AllInstitutionsManager: React.FC = () => {
-  const [institutions, setInstitutions] = useState<OptionItem[]>([]);
+  const [institutions, setInstitutions] = useState<InstitutionManagementItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   const [editing, setEditing] = useState(false);
@@ -150,7 +157,7 @@ const AllInstitutionsManager: React.FC = () => {
 
   const loadInstitutions = useCallback(async () => {
     try {
-      const response = await api.get<OptionItem[]>("/institutions");
+      const response = await api.get<InstitutionManagementItem[]>("/institutions/management");
       setInstitutions(response.data);
     } catch (err: any) {
       setListError(
@@ -166,7 +173,7 @@ const AllInstitutionsManager: React.FC = () => {
   const filteredInstitutions = useMemo(
     () =>
       institutions.filter((item) =>
-        item.label.toLowerCase().includes(search.toLowerCase()),
+        item.name.toLowerCase().includes(search.toLowerCase()),
       ),
     [institutions, search],
   );
@@ -177,11 +184,11 @@ const AllInstitutionsManager: React.FC = () => {
     setEditing(true);
   };
 
-  const handleStartEdition = async (item: OptionItem) => {
+  const handleStartEdition = async (item: InstitutionManagementItem) => {
     setListError(null);
     try {
       const { data } = await api.get<InstitutionDetail>(
-        `/institutions/${item.value}`,
+        `/institutions/${item.id}`,
       );
       setCurrentInstitutionBeingUpdated({
         id: data.id,
@@ -226,14 +233,20 @@ const AllInstitutionsManager: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const toggleActive = async (item: InstitutionManagementItem) => {
     setListError(null);
     try {
-      await api.patch(`/institutions/${id}/active`, { isActive: false });
+      await api.patch(`/institutions/${item.id}/active`, { isActive: !item.isActive });
       await loadInstitutions();
+      setSuccessMessage(
+        item.isActive
+          ? "Instituição inativada com sucesso."
+          : "Instituição ativada com sucesso.",
+      );
+      setTimeout(() => setSuccessMessage(null), 1400);
     } catch (err: any) {
       setListError(
-        extractErrorMessage(err, "Não foi possível inativar a instituição."),
+        extractErrorMessage(err, "Não foi possível alterar a situação."),
       );
     }
   };
@@ -284,6 +297,12 @@ const AllInstitutionsManager: React.FC = () => {
           {listError}
         </div>
       )}
+      {successMessage && !editing && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          <Check className="h-5 w-5" />
+          {successMessage}
+        </div>
+      )}
 
       {editing ? (
         <CreateInstitutionForm
@@ -315,17 +334,26 @@ const AllInstitutionsManager: React.FC = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="px-4 py-3">Nome</TableHead>
+                  <TableHead className="px-4 py-3">Acesso</TableHead>
                   <TableHead className="px-4 py-3 text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredInstitutions.map((item) => (
-                  <TableRow key={item.value} className="hover:bg-slate-50">
+                  <TableRow key={item.id} className="hover:bg-slate-50">
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-2 font-medium text-slate-900">
                         <Building2 className="h-4 w-4 text-slate-400" />
-                        {item.label}
+                        {item.name}
                       </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <span
+                        className={
+                          item.isActive ? "text-emerald-700" : "text-slate-500"
+                        }>
+                        {item.isActive ? "Ativo" : "Inativo"}
+                      </span>
                     </TableCell>
                     <TableCell className="px-4 py-3">
                       <div className="flex justify-end gap-1">
@@ -335,16 +363,34 @@ const AllInstitutionsManager: React.FC = () => {
                           className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
                           <Pencil className="h-4 w-4" />
                         </button>
-                        <DeleteConfirmation
-                          descriptionText={`Excluir "${item.label}"? Essa ação não pode ser desfeita e vai falhar se houver usuários, cursos ou eventos vinculados.`}
-                          confirmationText="Excluir"
-                          onDelete={() => handleDelete(item.value)}>
-                          <button
-                            title="Excluir"
-                            className="rounded p-2 text-red-600 hover:bg-red-50">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </DeleteConfirmation>
+                        {item.isActive ? (
+                          <DeleteConfirmation
+                            children={
+                              <button
+                                title="Inativar"
+                                className="rounded p-2 text-red-600 hover:bg-red-50">
+                                <CircleOff className="h-4 w-4" />
+                              </button>
+                            }
+                            onDelete={() => toggleActive(item)}
+                            descriptionText="Tem certeza que deseja inativar esta instituição?"
+                            confirmationText="Inativar"
+                          />
+                        ) : (
+                          <DeleteConfirmation
+                            children={
+                              <button
+                                title="Ativar"
+                                className="rounded p-2 text-emerald-600 hover:bg-emerald-50">
+                                <Check className="h-4 w-4" />
+                              </button>
+                            }
+                            onDelete={() => toggleActive(item)}
+                            descriptionText="Tem certeza que deseja ativar esta instituição?"
+                            confirmationText="Ativar"
+                            deleteButtonClassName="bg-green-500 hover:bg-green-600 text-gray-100"
+                          />
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -352,7 +398,7 @@ const AllInstitutionsManager: React.FC = () => {
                 {!filteredInstitutions.length && (
                   <TableRow>
                     <TableCell
-                      colSpan={2}
+                      colSpan={3}
                       className="px-4 py-10 text-center text-slate-500">
                       Nenhuma instituição encontrada.
                     </TableCell>

@@ -93,10 +93,10 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
             var currentEvent = await _context.Events
                 .Include(e => e.EventAllowedCourses)
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(e => e.Id == eventEntity.Id && e.IsActive);
+                .FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
 
             if (currentEvent == null)
-                throw new KeyNotFoundException("Evento não encontrado ou inativo.");
+                throw new KeyNotFoundException("Evento não encontrado.");
 
             _context.Entry(currentEvent).CurrentValues.SetValues(eventEntity);
 
@@ -138,11 +138,46 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
 
             await _context.SaveChangesAsync();
         }
-        public async Task DeleteAsync(Event eventEntity)
+        public async Task SetActiveAsync(Event eventEntity, bool isActive)
         {
-
-            eventEntity.IsActive = false;
+            eventEntity.IsActive = isActive;
             await _context.SaveChangesAsync();
+        }
+        public async Task<(IEnumerable<Event>, int totalItems)> GetFilteredAllForUserAsync(EventFilterDto eventFilterDto, Guid userId)
+        {
+            var user = await userRepository.GetByIdAsync(userId);
+            IQueryable<Event> query = _context.Events
+                        .AsNoTracking()
+                        .Include(e => e.Institution)
+                        .Include(e => e.AllowedCourses)
+                        .Include(e => e.EventStudents);
+            if (eventFilterDto.FromDate.HasValue)
+            {
+                var utcFromDate = DateTime.SpecifyKind(eventFilterDto.FromDate.Value, DateTimeKind.Utc);
+                query = query.Where(e => e.StartDate >= utcFromDate);
+            }
+            if (eventFilterDto.InstitutionId.HasValue && eventFilterDto.InstitutionId.Value != Guid.Empty)
+            {
+                query = query.Where(e => e.InstitutionId == eventFilterDto.InstitutionId.Value);
+            }
+            if (eventFilterDto.IsActive.HasValue)
+            {
+                query = query.Where(e => e.IsActive == eventFilterDto.IsActive.Value);
+            }
+            if (user is Teacher teacher)
+            {
+                var teacherCourseIds = teacher.Courses.Select(c => c.Id).ToList();
+                query = query.Where(e => e.AllowedCourses.Any(c => teacherCourseIds.Contains(c.Id)));
+            }
+            var totalCount = await query.CountAsync();
+            var pageNumber = eventFilterDto.PageNumber < 1 ? 1 : eventFilterDto.PageNumber;
+            var pageSize = eventFilterDto.PageSize < 1 ? 6 : Math.Min(eventFilterDto.PageSize, 30);
+            var items = await query
+                .OrderBy(e => e.StartDate)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            return (items, totalCount);
         }
     }
 }

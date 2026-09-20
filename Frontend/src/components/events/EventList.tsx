@@ -46,12 +46,16 @@ export interface EventItem {
   allowDocuments: boolean;
   allowedCourseNames: string[];
   allowedCourseIds: string[];
+  isActive: boolean;
 }
 
 export interface EventFilterState {
   institutionId?: string;
   fromDate?: string;
+  isActive?: boolean;
 }
+
+type StatusFilterValue = "all" | "active" | "inactive";
 
 interface EventsListProps {
   data: PagedResult<EventItem>;
@@ -59,10 +63,11 @@ interface EventsListProps {
   isLoading: boolean;
   currentFilters?: EventFilterState;
   userInstitutionId: string | null;
+  isAluno: boolean;
   onFilter: (filters: EventFilterState) => void;
   onPageChange: (page: number) => void;
   handleStartEdition: (eventData: EventItem) => void;
-  handleDelete: (eventId: string) => void;
+  handleToggleActive: (eventData: EventItem) => void;
 }
 
 export const EventsList: React.FC<EventsListProps> = ({
@@ -71,10 +76,11 @@ export const EventsList: React.FC<EventsListProps> = ({
   isLoading,
   currentFilters,
   userInstitutionId,
+  isAluno,
   onFilter,
   onPageChange,
   handleStartEdition,
-  handleDelete,
+  handleToggleActive,
 }) => {
   const allInstitutionsName = "Todas as instituições";
   const [fromDate, setFromDate] = useState<string>(
@@ -82,6 +88,13 @@ export const EventsList: React.FC<EventsListProps> = ({
   );
   const [institutionId, setInstitutionId] = useState<string>(
     userInstitutionId || currentFilters?.institutionId || allInstitutionsName,
+  );
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(
+    currentFilters?.isActive === undefined
+      ? "all"
+      : currentFilters.isActive
+        ? "active"
+        : "inactive",
   );
 
   const handleApplyFilter = () => {
@@ -91,6 +104,8 @@ export const EventsList: React.FC<EventsListProps> = ({
         institutionId !== allInstitutionsName
           ? institutionId
           : (userInstitutionId ?? undefined),
+      isActive:
+        statusFilter === "all" ? undefined : statusFilter === "active",
     });
   };
 
@@ -98,7 +113,7 @@ export const EventsList: React.FC<EventsListProps> = ({
     <div className="space-y-6">
       <Card className="surface-card bg-white shadow-none">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-8 gap-2 items-end">
             <div className="space-y-2 col-span-2">
               <Label htmlFor="filter-from-date">A partir de</Label>
               <Input
@@ -139,8 +154,32 @@ export const EventsList: React.FC<EventsListProps> = ({
                 </Select>
               </div>
             )}
+            {!isAluno && (
+              <div className="col-span-2">
+                <Label htmlFor="filter-status" className={"mb-2"}>
+                  Status
+                </Label>
+                <Select
+                  id="filter-status"
+                  value={statusFilter}
+                  onValueChange={(value) =>
+                    setStatusFilter((value as StatusFilterValue) ?? "all")
+                  }>
+                  <SelectTrigger className={"w-full !h-10"}>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="active">Ativos</SelectItem>
+                      <SelectItem value="inactive">Inativos</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 sm:col-span-2">
               <Button
                 onClick={handleApplyFilter}
                 disabled={isLoading}
@@ -171,13 +210,14 @@ export const EventsList: React.FC<EventsListProps> = ({
               const availableSeats =
                 event.capacity - event.confirmedRegistrations;
               const isFull = availableSeats <= 0;
+              const isUpcoming = event.startDate > new Date().toISOString();
 
               return (
                 <Card
                   key={event.id}
                   className="flex flex-col border-[#e1e4ea] shadow-none transition hover:-translate-y-0.5 hover:shadow-md">
                   <CardHeader>
-                    <div className="flex justify-between items-start gap-2 mb-2">
+                    <div className="flex justify-between items-start gap-2 mb-2 flex-wrap">
                       <Badge variant={isFull ? "destructive" : "secondary"}>
                         {isFull
                           ? "Esgotado"
@@ -188,6 +228,13 @@ export const EventsList: React.FC<EventsListProps> = ({
                           variant="outline"
                           className="text-xs bg-green-100 text-green-800">
                           Permite envio de documentos
+                        </Badge>
+                      )}
+                      {!event.isActive && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-slate-100 text-slate-600">
+                          Inativo
                         </Badge>
                       )}
                     </div>
@@ -244,28 +291,38 @@ export const EventsList: React.FC<EventsListProps> = ({
                         </div>
                       </div>
                     )}
-                    {event.startDate > new Date().toISOString() && (
-                      <div className="flex justify-between items-center gap-2 pt-4">
-                        <Button
-                          className={"secondary-action cursor-pointer"}
-                          onClick={() => handleStartEdition(event)}>
-                          Editar
-                        </Button>
+                    {event.isActive ? (
+                      isUpcoming && (
+                        <div className="flex justify-between items-center gap-2 pt-4">
+                          <Button
+                            className={"secondary-action cursor-pointer"}
+                            onClick={() => handleStartEdition(event)}>
+                            Editar
+                          </Button>
 
-                        <DeleteConfirmation
-                          children={
-                            <Button
-                              className={
-                                "bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
-                              }>
-                              Excluir
-                            </Button>
-                          }
-                          onDelete={() => handleDelete(event.id)}
-                          descriptionText={
-                            "Tem certeza que deseja excluir este evento?"
-                          }
-                          confirmationText={"Excluir"}></DeleteConfirmation>
+                          <DeleteConfirmation
+                            children={
+                              <Button
+                                className={
+                                  "bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
+                                }>
+                                Inativar
+                              </Button>
+                            }
+                            onDelete={() => handleToggleActive(event)}
+                            descriptionText={
+                              "Tem certeza que deseja inativar este evento?"
+                            }
+                            confirmationText={"Inativar"}></DeleteConfirmation>
+                        </div>
+                      )
+                    ) : (
+                      <div className="flex justify-end pt-4">
+                        <Button
+                          className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                          onClick={() => handleStartEdition(event)}>
+                          Reativar
+                        </Button>
                       </div>
                     )}
                   </CardContent>

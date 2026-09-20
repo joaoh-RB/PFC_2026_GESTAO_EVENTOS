@@ -56,9 +56,17 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
             _context.Courses.Update(course);
             await _context.SaveChangesAsync();
         }
-        public async Task DeleteAsync(Course course)
+        public async Task<IEnumerable<Course>> GetByInstitutionForManagementAsync(Guid institutionId)
         {
-            course.IsActive = false;
+            return await _context.Courses
+                .Where(c => c.InstitutionId == institutionId)
+                .OrderByDescending(c => c.IsActive)
+                .ThenBy(c => c.Name)
+                .ToListAsync();
+        }
+        public async Task SetActiveAsync(Course course, bool isActive)
+        {
+            course.IsActive = isActive;
             await _context.SaveChangesAsync();
         }
     }

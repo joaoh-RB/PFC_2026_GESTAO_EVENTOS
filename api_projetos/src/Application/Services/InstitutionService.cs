@@ -43,16 +43,8 @@ namespace API_Gestao_Eventos.src.Application.Services
             await _institutionRepository.AddAsync(institution);
             return institution.Id;
         }
-        public async Task<InstitutionDetailDto?> GetByIdAsync(
-            Guid id,
-            bool isAdmin,
-            Guid? callerInstitutionId,
-            bool isSecretary)
+        public async Task<InstitutionDetailDto?> GetByIdAsync(Guid id)
         {
-            var isAllowed = isAdmin || (isSecretary && callerInstitutionId == id);
-            if (!isAllowed)
-                throw new UnauthorizedAccessException("Você não tem permissão para consultar esta instituição.");
-
             var institution = await _institutionRepository.GetByIdAsync(id);
             if (institution == null) return null;
 
@@ -67,17 +59,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 CreatedAt = institution.CreatedAt
             };
         }
-        public async Task UpdateInstitutionAsync(
-            Guid id,
-            UpdateInstitutionDto request,
-            bool isAdmin,
-            Guid? callerInstitutionId,
-            bool isSecretary)
+        public async Task UpdateInstitutionAsync(Guid id, UpdateInstitutionDto request)
         {
-            var isAllowed = isAdmin || (isSecretary && callerInstitutionId == id);
-            if (!isAllowed)
-                throw new UnauthorizedAccessException("Você não tem permissão para editar esta instituição.");
-
             var institution = await _institutionRepository.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException("Instituição não encontrada.");
 
@@ -111,11 +94,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 IsActive = i.IsActive
             });
         }
-        public async Task SetInstitutionActiveAsync(Guid id, bool isActive, bool isAdmin)
+        public async Task SetInstitutionActiveAsync(Guid id, bool isActive)
         {
-            if (!isAdmin)
-                throw new UnauthorizedAccessException("Você não tem permissão para alterar o status desta instituição.");
-
             var institution = await _institutionRepository.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException("Instituição não encontrada.");
             if (!isActive && await _institutionRepository.HasDependenciesAsync(id))
