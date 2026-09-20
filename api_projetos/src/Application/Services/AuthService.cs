@@ -6,6 +6,9 @@ using API_Gestao_Eventos.src.Infrastructure.Services.Security;
 using API_Gestao_Eventos.src.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using API_Gestao_Eventos.src.Common.Utils;
+using API_Gestao_Eventos.src.Infrastructure.Services.Email;
+using System.Text;
 
 namespace API_Gestao_Eventos.src.Application.Services
 {
@@ -13,11 +16,14 @@ namespace API_Gestao_Eventos.src.Application.Services
         IHasher passwordHasher,
         IJwtTokenGenerator jwtTokenGenerator,
         IGoogleAuthService googleAuthService,
+        EmailService emailService,
+        IConfiguration configuration,
         UserRepository userRepository)
     {
         private readonly IHasher _passwordHasher = passwordHasher;
         private readonly IJwtTokenGenerator _jwtTokenGenerator = jwtTokenGenerator;
         private readonly IGoogleAuthService _googleAuthService = googleAuthService;
+        private readonly EmailService _emailService = emailService;
         private readonly UserRepository _userRepository = userRepository;
 
         public async Task<AuthResponseDto> RegisterStudentAsync(RegisterRequestDto request)
@@ -156,6 +162,45 @@ namespace API_Gestao_Eventos.src.Application.Services
                 Message = "Senha alterada e conta ativada com sucesso!",
                 User = await GetUserInfoAsync(user.Id)
             };
+        }
+        public async Task RequestPasswordResetAsync(ForgotPasswordRequestDto dto)
+        {
+            var user = await _userRepository.GetByEmailAsync(dto.Email);
+            if (user != null && user.IsActive)
+            {
+                var resetToken = GeneratePassword.Generate(12);
+                user.PasswordResetTokenHash = _passwordHasher.HashPassword(resetToken);
+                user.PasswordResetExpiresAt = DateTime.UtcNow.AddHours(1);
+                await _userRepository.UpdateAsync(user);
+                var sbEmailBody = new StringBuilder();
+                sbEmailBody.Append("Olá, " + user.Name + "<br/>");
+                sbEmailBody.Append("Você solicitou a redefinição de senha. <br/>");
+                sbEmailBody.Append("Para alterar a senha, clique no link abaixo e utilize o código temporário: <br/>");
+                var siteAddress = configuration.GetSection("FrontendInfo")["BaseUrl"];
+                var accessLink = siteAddress + "/reset-password?token=" + resetToken + "&email=" + user.Email;
+                sbEmailBody.Append("<a href='" + siteAddress + "'>Alterar Senha</a><br/>");
+                sbEmailBody.Append("Caso o link não tenha funcionado, copie e cole no seu navegador: " + accessLink);
+                await _emailService.SendEmailAsync(new SendGrid.Helpers.Mail.EmailAddress(user.Email, user.Name), "Redefinição de Senha", sbEmailBody.ToString());
+            }
+            else
+            {
+                Thread.Sleep(2000);
+            }
+        }
+        public async Task ResetPasswordAsync(ResetPasswordRequestDto dto)
+        {
+            var user = await _userRepository.GetByEmailAsync(dto.Email);
+            if (user == null || !user.IsActive)
+                throw new KeyNotFoundException("Email inválido ou token expirado. Peça o reenvio da redefinição de senha.");
+            var validToken = DateTime.UtcNow <= user.PasswordResetExpiresAt && !string.IsNullOrEmpty(user.PasswordResetTokenHash) && _passwordHasher.VerifyPassword(dto.Token, user.PasswordResetTokenHash);
+            if (!validToken)
+                throw new KeyNotFoundException("Email inválido ou token expirado. Peça o reenvio da redefinição de senha");
+            if (dto.NewPassword != dto.ConfirmPassword)
+                throw new InvalidOperationException("A senha não coincide com a confirmação.");
+            user.PasswordResetExpiresAt = null;
+            user.PasswordResetTokenHash = null;
+            user.PasswordHash = _passwordHasher.HashPassword(dto.NewPassword);
+            await _userRepository.UpdateAsync(user);
         }
         public async Task<UserResponseDto> GetUserInfoAsync(Guid userId)
         {

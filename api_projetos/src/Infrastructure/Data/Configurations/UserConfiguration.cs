@@ -37,6 +37,9 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
                 .HasForeignKey(u => u.ApprovedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Property(u => u.PasswordResetTokenHash);
+            builder.Property(u => u.PasswordResetExpiresAt);
+
             builder.HasDiscriminator<UserRole>("Role")
                 .HasValue<Student>(UserRole.Aluno)
                 .HasValue<Teacher>(UserRole.Professor)

@@ -140,5 +140,31 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> RequestPasswordReset([FromBody] ForgotPasswordRequestDto request)
+        {
+            try
+            {
+                await _authService.RequestPasswordResetAsync(request);
+                return Ok(new { message = "Solicitação de redefinição de senha enviada com sucesso. Caso a conta esteja cadastrada no sistema, você receberá um e-mail com instruções para redefinir sua senha." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> PasswordReset([FromBody] ResetPasswordRequestDto request)
+        {
+            try
+            {
+                await _authService.ResetPasswordAsync(request);
+                return Ok(new { message = "Senha redefinida com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

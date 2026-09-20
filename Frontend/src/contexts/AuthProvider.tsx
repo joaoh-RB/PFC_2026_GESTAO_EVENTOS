@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { LoginCredentials, LoginResponse, User } from "../types/auth";
+import { publicRoutes, type LoginCredentials, type LoginResponse, type User } from "../types/auth";
 import api from "../services/api";
 import { AuthContext } from "./AuthContext";
 
@@ -20,7 +20,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
-    syncAuth();
+    if (!publicRoutes.includes(window.location.pathname)) {
+      syncAuth();
+    }
+    else{
+      setIsLoading(false);
+    }
   }, []);
 
   const login = async (
@@ -52,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isLoading,
         login,
         logout,
-        syncAuth
+        syncAuth,
       }}>
       {children}
     </AuthContext.Provider>

@@ -328,6 +328,13 @@ export function Login() {
                         </span>
                       )}
                     </div>
+                    <div className="flex items-center justify-between">
+                      <Link
+                        to="/forgot-password"
+                        className="text-xs font-semibold text-[#109bc6] hover:underline">
+                        Esqueceu sua senha?
+                      </Link>
+                    </div>
                   </>
                 ) : (
                   <div className="block">
