@@ -508,7 +508,7 @@ export const Users: React.FC = () => {
               onSubmit={submit}
               className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2 text-sm font-medium text-slate-700">
-                <Label className={"mb-1"}>Nome</Label>
+                <Label className={"mb-1"} required>Nome</Label>
                 <Input
                   required
                   value={form.name}
@@ -516,7 +516,7 @@ export const Users: React.FC = () => {
                 />
               </div>
               <div className="text-sm font-medium text-slate-700">
-                <Label className={"mb-1"}>E-mail</Label>
+                <Label className={"mb-1"} required>E-mail</Label>
                 <Input
                   required
                   type="email"
@@ -525,7 +525,7 @@ export const Users: React.FC = () => {
                 />
               </div>
               <div className="text-sm font-medium text-slate-700">
-                <Label className={"mb-1"}>RA / Matrícula</Label>
+                <Label className={"mb-1"} required>RA / Matrícula</Label>
                 <Input
                   required
                   value={form.uniqueIdentifier}
@@ -536,7 +536,7 @@ export const Users: React.FC = () => {
               </div>
               {!userInstitutionId && (
                 <div className="text-sm font-medium text-slate-700">
-                  <Label className={"mb-1"}> Instituição</Label>
+                  <Label className={"mb-1"} required> Instituição</Label>
                   <Select
                     required
                     value={form.institutionId}
@@ -560,7 +560,7 @@ export const Users: React.FC = () => {
                 </div>
               )}
               <div className="text-sm font-medium text-slate-700">
-                <Label className={"mb-1"}>Curso</Label>
+                <Label className={"mb-1"} required>Curso</Label>
                 <Select
                   required
                   value={form.courseId}

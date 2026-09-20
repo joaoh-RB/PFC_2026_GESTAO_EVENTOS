@@ -127,7 +127,7 @@ export const CreateInstitutionMemberForm: React.FC<
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
           <div className="space-y-1">
-            <Label htmlFor="name">Nome do Usuário</Label>
+            <Label htmlFor="name" required>Nome do Usuário</Label>
             <Input
               id="name"
               {...register("name")}
@@ -139,7 +139,7 @@ export const CreateInstitutionMemberForm: React.FC<
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="user-email">Email</Label>
+            <Label htmlFor="user-email" required>Email</Label>
             <Input
               id="user-email"
               {...register("email")}
@@ -155,7 +155,7 @@ export const CreateInstitutionMemberForm: React.FC<
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {!userInstitutionId && (
             <div className="sm:col-span-2 space-y-1">
-              <Label>Instituição</Label>
+              <Label required>Instituição</Label>
               <Controller
                 name="institutionId"
                 control={control}
@@ -193,7 +193,7 @@ export const CreateInstitutionMemberForm: React.FC<
           )}
 
           <div className="space-y-1 col-span-2">
-            <Label htmlFor="userRole">Cargo</Label>
+            <Label htmlFor="userRole" required>Cargo</Label>
             <Controller
               name="userRole"
               control={control}
@@ -227,7 +227,7 @@ export const CreateInstitutionMemberForm: React.FC<
 
           {userRole == 2 && (
             <div className="space-y-1 pt-2 col-span-2">
-              <Label>Cursos Permitidos</Label>
+              <Label required>Cursos Permitidos</Label>
               <Controller
                 name="courses"
                 control={control}

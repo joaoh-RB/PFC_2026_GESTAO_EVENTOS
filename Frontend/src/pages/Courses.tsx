@@ -17,12 +17,13 @@ import {
 import {
   AlertCircle,
   BookOpen,
+  Check,
+  CircleOff,
   ListFilter,
   Loader2,
   Pencil,
   Plus,
   Search,
-  Trash2,
 } from "lucide-react";
 import {
   InputGroup,
@@ -44,6 +45,12 @@ interface CourseDetail {
   institutionId: string;
   isActive: boolean;
   createdAt: string;
+}
+
+interface CourseManagementItem {
+  id: string;
+  name: string;
+  isActive: boolean;
 }
 
 const extractErrorMessage = (err: any, fallback: string) => {
@@ -68,10 +75,11 @@ export const Courses: React.FC = () => {
   const [selectedInstitutionId, setSelectedInstitutionId] = useState(
     userInstitutionId ?? "",
   );
-  const [courses, setCourses] = useState<OptionItem[]>([]);
+  const [courses, setCourses] = useState<CourseManagementItem[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   const [editing, setEditing] = useState(false);
@@ -107,7 +115,7 @@ export const Courses: React.FC = () => {
       return;
     }
     try {
-      const response = await api.get<OptionItem[]>("/courses", {
+      const response = await api.get<CourseManagementItem[]>("/courses/management", {
         params: { institutionId },
       });
       setCourses(response.data);
@@ -127,7 +135,7 @@ export const Courses: React.FC = () => {
   const filteredCourses = useMemo(
     () =>
       courses.filter((item) =>
-        item.label.toLowerCase().includes(search.toLowerCase()),
+        item.name.toLowerCase().includes(search.toLowerCase()),
       ),
     [courses, search],
   );
@@ -138,10 +146,10 @@ export const Courses: React.FC = () => {
     setEditing(true);
   };
 
-  const handleStartEdition = async (item: OptionItem) => {
+  const handleStartEdition = async (item: CourseManagementItem) => {
     setListError(null);
     try {
-      const { data } = await api.get<CourseDetail>(`/courses/${item.value}`);
+      const { data } = await api.get<CourseDetail>(`/courses/${item.id}`);
       setCurrentCourseBeingUpdated({
         id: data.id,
         name: data.name,
@@ -185,14 +193,20 @@ export const Courses: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const toggleActive = async (item: CourseManagementItem) => {
     setListError(null);
     try {
-      await api.delete(`/courses/${id}`);
+      await api.patch(`/courses/${item.id}/active`, { isActive: !item.isActive });
       await loadCourses(selectedInstitutionId);
+      setSuccessMessage(
+        item.isActive
+          ? "Curso inativado com sucesso."
+          : "Curso ativado com sucesso.",
+      );
+      setTimeout(() => setSuccessMessage(null), 1400);
     } catch (err: any) {
       setListError(
-        extractErrorMessage(err, "Não foi possível excluir o curso."),
+        extractErrorMessage(err, "Não foi possível alterar a situação."),
       );
     }
   };
@@ -251,6 +265,12 @@ export const Courses: React.FC = () => {
           {listError}
         </div>
       )}
+      {successMessage && !editing && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          <Check className="h-5 w-5" />
+          {successMessage}
+        </div>
+      )}
 
       {editing ? (
         <CreateCourseForm
@@ -307,17 +327,26 @@ export const Courses: React.FC = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
+                  <TableHead>Acesso</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCourses.map((item) => (
-                  <TableRow key={item.value} className="hover:bg-slate-50">
+                  <TableRow key={item.id} className="hover:bg-slate-50">
                     <TableCell>
                       <div className="flex items-center gap-2 font-medium text-slate-900">
                         <BookOpen className="h-4 w-4 text-slate-400" />
-                        {item.label}
+                        {item.name}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={
+                          item.isActive ? "text-emerald-700" : "text-slate-500"
+                        }>
+                        {item.isActive ? "Ativo" : "Inativo"}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
@@ -327,29 +356,47 @@ export const Courses: React.FC = () => {
                           className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
                           <Pencil className="h-4 w-4" />
                         </button>
-                        <DeleteConfirmation
-                          descriptionText={`Excluir "${item.label}"? Essa ação não pode ser desfeita e vai falhar se houver alunos, professores ou eventos vinculados.`}
-                          confirmationText="Excluir"
-                          onDelete={() => handleDelete(item.value)}>
-                          <button
-                            title="Excluir"
-                            className="rounded p-2 text-red-600 hover:bg-red-50">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </DeleteConfirmation>
+                        {item.isActive ? (
+                          <DeleteConfirmation
+                            children={
+                              <button
+                                title="Inativar"
+                                className="rounded p-2 text-red-600 hover:bg-red-50">
+                                <CircleOff className="h-4 w-4" />
+                              </button>
+                            }
+                            onDelete={() => toggleActive(item)}
+                            descriptionText={`Tem certeza que deseja inativar o curso "${item.name}"?`}
+                            confirmationText="Inativar"
+                          />
+                        ) : (
+                          <DeleteConfirmation
+                            children={
+                              <button
+                                title="Ativar"
+                                className="rounded p-2 text-emerald-600 hover:bg-emerald-50">
+                                <Check className="h-4 w-4" />
+                              </button>
+                            }
+                            onDelete={() => toggleActive(item)}
+                            descriptionText={`Tem certeza que deseja ativar o curso "${item.name}"?`}
+                            confirmationText="Ativar"
+                            deleteButtonClassName="bg-green-500 hover:bg-green-600 text-gray-100"
+                          />
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
                 {!filteredCourses.length && (
                   <TableRow>
-                    <td
-                      colSpan={2}
+                    <TableCell
+                      colSpan={3}
                       className="px-4 py-10 text-center text-slate-500">
                       {selectedInstitutionId
                         ? "Nenhum curso encontrado."
                         : "Selecione uma instituição para ver os cursos."}
-                    </td>
+                    </TableCell>
                   </TableRow>
                 )}
               </TableBody>

@@ -52,12 +52,14 @@ namespace API_Gestao_Eventos.src.Application.Services
             };
             await eventRepository.UpdateAsync(eventToUpdate);
         }
-        public async Task DeleteAsync(Guid id)
+        public async Task SetActiveAsync(Guid id, bool isActive)
         {
-            var eventToDelete = await eventRepository.GetByIdAsync(id);
-            if (eventToDelete!.StartDate < DateTime.UtcNow)
-                throw new InvalidOperationException("Não é possível excluir um evento que já começou.");
-            await eventRepository.DeleteAsync(eventToDelete);
+            var eventToUpdate = await eventRepository.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException("Evento não encontrado.");
+            if (!isActive && eventToUpdate.StartDate < DateTime.UtcNow)
+                throw new InvalidOperationException("Não é possível inativar um evento que já começou.");
+
+            await eventRepository.SetActiveAsync(eventToUpdate, isActive);
         }
         public async Task<PagedResponseDto<EventResponseDto>> GetFilteredEventsPagedAsync(EventFilterDto parameters, Guid userId)
         {
@@ -77,7 +79,38 @@ namespace API_Gestao_Eventos.src.Application.Services
                 EventType = (int)e.EventType,
                 AllowDocuments = e.AllowDocuments,
                 AllowedCourseNames = e.AllowedCourses.Select(c => c.Name.ToString()).ToList(),
-                AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList()
+                AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList(),
+                IsActive = e.IsActive
+            });
+
+            return new PagedResponseDto<EventResponseDto>
+            {
+                Items = items,
+                TotalItems = totalCount,
+                PageNumber = parameters.PageNumber,
+                PageSize = parameters.PageSize
+            };
+        }
+        public async Task<PagedResponseDto<EventResponseDto>> GetAllFilteredEventsPagedAsync(EventFilterDto parameters, Guid userId)
+        {
+            var (events, totalCount) = await eventRepository.GetFilteredAllForUserAsync(parameters, userId);
+
+            var items = events.Select(e => new EventResponseDto
+            {
+                Id = e.Id,
+                Name = e.Name,
+                Description = e.Description,
+                InstitutionId = e.InstitutionId,
+                InstitutionName = e.Institution.Name.ToString(),
+                StartDate = e.StartDate,
+                EndDate = e.EndDate,
+                Capacity = e.Capacity,
+                ConfirmedRegistrations = e.EventStudents.Count(s => s.Status == RegistrationStatus.Confirmed),
+                EventType = (int)e.EventType,
+                AllowDocuments = e.AllowDocuments,
+                AllowedCourseNames = e.AllowedCourses.Select(c => c.Name.ToString()).ToList(),
+                AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList(),
+                IsActive = e.IsActive
             });
 
             return new PagedResponseDto<EventResponseDto>

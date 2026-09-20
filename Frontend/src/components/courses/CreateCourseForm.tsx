@@ -100,7 +100,7 @@ export const CreateCourseForm: React.FC<CreateCourseFormProps> = ({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="space-y-1">
-            <Label htmlFor="name">Nome do curso</Label>
+            <Label htmlFor="name" required>Nome do curso</Label>
             <Input
               id="name"
               {...register("name")}
@@ -112,7 +112,7 @@ export const CreateCourseForm: React.FC<CreateCourseFormProps> = ({
           </div>
           {!currentCourseData && !userInstitutionId && (
             <div className="space-y-1">
-              <Label>Instituição</Label>
+              <Label required>Instituição</Label>
               <Controller
                 name="institutionId"
                 control={control}

@@ -1,6 +1,6 @@
 import {
-  resetPasswordSchema,
-  type ResetPasswordFormData,
+  changePasswordSchema,
+  type ChangePasswordFormData,
 } from "@/schemas/authSchema";
 import { api } from "@/services/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,11 +20,11 @@ export const PasswordReset: React.FC = () => {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<ResetPasswordFormData>({
-    resolver: zodResolver(resetPasswordSchema),
+  } = useForm<ChangePasswordFormData>({
+    resolver: zodResolver(changePasswordSchema),
     mode: "onBlur",
   });
-  const onSubmit = async (data: ResetPasswordFormData) => {
+  const onSubmit = async (data: ChangePasswordFormData) => {
     setApiError(null);
     setApiMessage(null);
     try {

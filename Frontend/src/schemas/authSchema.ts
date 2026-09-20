@@ -51,7 +51,7 @@ export const registerStudentSchema = z
 
 export type RegisterStudentFormData = z.infer<typeof registerStudentSchema>;
 
-export const resetPasswordSchema = z
+export const changePasswordSchema = z
   .object({
     password: z
       .string()
@@ -66,4 +66,4 @@ export const resetPasswordSchema = z
     path: ["confirmPassword"],
   });
 
-export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
