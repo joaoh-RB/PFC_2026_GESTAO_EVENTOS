@@ -330,30 +330,32 @@ export const Users: React.FC = () => {
       </div>
 
       <div className="surface-card overflow-x-auto">
-        <Table>
+        <Table className="table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead>Usuário</TableHead>
-              <TableHead>Matrícula</TableHead>
-              <TableHead>Aprovação</TableHead>
-              <TableHead>Aprovado por</TableHead>
-              <TableHead>Acesso</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="w-[32%] text-left">Usuário</TableHead>
+              <TableHead className="w-[12%] text-center">Matrícula</TableHead>
+              <TableHead className="w-[12%] text-center">Aprovação</TableHead>
+              <TableHead className="w-[18%] text-left">Aprovado por</TableHead>
+              <TableHead className="w-[10%] text-center">Acesso</TableHead>
+              <TableHead className="w-[16%] min-w-[220px] text-center">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredUsers.map((user) => (
-              <TableRow key={user.id} className="hover:bg-slate-50">
-                <TableCell className="px-4 py-3">
-                  <div className="font-medium text-slate-900">{user.name}</div>
-                  <div className="text-xs text-slate-500">{user.email}</div>
+              <TableRow key={user.id} className="hover:bg-slate-50 min-h-14">
+                <TableCell className="w-[32%] px-4 py-4 align-middle">
+                  <div className="space-y-0.5 leading-tight">
+                    <div className="font-medium text-slate-900">{user.name}</div>
+                    <div className="text-xs text-slate-500">{user.email}</div>
+                  </div>
                 </TableCell>
-                <TableCell className="px-4 py-3 text-slate-600">
+                <TableCell className="w-[12%] px-4 py-4 text-center text-slate-600 align-middle">
                   {user.uniqueIdentifier}
                 </TableCell>
-                <TableCell className="px-4 py-3">
+                <TableCell className="w-[12%] px-4 py-4 text-center align-middle">
                   <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    className={`inline-flex min-h-6 items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
                       user.approvalStatus === 2
                         ? "bg-emerald-100 text-emerald-700"
                         : user.approvalStatus === 3
@@ -363,50 +365,62 @@ export const Users: React.FC = () => {
                     {statusLabel[user.approvalStatus]}
                   </span>
                 </TableCell>
-                <TableCell className="px-4 py-3 text-slate-600">
+                <TableCell className="w-[18%] px-4 py-4 text-slate-600 align-middle">
                   {user.approvedByUserName ? (
-                    <>
+                    <div className="space-y-0.5 leading-tight">
                       <div>{user.approvedByUserName}</div>
                       <div className="text-xs text-slate-400">
                         {formatDate(user.approvedDate)}
                       </div>
-                    </>
+                    </div>
                   ) : (
                     <div>—</div>
                   )}
                 </TableCell>
-                <TableCell className="px-4 py-3">
+                <TableCell className="w-[10%] px-4 py-4 text-center align-middle">
                   <span
-                    className={
-                      user.isActive ? "text-emerald-700" : "text-slate-500"
-                    }>
+                    className={`inline-flex min-h-6 items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                      user.isActive
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-slate-100 text-slate-600"
+                    }`}>
                     {user.isActive ? "Ativo" : "Inativo"}
                   </span>
                 </TableCell>
-                <TableCell className="px-4 py-3">
-                  <div className="flex justify-end gap-1">
-                    {user.approvalStatus !== 2 && (
+                <TableCell className="w-[16%] min-w-[220px] px-4 py-4 align-middle">
+                  <div className="grid w-full grid-cols-4 items-center justify-items-center gap-3">
+                    {user.approvalStatus !== 2 ? (
                       <button
                         title="Aprovar"
                         onClick={() => setApproval(user, 2)}
                         className="rounded p-2 text-emerald-600 hover:bg-emerald-50">
                         <UserCheck className="h-4 w-4" />
                       </button>
+                    ) : (
+                      <span aria-hidden="true" className="h-8 w-8" />
                     )}
-                    {user.approvalStatus === 1 && (
+                    {user.approvalStatus === 1 ? (
                       <button
                         title="Reprovar"
                         onClick={() => setApproval(user, 3)}
                         className="rounded p-2 text-red-600 hover:bg-red-50">
                         <UserX className="h-4 w-4" />
                       </button>
+                    ) : (
+                      <span aria-hidden="true" className="h-8 w-8" />
                     )}
+                    <button
+                      title="Editar"
+                      onClick={() => openEdit(user)}
+                      className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
+                      <Pencil className="h-4 w-4" />
+                    </button>
                     {user.isActive ? (
                       <DeleteConfirmation
                         children={
                           <button
                             title="Inativar"
-                            className="rounded p-2 text-amber-600 hover:bg-amber-50">
+                            className="rounded p-2 text-red-600 hover:bg-red-50">
                             <CircleOff className="h-4 w-4" />
                           </button>
                         }
@@ -425,7 +439,7 @@ export const Users: React.FC = () => {
                         children={
                           <button
                             title="Ativar"
-                            className="rounded p-2 text-amber-600 hover:bg-amber-50">
+                            className="rounded p-2 text-emerald-600 hover:bg-emerald-50">
                             <Check className="h-4 w-4" />
                           </button>
                         }
@@ -443,12 +457,6 @@ export const Users: React.FC = () => {
                         }
                       />
                     )}
-                    <button
-                      title="Editar"
-                      onClick={() => openEdit(user)}
-                      className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
-                      <Pencil className="h-4 w-4" />
-                    </button>
                   </div>
                 </TableCell>
               </TableRow>

@@ -328,7 +328,7 @@ export const Courses: React.FC = () => {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Acesso</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -349,7 +349,7 @@ export const Courses: React.FC = () => {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-end gap-1">
+                      <div className="flex w-full items-center justify-center gap-3">
                         <button
                           title="Editar"
                           onClick={() => handleStartEdition(item)}

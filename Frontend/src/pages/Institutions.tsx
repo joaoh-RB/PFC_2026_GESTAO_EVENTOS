@@ -335,7 +335,7 @@ const AllInstitutionsManager: React.FC = () => {
                 <TableRow>
                   <TableHead className="px-4 py-3">Nome</TableHead>
                   <TableHead className="px-4 py-3">Acesso</TableHead>
-                  <TableHead className="px-4 py-3 text-right">Ações</TableHead>
+                  <TableHead className="px-4 py-3 text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -356,7 +356,7 @@ const AllInstitutionsManager: React.FC = () => {
                       </span>
                     </TableCell>
                     <TableCell className="px-4 py-3">
-                      <div className="flex justify-end gap-1">
+                      <div className="flex w-full items-center justify-center gap-3">
                         <button
                           title="Editar"
                           onClick={() => handleStartEdition(item)}

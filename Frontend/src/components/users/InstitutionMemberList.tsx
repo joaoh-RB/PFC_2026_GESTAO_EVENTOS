@@ -189,8 +189,8 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                     <TableHead>Cargo</TableHead>
                     <TableHead>Instituição</TableHead>
                     <TableHead>Cursos</TableHead>
-                    <TableHead>Ativo</TableHead>
-                    <TableHead>Ações</TableHead>
+                    <TableHead className="text-center">Ativo</TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -204,9 +204,9 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                           ? user.coursesNames.join(", ")
                           : "Não se aplica"}
                       </TableCell>
-                      <TableCell>{user.isActive ? "Sim" : "Não"}</TableCell>
+                      <TableCell className="text-center">{user.isActive ? "Sim" : "Não"}</TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                        <div className="flex w-full items-center justify-center gap-3">
                           <button
                             title="Editar"
                             onClick={() => handleStartEdition(user)}

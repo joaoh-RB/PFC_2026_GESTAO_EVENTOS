@@ -97,6 +97,12 @@ export const EventsList: React.FC<EventsListProps> = ({
         : "inactive",
   );
 
+  const statusOptions: OptionItem[] = [
+    { value: "all", label: "Todos" },
+    { value: "active", label: "Ativos" },
+    { value: "inactive", label: "Inativos" },
+  ];
+
   const handleApplyFilter = () => {
     onFilter({
       fromDate: fromDate || undefined,
@@ -162,6 +168,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                 <Select
                   id="filter-status"
                   value={statusFilter}
+                  items={statusOptions}
                   onValueChange={(value) =>
                     setStatusFilter((value as StatusFilterValue) ?? "all")
                   }>
@@ -170,9 +177,11 @@ export const EventsList: React.FC<EventsListProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="active">Ativos</SelectItem>
-                      <SelectItem value="inactive">Inativos</SelectItem>
+                      {statusOptions.map((status) => (
+                        <SelectItem key={status.value} value={status.value}>
+                          {status.label}
+                        </SelectItem>
+                      ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
