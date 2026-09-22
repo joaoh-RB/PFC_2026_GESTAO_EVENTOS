@@ -34,7 +34,7 @@ export default function App() {
           <Route
             element={
               <ProtectedRoute
-                allowedRoles={["Administrador", "Professor", "Secretaria"]}
+                allowedRoles={["Administrador", "Professor", "Secretaria", "Aluno"]}
               />
             }>
             <Route element={<AuthenticatedLayout />}>

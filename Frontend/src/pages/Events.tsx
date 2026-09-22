@@ -51,7 +51,6 @@ export const Events: React.FC = () => {
 
   const { user } = useAuth();
   const userInstitutionId = user?.institutionId || null;
-  const isAluno = user?.role === "Aluno";
 
   const fetchCourses = async (institutionId: string | null) => {
     await api.get<OptionItem[]>("/courses", { params: { institutionId } }).then((res) => {
@@ -106,11 +105,9 @@ export const Events: React.FC = () => {
         if (appliedFilters.isActive !== undefined) {
           params.isActive = appliedFilters.isActive;
         }
-        const endpoint = isAluno ? "/events" : "/events/all";
-        const res = await api.get<PagedResult<EventItem>>(endpoint, {
+        const res = await api.get<PagedResult<EventItem>>("/events", {
           params,
         });
-
         setEventsData(res.data);
       } catch (err) {
         console.error("Erro ao buscar eventos", err);
@@ -273,7 +270,6 @@ export const Events: React.FC = () => {
             isLoading={isEventsLoading}
             currentFilters={filters}
             userInstitutionId={userInstitutionId}
-            isAluno={isAluno}
             onFilter={handleFilterChange}
             onPageChange={handlePageChange}
             handleStartEdition={handleStartEdition}

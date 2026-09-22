@@ -31,6 +31,7 @@ import { type PagedResult } from "@/types/utils";
 import { formatDateForShort } from "@/utils/format";
 import type { OptionItem } from "@/types/optionItem";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface EventItem {
   id: string;
@@ -63,7 +64,6 @@ interface EventsListProps {
   isLoading: boolean;
   currentFilters?: EventFilterState;
   userInstitutionId: string | null;
-  isAluno: boolean;
   onFilter: (filters: EventFilterState) => void;
   onPageChange: (page: number) => void;
   handleStartEdition: (eventData: EventItem) => void;
@@ -76,12 +76,12 @@ export const EventsList: React.FC<EventsListProps> = ({
   isLoading,
   currentFilters,
   userInstitutionId,
-  isAluno,
   onFilter,
   onPageChange,
   handleStartEdition,
   handleToggleActive,
 }) => {
+  const { user } = useAuth();
   const allInstitutionsName = "Todas as instituições";
   const [fromDate, setFromDate] = useState<string>(
     currentFilters?.fromDate || new Date().toISOString().split("T")[0],
@@ -160,7 +160,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                 </Select>
               </div>
             )}
-            {!isAluno && (
+            {user?.role !== "Aluno" && (
               <div className="col-span-2">
                 <Label htmlFor="filter-status" className={"mb-2"}>
                   Status

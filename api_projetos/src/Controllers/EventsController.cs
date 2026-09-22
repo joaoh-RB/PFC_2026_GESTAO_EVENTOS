@@ -43,29 +43,13 @@ namespace API_Gestao_Eventos.src.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = nameof(UserRole.Aluno))]
+        [Authorize]
         public async Task<IActionResult> GetEvents([FromQuery] EventFilterDto eventFilterDto)
         {
             try
             {
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
                 var events = await eventService.GetFilteredEventsPagedAsync(eventFilterDto, userId);
-                return Ok(events);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
-        [HttpGet("all")]
-        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
-        public async Task<IActionResult> GetAllEvents([FromQuery] EventFilterDto eventFilterDto)
-        {
-            try
-            {
-                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var events = await eventService.GetAllFilteredEventsPagedAsync(eventFilterDto, userId);
                 return Ok(events);
             }
             catch (Exception ex)

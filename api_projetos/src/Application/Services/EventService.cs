@@ -91,36 +91,6 @@ namespace API_Gestao_Eventos.src.Application.Services
                 PageSize = parameters.PageSize
             };
         }
-        public async Task<PagedResponseDto<EventResponseDto>> GetAllFilteredEventsPagedAsync(EventFilterDto parameters, Guid userId)
-        {
-            var (events, totalCount) = await eventRepository.GetFilteredAllForUserAsync(parameters, userId);
-
-            var items = events.Select(e => new EventResponseDto
-            {
-                Id = e.Id,
-                Name = e.Name,
-                Description = e.Description,
-                InstitutionId = e.InstitutionId,
-                InstitutionName = e.Institution.Name.ToString(),
-                StartDate = e.StartDate,
-                EndDate = e.EndDate,
-                Capacity = e.Capacity,
-                ConfirmedRegistrations = e.EventStudents.Count(s => s.Status == RegistrationStatus.Confirmed),
-                EventType = (int)e.EventType,
-                AllowDocuments = e.AllowDocuments,
-                AllowedCourseNames = e.AllowedCourses.Select(c => c.Name.ToString()).ToList(),
-                AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList(),
-                IsActive = e.IsActive
-            });
-
-            return new PagedResponseDto<EventResponseDto>
-            {
-                Items = items,
-                TotalItems = totalCount,
-                PageNumber = parameters.PageNumber,
-                PageSize = parameters.PageSize
-            };
-        }
         public async Task<IEnumerable<Event>> GetAllActiveAsync()
         {
             return await eventRepository.GetAllActiveAsync();
