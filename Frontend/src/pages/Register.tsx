@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Footer } from "@/components/Footer";
 
 export const Register: React.FC = () => {
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
@@ -347,11 +348,12 @@ export const Register: React.FC = () => {
           Já tem uma conta?{" "}
           <Link
             to="/login"
-            className="font-semibold text-[#109bc6] hover:underline">
+            className="font-semibold text-indigo-800 hover:underline">
             Entrar
           </Link>
         </div>
-      </div>
+          <Footer />
+        </div>
     </div>
   );
 };

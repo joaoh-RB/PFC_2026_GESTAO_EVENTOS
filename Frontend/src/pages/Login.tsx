@@ -373,17 +373,21 @@ export function Login() {
                 Ainda não possui acesso?{" "}
                 <Link
                   to="/register"
-                  className="font-semibold text-[#109bc6] hover:underline">
+                  className="font-semibold text-indigo-800 hover:underline">
                   Solicitar cadastro
                 </Link>
               </p>
             )}
           </div>
-          <p className="mt-5 text-center text-[10px] text-slate-400">
-            SYMPLOSIO © 2026. Todos os direitos reservados.
+          <p className="mt-5 text-center text-[10px] text-slate-500">
+            SYMPLOSIO 2026. Todos os direitos reservados.
           </p>
-          <p className="mt-1.5 text-center text-[10px] text-slate-400">
-            <Link to="/termos" target="_blank" className="hover:underline">
+          <p className="mt-1.5 text-center text-[10px]">
+            <Link
+              to="/termos"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-indigo-800 hover:underline">
               Política de Privacidade e Termos de Uso
             </Link>
           </p>

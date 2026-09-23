@@ -2,23 +2,26 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Header } from "./Header";
 import { TermsAcceptanceGate } from "./legal/TermsAcceptanceGate";
+import { Footer } from "./Footer";
 
 export function AuthenticatedLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <TermsAcceptanceGate>
-      <div className="min-h-screen bg-[#f6f7fb]">
+      <div className="flex min-h-screen flex-col bg-[#f6f7fb]">
         <Header
           collapsed={sidebarCollapsed}
           onToggleCollapsed={() => setSidebarCollapsed((value) => !value)}
         />
         <main
-          className={`min-h-screen px-4 pb-8 pt-[94px] transition-[margin] sm:px-6 ${
+          className={`flex-1 px-4 pb-8 pt-[94px] transition-[margin] sm:px-6 ${
             sidebarCollapsed ? "lg:ml-[76px]" : "lg:ml-[240px]"
-          }`}>
+          }`}
+        >
           <Outlet />
         </main>
+        <Footer />
       </div>
     </TermsAcceptanceGate>
   );
