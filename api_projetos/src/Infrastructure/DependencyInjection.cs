@@ -27,6 +27,8 @@ namespace API_Gestao_Eventos.src.Infrastructure
             services.AddScoped<InstitutionRepository>();
             services.AddScoped<CourseRepository>();
             services.AddScoped<EventRepository>();
+            services.AddScoped<LegalDocumentRepository>();
+            services.AddScoped<TermAcceptanceRepository>();
             services.AddScoped<EmailTemplateRenderer>();
             services.AddHttpClient<EmailService>();
             var jwtSettings = configuration.GetSection("JwtSettings");

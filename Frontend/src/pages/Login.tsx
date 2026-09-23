@@ -382,6 +382,11 @@ export function Login() {
           <p className="mt-5 text-center text-[10px] text-slate-400">
             SYMPLOSIO © 2026. Todos os direitos reservados.
           </p>
+          <p className="mt-1.5 text-center text-[10px] text-slate-400">
+            <Link to="/termos" target="_blank" className="hover:underline">
+              Política de Privacidade e Termos de Uso
+            </Link>
+          </p>
         </div>
       </section>
     </div>

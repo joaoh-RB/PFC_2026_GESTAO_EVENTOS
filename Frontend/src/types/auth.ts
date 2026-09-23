@@ -30,4 +30,4 @@ export interface LoginResponse {
   message?: string;
   user?: User;
 }
-export const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
+export const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/termos"];

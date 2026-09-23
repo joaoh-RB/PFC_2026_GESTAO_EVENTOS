@@ -13,6 +13,7 @@ import { Courses } from "./pages/Courses";
 import { InstitutionMembers } from "./pages/InstitutionMembers";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { PasswordReset } from "./pages/PasswordReset";
+import { Terms } from "./pages/Terms";
 export default function App() {
   return (
     <BrowserRouter>
@@ -22,14 +23,15 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password" element={<PasswordReset />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/termos" element={<Terms />} />
           <Route element={<ProtectedRoute />}>
-            <Route element={<AuthenticatedLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/settings" element={<UserSettings />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/institutions" element={<Institutions />} />
-              <Route path="/courses" element={<Courses />} />
-            </Route>
+          <Route element={<AuthenticatedLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/settings" element={<UserSettings />} />
+          <Route path="/users" element={<Users />} />
+          <Route path="/institutions" element={<Institutions />} />
+          <Route path="/courses" element={<Courses />} />
+          </Route>
           </Route>
           <Route
             element={

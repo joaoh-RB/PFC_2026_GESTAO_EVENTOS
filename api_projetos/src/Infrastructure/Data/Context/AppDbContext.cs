@@ -6,7 +6,6 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Context
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
         public DbSet<User> Users => Set<User>();
         public DbSet<Student> Students => Set<Student>();
         public DbSet<Teacher> Teachers => Set<Teacher>();
@@ -15,6 +14,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Context
         public DbSet<Institution> Institutions => Set<Institution>();
         public DbSet<Course> Courses => Set<Course>();
         public DbSet<Event> Events => Set<Event>();
+        public DbSet<LegalDocument> LegalDocuments => Set<LegalDocument>();
+        public DbSet<TermAcceptance> TermAcceptances => Set<TermAcceptance>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
