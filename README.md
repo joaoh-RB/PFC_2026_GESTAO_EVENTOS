@@ -32,7 +32,7 @@ O back-end segue uma organização em camadas:
 
 - `Domain/` — entidades, enums e Value Objects, sem dependência de infraestrutura.
 - `Application/` — regras de negócio (`Services`), DTOs de entrada/saída, e `Validators` (FluentValidation).
-- `Infrastructure/` — acesso a dados (`Data/Context`, `Data/Configurations`, `Data/Repositories`, `Data/Migrations`) e serviços técnicos (`Services`).
+- `Infrastructure/` — acesso a dados (`Data/Context`, `Data/Configurations`, `Data/Repositories`, `Data/Migrations`) e serviços técnicos (`Services`), incluindo o cliente da API Google Calendar.
 - `Controllers/` — endpoints da API, delegando a lógica para a camada `Application`.
 
 Usuários (`Student`, `Teacher`, `Administrator`) são modelados por herança (estratégia *Table-Per-Hierarchy*), compartilhando a tabela `Users`, diferenciados pela coluna `Role`.
@@ -48,6 +48,7 @@ Usuários (`Student`, `Teacher`, `Administrator`) são modelados por herança (e
 - Autenticação (registro de aluno, login, logout, JWT em cookie HttpOnly, 2FA)
 - Cadastro de Instituição e Curso (criação, consulta, edição e exclusão), com validação de CNPJ (incluindo formato alfanumérico vigente desde jul/2026) e regras de unicidade
 - Cadastro e gestão de Eventos
+- Integração com Google Calendar (criação/edição/cancelamento no calendário da aplicação e inclusão do usuário como convidado — ver [docs/integracao-google-calendar.md](docs/integracao-google-calendar.md))
 - Fluxo de aprovação de usuários
 
 ## Como rodar o projeto
@@ -62,7 +63,7 @@ Usuários (`Student`, `Teacher`, `Administrator`) são modelados por herança (e
 ```bash
 cd api_projetos
 cp appsettings.Example.json appsettings.json
-# edite appsettings.json com sua connection string e uma chave secreta JWT
+# edite appsettings.json: connection string, JWT e credenciais GoogleCalendar (ver docs/integracao-google-calendar.md)
 dotnet restore
 dotnet ef database update
 dotnet run --launch-profile https
