@@ -93,8 +93,23 @@ namespace API_Gestao_Eventos.src.Controllers
             try
             {
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                await eventService.AddStudentToCalendarAsync(id, userId);
+                await eventService.AddUserToCalendarAsync(id, userId);
                 return Ok(new { message = "Evento adicionado à sua agenda do Google com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        [Authorize]
+        [HttpPost("{id:guid}/remove-from-calendar")]
+        public async Task<IActionResult> RemoveFromCalendar(Guid id)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await eventService.RemoveUserFromCalendarAsync(id, userId);
+                return Ok(new { message = "Evento removido da sua agenda do Google com sucesso!" });
             }
             catch (Exception ex)
             {

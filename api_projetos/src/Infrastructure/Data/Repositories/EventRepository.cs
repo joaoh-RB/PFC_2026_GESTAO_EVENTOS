@@ -119,5 +119,27 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
                 .ToListAsync();
             return (items, totalCount);
         }
+        public async Task<IEnumerable<EventAddedToCalendar>> GetAllAdditionsToCalendarAsync(Guid userId)
+        {
+            return await _context.EventAddedToCalendars
+                .Where(eac => eac.UserId == userId)
+                .Include(eac => eac.Event)
+                .ToListAsync();
+        }
+        public async Task<EventAddedToCalendar?> GetEventAddedToCalendarAsync(Guid eventId, Guid userId)
+        {
+            return await _context.EventAddedToCalendars.IgnoreQueryFilters()
+                          .FirstOrDefaultAsync(eac => eac.EventId == eventId && eac.UserId == userId);
+        }
+        public async Task AddEventToCalendarAsync(EventAddedToCalendar eventAddedToCalendar)
+        {
+            await _context.EventAddedToCalendars.AddAsync(eventAddedToCalendar);
+            await _context.SaveChangesAsync();
+        }
+        public async Task UpdateEventInCalendarAsync(EventAddedToCalendar eventAddedToCalendar)
+        {
+            _context.EventAddedToCalendars.Update(eventAddedToCalendar);
+            await _context.SaveChangesAsync();
+        }
     }
 }

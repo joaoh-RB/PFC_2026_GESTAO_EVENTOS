@@ -16,5 +16,7 @@
         public List<string> AllowedCourseNames { get; set; } = new();
         public required List<Guid> AllowedCourseIds { get; set; }
         public bool IsActive { get; set; }
+        public bool IsAddedToCalendar { get; set; }
+        public bool AllowsAddToCalendar { get; set; }
     }
 }

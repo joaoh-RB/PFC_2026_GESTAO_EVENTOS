@@ -70,7 +70,7 @@ namespace API_Gestao_Eventos.src.Application.Services
         public async Task<PagedResponseDto<EventResponseDto>> GetFilteredEventsPagedAsync(EventFilterDto parameters, Guid userId)
         {
             var (events, totalCount) = await eventRepository.GetFilteredAvailableForUserAsync(parameters, userId);
-
+            var additionsToCalendar = await eventRepository.GetAllAdditionsToCalendarAsync(userId);
             var items = events.Select(e => new EventResponseDto
             {
                 Id = e.Id,
@@ -86,7 +86,9 @@ namespace API_Gestao_Eventos.src.Application.Services
                 AllowDocuments = e.AllowDocuments,
                 AllowedCourseNames = e.AllowedCourses.Select(c => c.Name.ToString()).ToList(),
                 AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList(),
-                IsActive = e.IsActive
+                IsActive = e.IsActive,
+                IsAddedToCalendar = additionsToCalendar.Any(a => a.EventId == e.Id),
+                AllowsAddToCalendar = e.GoogleCalendarEventId != null
             });
 
             return new PagedResponseDto<EventResponseDto>
@@ -97,7 +99,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                 PageSize = parameters.PageSize
             };
         }
-        public async Task AddStudentToCalendarAsync(Guid eventId, Guid userId)
+        public async Task AddUserToCalendarAsync(Guid eventId, Guid userId)
         {
 
             var user = await authService.GetUserInfoAsync(userId)
@@ -110,6 +112,43 @@ namespace API_Gestao_Eventos.src.Application.Services
                 throw new InvalidOperationException("Este evento não possui integração com Google Calendar.");
 
             await googleCalendarService.AddAttendeeAsync(evt.GoogleCalendarEventId, user.Email);
+            var eventAddedToCalendar = await eventRepository.GetEventAddedToCalendarAsync(eventId, userId);
+            if (eventAddedToCalendar == null)
+            {
+                eventAddedToCalendar = new EventAddedToCalendar
+                {
+                    EventId = eventId,
+                    UserId = userId,
+                    IsActive = true,
+                    AddedAt = DateTime.UtcNow
+                };
+                await eventRepository.AddEventToCalendarAsync(eventAddedToCalendar);
+            }
+            else if (!eventAddedToCalendar.IsActive)
+            {
+                eventAddedToCalendar.IsActive = true;
+                await eventRepository.UpdateEventInCalendarAsync(eventAddedToCalendar);
+            }
+        }
+        public async Task RemoveUserFromCalendarAsync(Guid eventId, Guid userId)
+        {
+
+            var user = await authService.GetUserInfoAsync(userId)
+                ?? throw new KeyNotFoundException("Usuário não encontrado.");
+
+            var evt = await eventRepository.GetByIdAsync(eventId)
+                ?? throw new KeyNotFoundException("Evento não encontrado.");
+
+            if (string.IsNullOrEmpty(evt.GoogleCalendarEventId))
+                throw new InvalidOperationException("Este evento não possui integração com Google Calendar.");
+
+            await googleCalendarService.RemoveAttendeeAsync(evt.GoogleCalendarEventId, user.Email);
+            var eventAddedToCalendar = await eventRepository.GetEventAddedToCalendarAsync(eventId, userId);
+            if (eventAddedToCalendar != null)
+            {
+                eventAddedToCalendar.IsActive = false;
+                await eventRepository.UpdateEventInCalendarAsync(eventAddedToCalendar);
+            }
         }
     }
 }

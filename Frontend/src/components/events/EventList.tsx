@@ -33,6 +33,7 @@ import type { OptionItem } from "@/types/optionItem";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 import { useAuth } from "@/hooks/useAuth";
 import { AddToCalendarButton } from "./AddToCalendarButton";
+import { RemoveFromCalendarButton } from "./RemoveFromCalendarButton";
 
 export interface EventItem {
   id: string;
@@ -49,6 +50,8 @@ export interface EventItem {
   allowedCourseNames: string[];
   allowedCourseIds: string[];
   isActive: boolean;
+  isAddedToCalendar: boolean;
+  allowsAddToCalendar: boolean;
 }
 
 export interface EventFilterState {
@@ -97,6 +100,9 @@ export const EventsList: React.FC<EventsListProps> = ({
         ? "active"
         : "inactive",
   );
+  const [calendarOverrides, setCalendarOverrides] = useState<
+    Record<string, boolean>
+  >({});
 
   const statusOptions: OptionItem[] = [
     { value: "all", label: "Todos" },
@@ -111,8 +117,7 @@ export const EventsList: React.FC<EventsListProps> = ({
         institutionId !== allInstitutionsName
           ? institutionId
           : (userInstitutionId ?? undefined),
-      isActive:
-        statusFilter === "all" ? undefined : statusFilter === "active",
+      isActive: statusFilter === "all" ? undefined : statusFilter === "active",
     });
   };
 
@@ -221,6 +226,8 @@ export const EventsList: React.FC<EventsListProps> = ({
                 event.capacity - event.confirmedRegistrations;
               const isFull = availableSeats <= 0;
               const isUpcoming = event.startDate > new Date().toISOString();
+              const isAddedToCalendar =
+                calendarOverrides[event.id] ?? event.isAddedToCalendar;
 
               return (
                 <Card
@@ -304,7 +311,28 @@ export const EventsList: React.FC<EventsListProps> = ({
                     {event.isActive ? (
                       isUpcoming && (
                         <div className="flex justify-between items-center gap-2 pt-4 flex-wrap">
-                          <AddToCalendarButton eventId={event.id}></AddToCalendarButton>
+                          {event.allowsAddToCalendar &&
+                            (isAddedToCalendar ? (
+                              <RemoveFromCalendarButton
+                                eventId={event.id}
+                                onRemoved={() =>
+                                  setCalendarOverrides((current) => ({
+                                    ...current,
+                                    [event.id]: false,
+                                  }))
+                                }
+                              />
+                            ) : (
+                              <AddToCalendarButton
+                                eventId={event.id}
+                                onAdded={() =>
+                                  setCalendarOverrides((current) => ({
+                                    ...current,
+                                    [event.id]: true,
+                                  }))
+                                }
+                              />
+                            ))}
                           <Button
                             className={"secondary-action cursor-pointer"}
                             onClick={() => handleStartEdition(event)}>

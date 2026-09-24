@@ -54,5 +54,14 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public DateTime CreatedAt { get; set; }
         public bool IsActive { get; set; } = true;
     }
+    public class EventAddedToCalendar
+    {
+        public Guid EventId { get; set; }
+        public Event Event { get; set; } = null!;
+        public Guid UserId { get; set; }
+        public User User { get; set; } = null!;
+        public bool IsActive { get; set; } = true;
+        public DateTime AddedAt { get; set; } = DateTime.UtcNow;
+    }
 }
 

@@ -3,7 +3,15 @@ import { CalendarPlus, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/services/api";
 
-export function AddToCalendarButton({ eventId }: { eventId: string }) {
+interface AddToCalendarButtonProps {
+  eventId: string;
+  onAdded?: () => void;
+}
+
+export function AddToCalendarButton({
+  eventId,
+  onAdded,
+}: AddToCalendarButtonProps) {
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -12,6 +20,7 @@ export function AddToCalendarButton({ eventId }: { eventId: string }) {
     try {
       await api.post(`/events/${eventId}/add-to-calendar`);
       setAdded(true);
+      onAdded?.();
     } finally {
       setLoading(false);
     }
