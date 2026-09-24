@@ -18,6 +18,7 @@ namespace API_Gestao_Eventos.src.Application.Services
         EmailService emailService,
         EmailTemplateRenderer emailTemplateRenderer,
         IConfiguration configuration,
+        AppDbContext appDbContext,
         UserRepository userRepository)
     {
         private readonly IHasher _passwordHasher = passwordHasher;
@@ -26,7 +27,7 @@ namespace API_Gestao_Eventos.src.Application.Services
         private readonly EmailService _emailService = emailService;
         private readonly EmailTemplateRenderer _emailTemplateRenderer = emailTemplateRenderer;
         private readonly UserRepository _userRepository = userRepository;
-
+        private readonly AppDbContext _appDbContext = appDbContext;
         public async Task<AuthResponseDto> RegisterStudentAsync(RegisterRequestDto request)
         {
             var emailExists = await _userRepository.ExistsByEmailAsync(request.Email);
@@ -59,7 +60,7 @@ namespace API_Gestao_Eventos.src.Application.Services
         {
             var user = await _userRepository.GetByEmailAsync(request.Email);
             if (user == null || !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
-                throw new UnauthorizedAccessException("Credenciais inválidas.");
+                throw new UnauthorizedAccessException("Credenciais inválidas.");      
             if (!user.IsActive)
                 throw new UnauthorizedAccessException("Usuário inativo. Entre em contato com a sua instituição.");
             if (user.ApprovalStatus == UserApprovalStatus.Pendente)
@@ -85,10 +86,23 @@ namespace API_Gestao_Eventos.src.Application.Services
 
                 var isCodeValid = _googleAuthService.ValidateTwoFactorCode(user.TwoFactorSecretKey!, request.TwoFactorCode);
                 if (!isCodeValid)
+                {
+                    await _appDbContext.LogAuthEventAsync(
+                        AuditOperationType.LoginFailure,
+                        "Código 2FA inválido",
+                        user.Id
+                    );
                     throw new UnauthorizedAccessException("Código de dois fatores inválido.");
+                }
             }
 
             var token = _jwtTokenGenerator.GenerateToken(user);
+
+            await _appDbContext.LogAuthEventAsync(
+                AuditOperationType.LoginSuccess,
+                "Login realizado com sucesso",
+                user.Id
+            );
 
             return new AuthResponseDto
             {
@@ -139,7 +153,14 @@ namespace API_Gestao_Eventos.src.Application.Services
 
             var verificationResult = _passwordHasher.VerifyPassword(dto.CurrentPassword, user.PasswordHash);
             if (!verificationResult)
+            {
+                await _appDbContext.LogAuthEventAsync(
+                    AuditOperationType.PasswordChanged,
+                    "Falha ao tentar alterar senha - senha atual incorreta",
+                    user.Id
+                );
                 throw new UnauthorizedAccessException("A senha atual informada está incorreta.");
+            }
 
             if (!user.IsPasswordChangeRequired)
                 throw new InvalidOperationException("Este usuário não possui pendência de redefinição obrigatória de senha.");
@@ -152,6 +173,12 @@ namespace API_Gestao_Eventos.src.Application.Services
             user.IsPasswordChangeRequired = false;
 
             await _userRepository.UpdateAsync(user);
+
+            await _appDbContext.LogAuthEventAsync(
+                AuditOperationType.PasswordChanged,
+                "Senha inicial alterada com sucesso",
+                user.Id
+            );
 
             var token = _jwtTokenGenerator.GenerateToken(user);
 
@@ -173,6 +200,13 @@ namespace API_Gestao_Eventos.src.Application.Services
                 user.PasswordResetTokenHash = _passwordHasher.HashPassword(resetToken);
                 user.PasswordResetExpiresAt = DateTime.UtcNow.AddHours(1);
                 await _userRepository.UpdateAsync(user);
+
+                await _appDbContext.LogAuthEventAsync(
+                    AuditOperationType.PasswordReset,
+                    "Solicitação de redefinição de senha enviada por e-mail",
+                    user.Id
+                );
+
                 var siteAddress = configuration.GetSection("FrontendInfo")["BaseUrl"];
                 var accessLink = siteAddress + "/reset-password?token=" + resetToken + "&email=" + Uri.EscapeDataString(user.Email);
                 var resetPasswordEmail = await _emailTemplateRenderer.RenderAsync("notificacao-generica.html", new Dictionary<string, string>
@@ -204,6 +238,11 @@ namespace API_Gestao_Eventos.src.Application.Services
             user.PasswordResetTokenHash = null;
             user.PasswordHash = _passwordHasher.HashPassword(dto.NewPassword);
             await _userRepository.UpdateAsync(user);
+            await _appDbContext.LogAuthEventAsync(
+                AuditOperationType.PasswordReset,
+                "Senha redefinida com sucesso",
+                user.Id
+            );
         }
         public async Task<UserResponseDto> GetUserInfoAsync(Guid userId)
         {

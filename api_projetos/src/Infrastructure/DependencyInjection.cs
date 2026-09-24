@@ -19,6 +19,7 @@ namespace API_Gestao_Eventos.src.Infrastructure
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(connectionString));
+            services.AddHttpContextAccessor();
 
             services.AddScoped<IHasher, Hasher>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
