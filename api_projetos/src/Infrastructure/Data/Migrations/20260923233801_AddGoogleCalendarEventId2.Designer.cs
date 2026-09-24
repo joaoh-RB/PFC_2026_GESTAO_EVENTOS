@@ -3,6 +3,7 @@ using System;
 using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260923233801_AddGoogleCalendarEventId2")]
+    partial class AddGoogleCalendarEventId2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -185,79 +188,6 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Institutions", (string)null);
-                });
-
-            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.LegalDocument", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("EffectiveDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Version")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Type", "Version")
-                        .IsUnique();
-
-                    b.ToTable("LegalDocuments", (string)null);
-                });
-
-            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.TermAcceptance", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("AcceptedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasMaxLength(45)
-                        .HasColumnType("character varying(45)");
-
-                    b.Property<Guid>("LegalDocumentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Version")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LegalDocumentId");
-
-                    b.HasIndex("UserId", "LegalDocumentId")
-                        .IsUnique();
-
-                    b.ToTable("TermAcceptances", (string)null);
                 });
 
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.User", b =>
@@ -456,25 +386,6 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Navigation("Student");
                 });
 
-            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.TermAcceptance", b =>
-                {
-                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.LegalDocument", "LegalDocument")
-                        .WithMany("Acceptances")
-                        .HasForeignKey("LegalDocumentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("LegalDocument");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.User", b =>
                 {
                     b.HasOne("API_Gestao_Eventos.src.Domain.Entities.User", "ApprovedByUser")
@@ -535,11 +446,6 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Navigation("Events");
 
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.LegalDocument", b =>
-                {
-                    b.Navigation("Acceptances");
                 });
 #pragma warning restore 612, 618
         }

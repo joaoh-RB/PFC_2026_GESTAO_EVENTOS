@@ -29,6 +29,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
             //       .HasDefaultValue(EventStatus.Agendado)
             //       .IsRequired(true);
 
+            builder.Property(e => e.GoogleCalendarEventId);
+
             builder.HasMany(e => e.Students)
                    .WithMany(s => s.Events)
                    .UsingEntity<EventStudent>(
