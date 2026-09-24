@@ -71,6 +71,9 @@ namespace API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar
                     DateTimeDateTimeOffset = eventEntity.EndDate,
                     TimeZone = "America/Sao_Paulo"
                 },
+                GuestsCanInviteOthers = false,
+                GuestsCanModify = false,
+                GuestsCanSeeOtherGuests = false,
                 Attendees = new List<EventAttendee>()
             };
 
@@ -98,7 +101,9 @@ namespace API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar
                     DateTimeDateTimeOffset = eventEntity.StartDate,
                     TimeZone = "America/Sao_Paulo"
                 };
-
+                calendarEvent.GuestsCanInviteOthers = false;
+                calendarEvent.GuestsCanModify = false;
+                calendarEvent.GuestsCanSeeOtherGuests = false;
                 calendarEvent.End = new EventDateTime
                 {
                     DateTimeDateTimeOffset = eventEntity.EndDate,
