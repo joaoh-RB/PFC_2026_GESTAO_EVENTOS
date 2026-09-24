@@ -48,7 +48,7 @@ Usuários (`Student`, `Teacher`, `Administrator`) são modelados por herança (e
 - Autenticação (registro de aluno, login, logout, JWT em cookie HttpOnly, 2FA)
 - Cadastro de Instituição e Curso (criação, consulta, edição e exclusão), com validação de CNPJ (incluindo formato alfanumérico vigente desde jul/2026) e regras de unicidade
 - Cadastro e gestão de Eventos
-- Integração com Google Calendar (criação/edição/cancelamento no calendário da aplicação e inclusão do usuário como convidado — ver [docs/integracao-google-calendar.md](docs/integracao-google-calendar.md))
+- Integração com Google Calendar (criação/edição/cancelamento no calendário da aplicação e inclusão do usuário como convidado — ver [Docs/integracao-google-calendar.md](Docs/integracao-google-calendar.md))
 - Fluxo de aprovação de usuários
 
 ## Como rodar o projeto
