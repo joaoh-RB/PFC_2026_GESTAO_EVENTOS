@@ -19,6 +19,7 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public bool IsActive { get; set; } = true;
         public bool AllowDocuments { get; set; }
         public EventType EventType { get; set; }
+        public string? GoogleCalendarEventId { get; set; }
         //public EventStatus EventStatus { get; set; }
     }
     public enum RegistrationStatus

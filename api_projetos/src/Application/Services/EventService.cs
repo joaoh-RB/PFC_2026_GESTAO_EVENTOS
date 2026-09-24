@@ -2,10 +2,11 @@
 using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
+using API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar;
 
 namespace API_Gestao_Eventos.src.Application.Services
 {
-    public class EventService(EventRepository eventRepository, CourseRepository courseRepository)
+    public class EventService(EventRepository eventRepository, CourseRepository courseRepository, GoogleCalendarService googleCalendarService, AuthService authService)
     {
         public async Task<Event> AddAsync(CreateEventRequestDto request)
         {
@@ -26,6 +27,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 EventType = request.EventType,
                 AllowedCourses = allowedCourses
             };
+            string googleEventId = await googleCalendarService.CreateEventAsync(newEvent);
+            newEvent.GoogleCalendarEventId = googleEventId;
             return await eventRepository.AddAsync(newEvent);
         }
         public async Task UpdateAsync(Guid id, CreateEventRequestDto request)
@@ -35,6 +38,7 @@ namespace API_Gestao_Eventos.src.Application.Services
             {
                 throw new InvalidOperationException("Nem todos os cursos cadastrados pertencem à instituição.");
             }
+            var eventCreated = await eventRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException("Evento não encontrado.");
             var eventToUpdate = new Event
             {
                 Id = id,
@@ -48,8 +52,10 @@ namespace API_Gestao_Eventos.src.Application.Services
                 InstitutionId = request.InstitutionId,
                 AllowedCourses = (request.AllowedCourses ?? new List<Guid>())
                         .Select(courseId => new Course { Id = courseId })
-                        .ToList()
+                        .ToList(),
+                GoogleCalendarEventId = eventCreated.GoogleCalendarEventId
             };
+            await googleCalendarService.UpdateEventAsync(eventToUpdate);
             await eventRepository.UpdateAsync(eventToUpdate);
         }
         public async Task SetActiveAsync(Guid id, bool isActive)
@@ -58,7 +64,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                 ?? throw new KeyNotFoundException("Evento não encontrado.");
             if (!isActive && eventToUpdate.StartDate < DateTime.UtcNow)
                 throw new InvalidOperationException("Não é possível inativar um evento que já começou.");
-
+            await googleCalendarService.DeactivateEventAsync(eventToUpdate.GoogleCalendarEventId, isActive);
             await eventRepository.SetActiveAsync(eventToUpdate, isActive);
         }
         public async Task<PagedResponseDto<EventResponseDto>> GetFilteredEventsPagedAsync(EventFilterDto parameters, Guid userId)
@@ -91,13 +97,19 @@ namespace API_Gestao_Eventos.src.Application.Services
                 PageSize = parameters.PageSize
             };
         }
-        public async Task<IEnumerable<Event>> GetAllActiveAsync()
+        public async Task AddStudentToCalendarAsync(Guid eventId, Guid userId)
         {
-            return await eventRepository.GetAllActiveAsync();
-        }
-        public async Task<IEnumerable<Event>> GetAllAvailableForUserAsync(Guid userId)
-        {
-            return await eventRepository.GetAllAvailableForUserAsync(userId);
+
+            var user = await authService.GetUserInfoAsync(userId)
+                ?? throw new KeyNotFoundException("Usuário não encontrado.");
+
+            var evt = await eventRepository.GetByIdAsync(eventId)
+                ?? throw new KeyNotFoundException("Evento não encontrado.");
+
+            if (string.IsNullOrEmpty(evt.GoogleCalendarEventId))
+                throw new InvalidOperationException("Este evento não possui integração com Google Calendar.");
+
+            await googleCalendarService.AddAttendeeAsync(evt.GoogleCalendarEventId, user.Email);
         }
     }
 }

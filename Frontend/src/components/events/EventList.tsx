@@ -32,6 +32,7 @@ import { formatDateForShort } from "@/utils/format";
 import type { OptionItem } from "@/types/optionItem";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 import { useAuth } from "@/hooks/useAuth";
+import { AddToCalendarButton } from "./AddToCalendarButton";
 
 export interface EventItem {
   id: string;
@@ -302,7 +303,8 @@ export const EventsList: React.FC<EventsListProps> = ({
                     )}
                     {event.isActive ? (
                       isUpcoming && (
-                        <div className="flex justify-between items-center gap-2 pt-4">
+                        <div className="flex justify-between items-center gap-2 pt-4 flex-wrap">
+                          <AddToCalendarButton eventId={event.id}></AddToCalendarButton>
                           <Button
                             className={"secondary-action cursor-pointer"}
                             onClick={() => handleStartEdition(event)}>
