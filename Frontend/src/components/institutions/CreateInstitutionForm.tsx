@@ -86,7 +86,7 @@ export const CreateInstitutionForm: React.FC<CreateInstitutionFormProps> = ({
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="sm:col-span-2 space-y-1">
-                            <Label htmlFor="name">Nome da instituição</Label>
+                            <Label htmlFor="name" required>Nome da instituição</Label>
                             <Input id="name" {...register("name")} placeholder="Ex: UMC" />
                             {errors.name && <p className="text-xs text-red-600">{errors.name.message}</p>}
                         </div>

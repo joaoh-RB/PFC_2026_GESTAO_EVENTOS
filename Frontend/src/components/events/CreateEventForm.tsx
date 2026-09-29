@@ -26,6 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -137,7 +138,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-1">
-              <Label htmlFor="name">Nome do Evento</Label>
+              <Label htmlFor="name" required>Nome do Evento</Label>
               <Input
                 id="name"
                 {...register("name")}
@@ -149,7 +150,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="description">Descrição</Label>
+              <Label htmlFor="description" required>Descrição</Label>
               <Textarea
                 id="description"
                 {...register("description")}
@@ -168,7 +169,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {!userInstitutionId && (
               <div className="sm:col-span-2 space-y-1">
-                <Label>Instituição</Label>
+                <Label required>Instituição</Label>
                 <Controller
                   name="institutionId"
                   control={control}
@@ -185,11 +186,13 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                         <SelectValue placeholder="Selecione uma instituição" />
                       </SelectTrigger>
                       <SelectContent alignItemWithTrigger={true}>
-                        {institutions.map((inst) => (
-                          <SelectItem key={inst.value} value={inst.value}>
-                            {inst.label}
-                          </SelectItem>
-                        ))}
+                        <SelectGroup>
+                          {institutions.map((inst) => (
+                            <SelectItem key={inst.value} value={inst.value}>
+                              {inst.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                   )}
@@ -203,7 +206,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
             )}
 
             <div className="space-y-1">
-              <Label htmlFor="startDate">Data de Início</Label>
+              <Label htmlFor="startDate" required>Data de Início</Label>
               <Input
                 type="datetime-local"
                 id="startDate"
@@ -217,7 +220,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="endDate">Data de Término</Label>
+              <Label htmlFor="endDate" required>Data de Término</Label>
               <Input
                 type="datetime-local"
                 id="endDate"
@@ -229,7 +232,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="capacity">Capacidade Máxima</Label>
+              <Label htmlFor="capacity" required>Capacidade Máxima</Label>
               <Input
                 type="number"
                 id="capacity"
@@ -244,7 +247,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
             </div>
 
             <div className="space-y-1">
-              <Label>Tipo de Evento</Label>
+              <Label required>Tipo de Evento</Label>
               <Controller
                 name="eventType"
                 control={control}
@@ -253,17 +256,19 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                     items={eventTypes}
                     onValueChange={(val) => field.onChange(Number(val))}
                     value={field.value?.toString()}>
-                    <SelectTrigger className={"w-full"}>
+                    <SelectTrigger className={"w-full !h-10"}>
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent alignItemWithTrigger={true}>
-                      {eventTypes.map((type) => (
-                        <SelectItem
-                          key={type.value}
-                          value={type.value.toString()}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
+                      <SelectGroup>
+                        {eventTypes.map((type) => (
+                          <SelectItem
+                            key={type.value}
+                            value={type.value.toString()}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                 )}
@@ -277,7 +282,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
           </div>
 
           <div className="space-y-1 pt-2">
-            <Label>Cursos Permitidos</Label>
+            <Label required>Cursos Permitidos</Label>
             <Controller
               name="allowedCourses"
               control={control}

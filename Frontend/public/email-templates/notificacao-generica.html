@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notificação - SYMPLOSIO</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #f6f7fb;
+        font-family: "Segoe UI", Arial, sans-serif;
+        color: #17152f;
+      }
+
+      .container {
+        max-width: 620px;
+        margin: 0 auto;
+        border: 1px solid #e3e6ed;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #ffffff;
+      }
+
+      .hero {
+        padding: 26px 28px;
+        color: #ffffff;
+        background: radial-gradient(circle at 72% 30%, rgba(35, 185, 224, 0.28), transparent 30%),
+          radial-gradient(circle at 15% 15%, rgba(92, 76, 193, 0.38), transparent 26%),
+          linear-gradient(145deg, #24176d 0%, #120b46 70%);
+      }
+
+      .brand {
+        display: table;
+      }
+
+      .brand-mark,
+      .brand-text {
+        display: table-cell;
+        vertical-align: middle;
+      }
+
+      .brand-mark {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        text-align: center;
+      }
+
+      .brand-mark svg {
+        width: 22px;
+        height: 22px;
+        margin-top: 9px;
+        color: #49c6e8;
+      }
+
+      .brand-text {
+        padding-left: 12px;
+      }
+
+      .brand-eyebrow {
+        margin: 0;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .brand-title {
+        margin: 4px 0 0;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        color: #ffffff;
+      }
+
+      .hero-heading {
+        margin: 18px 0 0;
+        font-size: 24px;
+        line-height: 1.2;
+        letter-spacing: -0.03em;
+      }
+
+      .hero-description {
+        margin: 8px 0 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.68);
+      }
+
+      .content {
+        padding: 28px;
+      }
+
+      .title {
+        margin: 0 0 12px;
+        font-size: 21px;
+        color: #191638;
+        letter-spacing: -0.02em;
+      }
+
+      .text {
+        margin: 0 0 14px;
+        color: #3a3852;
+        line-height: 1.65;
+        font-size: 15px;
+      }
+
+      .cta {
+        display: inline-block;
+        margin-top: 8px;
+        background: #12a7d4;
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 10px;
+        padding: 12px 18px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .link-box {
+        margin-top: 18px;
+        border-radius: 10px;
+        border: 1px solid #e8ebf2;
+        background: #fbfbfc;
+        padding: 12px;
+      }
+
+      .link-label {
+        margin: 0 0 6px;
+        color: #6b7280;
+        font-size: 12px;
+      }
+
+      .link-value {
+        margin: 0;
+        color: #17104f;
+        font-size: 13px;
+        word-break: break-all;
+      }
+
+      .footer {
+        padding: 0 28px 24px;
+        color: #8c90a3;
+        font-size: 12px;
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: 12px;
+        }
+
+        .hero,
+        .content,
+        .footer {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+
+        .hero-heading {
+          font-size: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="hero">
+        <div class="brand">
+          <div class="brand-text">
+            <p class="brand-eyebrow">Gestão acadêmica</p>
+            <p class="brand-title">SYMPLOSIO</p>
+          </div>
+        </div>
+
+        <h1 class="hero-heading">Eventos acadêmicos com mais eficiência</h1>
+        <p class="hero-description">
+          Plataforma integrada para instituições, cursos, membros e alunos.
+        </p>
+      </div>
+
+      <div class="content">
+        <h2 class="title">{{titulo}}</h2>
+        <p class="text">Olá, <strong>{{nome}}</strong>!</p>
+        <p class="text">{{mensagem}}</p>
+        <a class="cta" href="{{link_acao}}" target="_blank" rel="noopener noreferrer">{{texto_botao}}</a>
+
+        <div class="link-box">
+          <p class="link-label">Se o botão não funcionar, copie e cole este link no navegador:</p>
+          <p class="link-value">{{link_acao}}</p>
+        </div>
+      </div>
+
+      <div class="footer">Esta é uma mensagem automática do sistema SYMPLOSIO.</div>
+    </div>
+  </body>
+</html>

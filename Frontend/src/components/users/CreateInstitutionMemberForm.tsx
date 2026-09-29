@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -77,7 +78,6 @@ export const CreateInstitutionMemberForm: React.FC<
       institutionId: userInstitutionId || "",
       userRole: 0,
       email: "",
-      password: "",
     },
   });
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -90,7 +90,6 @@ export const CreateInstitutionMemberForm: React.FC<
         institutionId: currentUserData.institutionId || userInstitutionId || "",
         userRole: currentUserData.userRole,
         email: currentUserData.email,
-        password: currentUserData.password,
         courses: currentUserData.courses || [],
       });
     }
@@ -128,7 +127,7 @@ export const CreateInstitutionMemberForm: React.FC<
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
           <div className="space-y-1">
-            <Label htmlFor="name">Nome do Usuário</Label>
+            <Label htmlFor="name" required>Nome do Usuário</Label>
             <Input
               id="name"
               {...register("name")}
@@ -140,7 +139,7 @@ export const CreateInstitutionMemberForm: React.FC<
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="user-email">Email</Label>
+            <Label htmlFor="user-email" required>Email</Label>
             <Input
               id="user-email"
               {...register("email")}
@@ -156,7 +155,7 @@ export const CreateInstitutionMemberForm: React.FC<
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {!userInstitutionId && (
             <div className="sm:col-span-2 space-y-1">
-              <Label>Instituição</Label>
+              <Label required>Instituição</Label>
               <Controller
                 name="institutionId"
                 control={control}
@@ -174,11 +173,13 @@ export const CreateInstitutionMemberForm: React.FC<
                       <SelectValue placeholder="Selecione uma instituição" />
                     </SelectTrigger>
                     <SelectContent alignItemWithTrigger={true}>
-                      {institutions.map((inst) => (
-                        <SelectItem key={inst.value} value={inst.value}>
-                          {inst.label}
-                        </SelectItem>
-                      ))}
+                      <SelectGroup>
+                        {institutions.map((inst) => (
+                          <SelectItem key={inst.value} value={inst.value}>
+                            {inst.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                 )}
@@ -192,7 +193,7 @@ export const CreateInstitutionMemberForm: React.FC<
           )}
 
           <div className="space-y-1 col-span-2">
-            <Label htmlFor="userRole">Cargo</Label>
+            <Label htmlFor="userRole" required>Cargo</Label>
             <Controller
               name="userRole"
               control={control}
@@ -208,11 +209,13 @@ export const CreateInstitutionMemberForm: React.FC<
                     <SelectValue placeholder="Selecione um cargo" />
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={true}>
-                    {userRoles.map((inst) => (
-                      <SelectItem key={inst.value} value={inst.value}>
-                        {inst.label}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      {userRoles.map((inst) => (
+                        <SelectItem key={inst.value} value={inst.value}>
+                          {inst.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               )}
@@ -222,17 +225,9 @@ export const CreateInstitutionMemberForm: React.FC<
             )}
           </div>
 
-          <div className="space-y-1 col-span-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input type="password" id="password" {...register("password")} />
-            {errors.password && (
-              <p className="text-xs text-red-600">{errors.password.message}</p>
-            )}
-          </div>
-
           {userRole == 2 && (
             <div className="space-y-1 pt-2 col-span-2">
-              <Label>Cursos Permitidos</Label>
+              <Label required>Cursos Permitidos</Label>
               <Controller
                 name="courses"
                 control={control}

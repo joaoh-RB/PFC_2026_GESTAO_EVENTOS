@@ -41,20 +41,7 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-        [HttpDelete("{id:guid}")]
-        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
-        public async Task<IActionResult> DeleteEvent([FromRoute] Guid id)
-        {
-            try
-            {
-                await eventService.DeleteAsync(id);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
+
         [HttpGet]
         [Authorize]
         public async Task<IActionResult> GetEvents([FromQuery] EventFilterDto eventFilterDto)
@@ -70,6 +57,22 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpPatch("{id:guid}/active")]
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        public async Task<IActionResult> SetActive([FromRoute] Guid id, [FromBody] ActiveRequest request)
+        {
+            try
+            {
+                await eventService.SetActiveAsync(id, request.IsActive);
+                return Ok(new { message = request.IsActive ? "Evento ativado." : "Evento inativado." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpGet("types")]
         public IActionResult GetEventTypes()
         {
@@ -82,6 +85,40 @@ namespace API_Gestao_Eventos.src.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+        [Authorize]
+        [HttpPost("{id:guid}/add-to-calendar")]
+        public async Task<IActionResult> AddToCalendar(Guid id)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await eventService.AddUserToCalendarAsync(id, userId);
+                return Ok(new { message = "Evento adicionado à sua agenda do Google com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        [Authorize]
+        [HttpPost("{id:guid}/remove-from-calendar")]
+        public async Task<IActionResult> RemoveFromCalendar(Guid id)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await eventService.RemoveUserFromCalendarAsync(id, userId);
+                return Ok(new { message = "Evento removido da sua agenda do Google com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        public class ActiveRequest
+        {
+            public bool IsActive { get; set; }
         }
     }
 }

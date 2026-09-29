@@ -3,6 +3,7 @@
     public class AuthResponseDto
     {
         public bool RequiresTwoFactor { get; set; }
+        public bool RequiresPasswordChange { get; set; }
         public string? Token { get; set; }
         public string? Message { get; set; }
         public UserResponseDto? User { get; set; }

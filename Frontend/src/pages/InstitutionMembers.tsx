@@ -139,7 +139,6 @@ export const InstitutionMembers: React.FC = () => {
       email: user.email,
       institutionId: user.institutionId,
       userRole: user.userRoleId,
-      password: "",
       courses: user.coursesIds || [],
     });
     setIsEditing(true);

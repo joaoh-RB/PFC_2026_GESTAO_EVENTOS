@@ -1,5 +1,7 @@
 ﻿using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
+using API_Gestao_Eventos.src.Infrastructure.Services.Email;
+using API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar;
 using API_Gestao_Eventos.src.Infrastructure.Services.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +20,7 @@ namespace API_Gestao_Eventos.src.Infrastructure
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(connectionString));
+            services.AddHttpContextAccessor();
 
             services.AddScoped<IHasher, Hasher>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -26,6 +29,11 @@ namespace API_Gestao_Eventos.src.Infrastructure
             services.AddScoped<InstitutionRepository>();
             services.AddScoped<CourseRepository>();
             services.AddScoped<EventRepository>();
+            services.AddScoped<LegalDocumentRepository>();
+            services.AddScoped<TermAcceptanceRepository>();
+            services.AddScoped<EmailTemplateRenderer>();
+            services.AddScoped<GoogleCalendarService>();
+            services.AddHttpClient<EmailService>();
             var jwtSettings = configuration.GetSection("JwtSettings");
             var secretKey = jwtSettings["Secret"] ?? "abc";
 

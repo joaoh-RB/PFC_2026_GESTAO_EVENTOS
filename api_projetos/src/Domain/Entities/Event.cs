@@ -19,6 +19,7 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public bool IsActive { get; set; } = true;
         public bool AllowDocuments { get; set; }
         public EventType EventType { get; set; }
+        public string? GoogleCalendarEventId { get; set; }
         //public EventStatus EventStatus { get; set; }
     }
     public enum RegistrationStatus
@@ -52,6 +53,15 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public Course Course { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public bool IsActive { get; set; } = true;
+    }
+    public class EventAddedToCalendar
+    {
+        public Guid EventId { get; set; }
+        public Event Event { get; set; } = null!;
+        public Guid UserId { get; set; }
+        public User User { get; set; } = null!;
+        public bool IsActive { get; set; } = true;
+        public DateTime AddedAt { get; set; } = DateTime.UtcNow;
     }
 }
 

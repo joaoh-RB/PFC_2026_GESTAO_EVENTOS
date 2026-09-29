@@ -1,5 +1,6 @@
 ﻿using API_Gestao_Eventos.src.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
 {
@@ -28,6 +29,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
             //builder.Property(e => e.EventStatus)
             //       .HasDefaultValue(EventStatus.Agendado)
             //       .IsRequired(true);
+
+            builder.Property(e => e.GoogleCalendarEventId);
 
             builder.HasMany(e => e.Students)
                    .WithMany(s => s.Events)
@@ -66,6 +69,34 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
                         j.HasQueryFilter(eac => eac.IsActive);
                     }
                 );
+        }
+    }
+    public class EventAddedToCalendarConfiguration : IEntityTypeConfiguration<EventAddedToCalendar>
+    {
+        public void Configure(EntityTypeBuilder<EventAddedToCalendar> builder)
+        {
+            builder.ToTable("EventAddedToCalendars");
+
+            builder.HasKey(e => new { e.EventId, e.UserId });
+
+            builder.HasOne(e => e.Event)
+                   .WithMany()
+                   .HasForeignKey(e => e.EventId)
+                   .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(e => e.User)
+                   .WithMany()
+                   .HasForeignKey(e => e.UserId)
+                   .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Property(e => e.IsActive)
+                   .IsRequired()
+                   .HasDefaultValue(true);
+
+            builder.Property(e => e.AddedAt)
+                   .IsRequired();
+
+            builder.HasQueryFilter(e => e.IsActive);
         }
     }
 }

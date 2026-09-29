@@ -38,8 +38,10 @@ export const Events: React.FC = () => {
     hasPreviousPage: false,
     hasNextPage: false,
   });
-  const [currentEventBeingUpdated, setEventBeingUpdated] =
-    useState<CreateEventFormData | null>(null);
+
+  const [currentEventBeingUpdated, setEventBeingUpdated] = useState<
+    (CreateEventFormData & { id: string; isActive: boolean }) | null
+  >(null);
 
   const [isEventsLoading, setIsEventsLoading] = useState(false);
   const [filters, setFilters] = useState<EventFilterState>({
@@ -88,7 +90,7 @@ export const Events: React.FC = () => {
     async (appliedFilters = filters) => {
       setIsEventsLoading(true);
       try {
-        const params: Record<string, string | number> = {
+        const params: Record<string, string | number | boolean> = {
           pageNumber: currentPage,
           pageSize: pageSize,
         };
@@ -100,11 +102,12 @@ export const Events: React.FC = () => {
         if (appliedFilters.institutionId) {
           params.institutionId = appliedFilters.institutionId;
         }
-
+        if (appliedFilters.isActive !== undefined) {
+          params.isActive = appliedFilters.isActive;
+        }
         const res = await api.get<PagedResult<EventItem>>("/events", {
           params,
         });
-
         setEventsData(res.data);
       } catch (err) {
         console.error("Erro ao buscar eventos", err);
@@ -145,6 +148,7 @@ export const Events: React.FC = () => {
       eventType: eventItem.eventType,
       allowDocuments: eventItem.allowDocuments,
       allowedCourses: eventItem.allowedCourseIds,
+      isActive: eventItem.isActive,
     });
     setIsEditing(true);
   };
@@ -156,6 +160,11 @@ export const Events: React.FC = () => {
     try {
       if (currentEventBeingUpdated) {
         await api.put(`/events/${currentEventBeingUpdated.id}`, data);
+        if (!currentEventBeingUpdated.isActive) {
+          await api.patch(`/events/${currentEventBeingUpdated.id}/active`, {
+            isActive: true,
+          });
+        }
       } else {
         await api.post("/events", data);
       }
@@ -170,11 +179,15 @@ export const Events: React.FC = () => {
       setIsSubmitting(false);
     }
   };
-  const handleDelete = async (eventId: string) => {
-    await api.delete(`/events/${eventId}`);
+
+  const handleToggleActive = async (eventItem: EventItem) => {
+    await api.patch(`/events/${eventItem.id}/active`, {
+      isActive: !eventItem.isActive,
+    });
     setCurrentPage(1);
     fetchEvents();
   };
+
   if (isInitialLoading) {
     return <InitialLoading></InitialLoading>;
   }
@@ -202,7 +215,9 @@ export const Events: React.FC = () => {
           title={
             editing
               ? currentEventBeingUpdated
-                ? "Atualizar evento"
+                ? currentEventBeingUpdated.isActive
+                  ? "Atualizar evento"
+                  : "Reativar evento"
                 : "Novo evento"
               : "Eventos"
           }
@@ -258,7 +273,7 @@ export const Events: React.FC = () => {
             onFilter={handleFilterChange}
             onPageChange={handlePageChange}
             handleStartEdition={handleStartEdition}
-            handleDelete={handleDelete}
+            handleToggleActive={handleToggleActive}
           />
         )}
     </div>
