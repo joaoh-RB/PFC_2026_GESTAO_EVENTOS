@@ -1,0 +1,86 @@
+classDiagram
+    direction TB
+
+    class DocumentApprovalStatus {
+        <<enumeration>>
+        Pending = 1
+        Approved = 2
+        Rejected = 3
+    }
+
+    class Event {
+        +Guid Id
+        +string Name
+        +bool AllowDocuments
+    }
+
+    class Student {
+        +Guid Id
+        +string Name
+        +string UniqueIdentifier
+    }
+
+    class User {
+        <<InstitutionMember>>
+        +Guid Id
+        +string Name
+        +UserRole Role
+    }
+
+    class Group {
+        +Guid Id
+        +string Name
+        +Guid EventId
+        +bool IsActive
+        +DateTime CreatedAt
+    }
+
+    class GroupMember {
+        <<aggregation>>
+        +Guid Id
+        +Guid GroupId
+        +Guid StudentId
+        +Guid EventId
+        +DateTime JoinedAt
+        +bool IsActive
+    }
+
+    class Document {
+        +Guid Id
+        +string Title
+        +string Url
+        +Guid EventId
+        +Guid GroupId
+        +Guid SubmittedByStudentId
+        +DocumentApprovalStatus ApprovalStatus
+        +Guid ReviewedByUserId
+        +DateTime ReviewedAt
+        +string ReviewNotes
+        +DateTime SubmittedAt
+    }
+
+    class EventFeedback {
+        +Guid Id
+        +Guid EventId
+        +Guid StudentId
+        +string FeedbackText
+        +int Rating
+        +DateTime CreatedAt
+    }
+
+    %% Relacionamentos de Grupos e Membros
+    Event "1" *-- "*" Group : possui
+    Group "1" *-- "1..*" GroupMember : membros
+    Student "1" o-- "*" GroupMember : pertence
+    Event "1" o-- "*" GroupMember : escopo
+
+    %% Relacionamentos de Documentos
+    Event "1" o-- "*" Document : recebe
+    Group "1" o-- "*" Document : submete
+    Student "1" o-- "*" Document : envia
+    User "0..1" --> "*" Document : revisa/aprova
+    Document --> DocumentApprovalStatus : status
+
+    %% Relacionamentos de Feedback pós-evento
+    Event "1" o-- "*" EventFeedback : avaliações pós-evento
+    Student "1" o-- "*" EventFeedback : avalia

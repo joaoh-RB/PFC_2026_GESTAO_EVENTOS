@@ -1,0 +1,46 @@
+flowchart TD
+    %% Processo BPMN 2: Criação de Evento, Google Agenda e Inscrição
+    
+    subgraph Pool_Evento ["BPMN: Processo de Criação de Evento, Google Agenda e Inscrições"]
+        
+        subgraph Lane_Organizador ["Raia: Organizador (Professor / Secretaria)"]
+            Start2(["Início: Demanda de evento"]) --> Task_CriaEvt["Cadastrar dados do evento\n(Título, Vagas, Datas, Cursos Permitidos)"]
+            Task_CriaEvt --> Task_EnviaEvt["Submeter criação do evento"]
+        end
+
+        subgraph Lane_Sistema ["Raia: Sistema (Back-end API)"]
+            Task_EnviaEvt --> Task_ValidaEvt["Validar dados (CreateEventValidator)\ne cursos elegíveis"]
+            Task_ValidaEvt --> Task_ChamaGoogle["Chamar GoogleCalendarService\npara criar evento na agenda oficial"]
+            Task_RecebeGoogle["Persistir Evento no banco\ncom GoogleCalendarEventId"] --> Task_PublicaEvt["Publicar evento para os\ncursos autorizados"]
+            
+            Task_FiltraEvts["Filtrar eventos ativos\npermitidos para o curso do aluno"] --> Task_ExibeDisponiveis["Exibir eventos no painel"]
+            
+            Task_ProcessaInscr["Verificar capacidade\ne inscrições ativas"] --> Gate_Vagas{"Há vagas\ndisponíveis?"}
+            Gate_Vagas -- Não --> Task_RecusaInscr["Informar evento lotado"]
+            Gate_Vagas -- Sim --> Task_CriaInscr["Criar EventStudent\n(Status: Confirmed)"]
+            Task_CriaInscr --> Fork_Inscr{{"Gateway Paralelo"}}
+            
+            Fork_Inscr --> Task_EnviaEmailConf["Enviar e-mail com confirmação\ne detalhes do evento"]
+            Fork_Inscr --> Task_ChecaSyncCal["Registrar EventAddedToCalendar\n(se solicitado pelo aluno)"]
+            
+            Task_EnviaEmailConf --> Join_Inscr{{"Junção"}}
+            Task_ChecaSyncCal --> Join_Inscr
+            Join_Inscr --> End_Sucesso(["Fim: Inscrição Confirmada"])
+        end
+
+        subgraph Lane_Google ["Raia: Google Calendar API"]
+            Task_ChamaGoogle --> Task_GoogleApi["Criar entrada de evento\nna agenda do Google"]
+            Task_GoogleApi --> Task_RetornaGoogleId["Retornar googleEventId gerado"]
+            Task_RetornaGoogleId --> Task_RecebeGoogle
+        end
+
+        subgraph Lane_Aluno ["Raia: Aluno"]
+            Task_PublicaEvt --> Task_AcessaPortal["Acessar catálogo de eventos"]
+            Task_AcessaPortal --> Task_FiltraEvts
+            Task_ExibeDisponiveis --> Task_SolicitaInscr["Selecionar evento e clicar\nem 'Inscrever-se'"]
+            Task_SolicitaInscr --> Task_ProcessaInscr
+            Task_RecusaInscr --> End_Lotado(["Fim: Inscrição Não Realizada"])
+            End_Sucesso -.-> Task_RecebeConf["Recebe comprovante e detalhes"]
+        end
+
+    end

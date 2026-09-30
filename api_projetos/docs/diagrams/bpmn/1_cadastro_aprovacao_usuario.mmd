@@ -1,0 +1,38 @@
+flowchart TD
+    %% Processo BPMN 1: Cadastro e Aprovação de Usuários
+    
+    subgraph Pool_Cadastro ["BPMN: Processo de Cadastro, Termos LGPD e Aprovação de Usuário"]
+        
+        subgraph Lane_Aluno ["Raia: Aluno / Candidato"]
+            Start1(["Início: Acessa plataforma"]) --> Task_Preenche["Preencher dados de cadastro\n(Nome, E-mail, RA, Curso)"]
+            Task_Preenche --> Task_AceitaTermos["Ler e aceitar Termos de Uso\ne Política de Privacidade"]
+            Task_AceitaTermos --> Task_EnviaReg["Submeter solicitação\nde cadastro"]
+            Task_Corrige["Corrigir dados cadastrais"] --> Task_EnviaReg
+            Task_PrimeiroLogin["Realizar 1º Login\n(Senha Provisória)"] --> Task_TrocaSenha["Trocar senha obrigatória\ne ativar 2FA (opcional)"]
+            Task_TrocaSenha --> End_Ativo(["Fim: Conta Ativada"])
+            End_Reprovado(["Fim: Cadastro Indeferido"])
+        end
+
+        subgraph Lane_Sistema ["Raia: Sistema (Back-end API)"]
+            Task_EnviaReg --> Task_ValidaDados["Validar dados (FluentValidation)\ne checar e-mail/RA único"]
+            Task_ValidaDados --> Gate_Valido{"Dados\nválidos?"}
+            Gate_Valido -- Não --> Task_RetornaErros["Retornar erros de validação"]
+            Task_RetornaErros --> Task_Corrige
+            Gate_Valido -- Sim --> Task_CriaPendente["Criar User (Status: Pendente)\ne registrar TermAcceptance (IP/UTC)"]
+            Task_CriaPendente --> Task_NotificaSec["Registrar AuditLog e notificar\nSecretaria sobre novo registro"]
+            Task_AtualizaAprovado["Atualizar Status: Aprovado\ne gravar ApprovedByUserId"] --> Task_EnviaEmailAcesso["Enviar e-mail com link\ne senha provisória"]
+            Task_EnviaEmailAcesso --> Task_PrimeiroLogin
+            Task_AtualizaReprovado["Atualizar Status: Reprovado\ne salvar justificativa"] --> Task_EnviaEmailReprov["Enviar e-mail notificando\nmotivo do indeferimento"]
+            Task_EnviaEmailReprov --> End_Reprovado
+        end
+
+        subgraph Lane_Secretaria ["Raia: Secretaria / Administrador"]
+            Task_NotificaSec --> Task_VisualizaPendente["Acessar fila de aprovações\nno Dashboard"]
+            Task_VisualizaPendente --> Task_AnalisaVinculo["Validar matrícula e\nvínculo acadêmico"]
+            Task_AnalisaVinculo --> Gate_Aprova{"Aprovar\ncadastro?"}
+            Gate_Aprova -- Sim --> Task_AtualizaAprovado
+            Gate_Aprova -- Não --> Task_InformaMotivo["Informar motivo do indeferimento"]
+            Task_InformaMotivo --> Task_AtualizaReprovado
+        end
+
+    end

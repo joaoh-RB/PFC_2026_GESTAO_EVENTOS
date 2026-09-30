@@ -1,0 +1,85 @@
+classDiagram
+    direction TB
+
+    class UserRole {
+        <<enumeration>>
+        Aluno = 1
+        Professor = 2
+        Administrador = 3
+        Secretaria = 4
+    }
+
+    class UserApprovalStatus {
+        <<enumeration>>
+        Pendente = 1
+        Aprovado = 2
+        Reprovado = 3
+    }
+
+    class Cnpj {
+        <<value object>>
+        +string Number
+        +Create(cnpj: string)$ Cnpj
+        +IsValid(cnpj: string)$ bool
+        +ToString() string
+    }
+
+    class Institution {
+        +Guid Id
+        +string Name
+        +Cnpj Cnpj
+        +string Address
+        +string Phone
+        +bool IsActive
+        +DateTime CreatedAt
+    }
+
+    class Course {
+        +Guid Id
+        +string Name
+        +Guid InstitutionId
+        +bool IsActive
+        +DateTime CreatedAt
+    }
+
+    class User {
+        <<abstract>>
+        +Guid Id
+        +string Name
+        +string Email
+        +string PasswordHash
+        +UserRole Role
+        +bool IsActive
+        +bool IsPasswordChangeRequired
+        +UserApprovalStatus ApprovalStatus
+        +Guid ApprovedByUserId
+        +DateTime ApprovedDate
+        +bool TwoFactorEnabled
+        +Guid InstitutionId
+        +DateTime CreatedAt
+    }
+
+    class Student {
+        +string UniqueIdentifier
+        +Guid CourseId
+    }
+
+    class Teacher
+    class Administrator
+    class AcademicDepartment
+
+    %% Herança (TPH)
+    User <|-- Student
+    User <|-- Teacher
+    User <|-- Administrator
+    User <|-- AcademicDepartment
+
+    %% Relacionamentos
+    Institution "1" *-- "0..1" Cnpj : possui
+    Institution "1" --> "*" User : vincula
+    Institution "1" --> "*" Course : oferece
+    Course "1" --> "*" Student : matricula
+    Course "*" -- "*" Teacher : ministrado por
+    User "0..1" --> "*" User : aprova cadastro
+    User --> UserRole : papel
+    User --> UserApprovalStatus : status

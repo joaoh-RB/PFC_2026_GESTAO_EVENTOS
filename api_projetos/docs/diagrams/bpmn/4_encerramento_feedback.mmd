@@ -1,0 +1,32 @@
+flowchart TD
+    %% Processo BPMN 4: Encerramento do Evento e Feedback de Alunos
+    
+    subgraph Pool_Feedback ["BPMN: Encerramento do Evento e Coleta de Feedback"]
+        
+        subgraph Lane_Organizador4 ["Raia: Organizador / Secretaria"]
+            Start4(["Início: Término do Evento"]) --> Task_RegistraPresenca["Registrar frequência presencial\nou via credenciamento"]
+            Task_RegistraPresenca --> Task_EnviaPresenca["Submeter confirmação de presença"]
+            Task_CalculaMetricas --> Task_AcessaRelatorios["Analisar relatório consolidado\nde satisfação e comentários"]
+            Task_AcessaRelatorios --> End_Concluido(["Fim: Evento Finalizado e Avaliado"])
+        end
+
+        subgraph Lane_Sistema4 ["Raia: Sistema (Back-end API)"]
+            Task_EnviaPresenca --> Task_AtualizaStatusInscr["Atualizar EventStudent\n(RegistrationStatus: Attended)"]
+            Task_AtualizaStatusInscr --> Task_DisparaAvisos["Disparar e-mail convidando\nalunos para avaliação pós-evento"]
+            
+            Task_SubmeteFeedback --> Task_VerificaDuplicado["Checar integridade:\nAluno participou e já avaliou?"]
+            Task_VerificaDuplicado --> Gate_Duplicado{"Feedback\nDuplicado?"}
+            Gate_Duplicado -- Sim --> Task_RejeitaFeedback["Retornar erro de avaliação já existente"]
+            Gate_Duplicado -- Não --> Task_PersisteFeedback["Persistir EventFeedback\n(StudentId, FeedbackText, Rating: 0..10)"]
+            Task_PersisteFeedback --> Task_CalculaMetricas["Recalcular média de satisfação\ne indicadores do evento"]
+        end
+
+        subgraph Lane_Aluno4 ["Raia: Aluno Participante"]
+            Task_DisparaAvisos --> Task_AcessaForm["Acessar formulário de satisfação"]
+            Task_AcessaForm --> Task_PreencheFeedback["Escrever comentário (FeedbackText)\ne selecionar nota de 0 a 10 (Rating)"]
+            Task_PreencheFeedback --> Task_SubmeteFeedback["Submeter avaliação"]
+            Task_RejeitaFeedback --> End_ErroDuplicado(["Fim: Submissão Rejeitada"])
+            Task_PersisteFeedback -.-> Task_RecebeAgradecimento["Visualiza confirmação de envio"]
+        end
+
+    end
