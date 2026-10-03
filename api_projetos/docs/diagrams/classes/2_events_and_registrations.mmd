@@ -1,0 +1,90 @@
+classDiagram
+    direction TB
+
+    class EventType {
+        <<enumeration>>
+        Palestra
+        Simposio
+        Congresso
+    }
+
+    class RegistrationStatus {
+        <<enumeration>>
+        Confirmed = 1
+        Canceled = 2
+        Attended = 3
+    }
+
+    class Event {
+        +Guid Id
+        +string Name
+        +string Description
+        +Guid InstitutionId
+        +DateTime StartDate
+        +DateTime EndDate
+        +int Capacity
+        +bool IsActive
+        +bool AllowDocuments
+        +EventType EventType
+        +string GoogleCalendarEventId
+    }
+
+    class EventStudent {
+        <<join entity>>
+        +Guid EventId
+        +Guid StudentId
+        +RegistrationStatus Status
+        +DateTime RegisteredAt
+        +DateTime CanceledAt
+        +bool IsActive
+    }
+
+    class EventAllowedCourse {
+        <<join entity>>
+        +Guid EventId
+        +Guid CourseId
+        +DateTime CreatedAt
+        +bool IsActive
+    }
+
+    class EventAddedToCalendar {
+        <<join entity>>
+        +Guid EventId
+        +Guid UserId
+        +bool IsActive
+        +DateTime AddedAt
+    }
+
+    class Institution {
+        +Guid Id
+        +string Name
+    }
+
+    class Course {
+        +Guid Id
+        +string Name
+    }
+
+    class Student {
+        +Guid Id
+        +string Name
+    }
+
+    class User {
+        +Guid Id
+        +string Name
+    }
+
+    %% Relacionamentos
+    Institution "1" --> "*" Event : sedia
+    Event --> EventType : tipo
+
+    Event "1" --> "*" EventStudent : inscrições
+    Student "1" --> "*" EventStudent : participa
+    EventStudent --> RegistrationStatus : status
+
+    Event "1" --> "*" EventAllowedCourse : restringe
+    Course "1" --> "*" EventAllowedCourse : autorizado
+
+    Event "1" --> "*" EventAddedToCalendar : sincronizações
+    User "1" --> "*" EventAddedToCalendar : calendários

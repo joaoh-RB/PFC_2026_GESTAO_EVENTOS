@@ -1,0 +1,36 @@
+flowchart TD
+    %% Processo BPMN 3: Grupos de Trabalho e Submissão/Avaliação de Documentos
+    
+    subgraph Pool_GruposDocs ["BPMN: Formação de Grupos, Submissão e Avaliação de Documentos"]
+        
+        subgraph Lane_Alunos ["Raia: Alunos (Grupo)"]
+            Start3(["Início: Evento aberto a trabalhos"]) --> Task_CriaGrupo["Criar novo Grupo para o evento"]
+            Task_CriaGrupo --> Task_ConvidaMembros["Adicionar membros (GroupMembers)\nvínculados ao EventId"]
+            Task_ConvidaMembros --> Task_ElaboraTrabalho["Elaborar trabalho/artigo acadêmico"]
+            Task_ElaboraTrabalho --> Task_SubmeteDoc["Submeter Documento com URL\ne identificação do grupo"]
+            Task_AjustaDoc["Corrigir e reenviar trabalho"] --> Task_SubmeteDoc
+            End_Aprovado(["Fim: Documento Homologado"])
+        end
+
+        subgraph Lane_Sistema3 ["Raia: Sistema (Back-end API)"]
+            Task_SubmeteDoc --> Task_SalvaDocPendente["Persistir Documento no banco\n(ApprovalStatus: Pending)"]
+            Task_SalvaDocPendente --> Task_NotificaAvaliador["Notificar avaliadores da instituição\n(InstitutionMembers)"]
+            
+            Task_GravaAprov["Atualizar status: Approved,\ngravar ReviewedByUserId e ReviewedAt"] --> Task_NotificaGrupoAprov["Notificar grupo sobre aprovação"]
+            Task_NotificaGrupoAprov --> End_Aprovado
+            
+            Task_GravaRej["Atualizar status: Rejected,\ngravar ReviewNotes e ReviewedAt"] --> Task_NotificaGrupoRej["Notificar grupo com apontamentos"]
+            Task_NotificaGrupoRej --> Task_AjustaDoc
+        end
+
+        subgraph Lane_Avaliador ["Raia: Membro da Instituição (InstitutionMember)"]
+            Task_NotificaAvaliador --> Task_AcessaPainel["Acessar fila de documentos pendentes"]
+            Task_AcessaPainel --> Task_AbreUrl["Acessar URL e avaliar o conteúdo técnico"]
+            Task_AbreUrl --> Gate_Parecer{"Parecer do\nDocumento?"}
+            Gate_Parecer -- Aprovado --> Task_EmiteAprov["Registrar parecer favorável"]
+            Task_EmiteAprov --> Task_GravaAprov
+            Gate_Parecer -- Rejeitado --> Task_EmiteRej["Inserir justificativa de reprovação\ne correções necessárias (ReviewNotes)"]
+            Task_EmiteRej --> Task_GravaRej
+        end
+
+    end

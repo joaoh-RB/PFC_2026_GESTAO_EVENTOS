@@ -1,0 +1,66 @@
+classDiagram
+    direction TB
+
+    class LegalDocumentType {
+        <<enumeration>>
+        PoliticaPrivacidade = 1
+        TermosDeUso = 2
+    }
+
+    class AuditOperationType {
+        <<enumeration>>
+        Insert = 0
+        Update = 1
+        Delete = 2
+        LoginSuccess = 10
+        LoginFailure = 11
+        PasswordChanged = 20
+        PasswordReset = 21
+    }
+
+    class User {
+        +Guid Id
+        +string Name
+        +string Email
+    }
+
+    class LegalDocument {
+        +Guid Id
+        +LegalDocumentType Type
+        +string Version
+        +string Content
+        +DateTime EffectiveDate
+        +bool IsActive
+        +DateTime CreatedAt
+    }
+
+    class TermAcceptance {
+        +Guid Id
+        +Guid UserId
+        +Guid LegalDocumentId
+        +string Version
+        +DateTime AcceptedAtUtc
+        +string IpAddress
+        +DateTime CreatedAt
+    }
+
+    class AuditLog {
+        +Guid Id
+        +Guid UserId
+        +string EntityName
+        +string EntityId
+        +AuditOperationType OperationType
+        +string OldValues
+        +string NewValues
+        +string ChangedProperties
+        +DateTime Timestamp
+        +string Description
+    }
+
+    %% Relacionamentos
+    LegalDocument "1" o-- "*" TermAcceptance : aceites
+    User "1" o-- "*" TermAcceptance : assina
+    LegalDocument --> LegalDocumentType : tipo
+
+    AuditLog --> AuditOperationType : operação
+    AuditLog ..> User : disparado por

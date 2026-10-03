@@ -1,0 +1,48 @@
+flowchart LR
+ subgraph Lane_Aluno["Raia: Aluno / Candidato"]
+        Task_Preenche["Preencher dados de cadastro\n(Nome, E-mail, RA, Curso)"]
+        Start1(["Início: Acessa plataforma"])
+        Task_AceitaTermos["Ler e aceitar Termos de Uso\ne Política de Privacidade"]
+        Task_EnviaReg["Submeter solicitação\nde cadastro"]
+        Task_Corrige["Corrigir dados cadastrais"]
+        End_Ativo(["Fim: Conta Ativada"])
+        End_Reprovado(["Fim: Cadastro Indeferido"])
+  end
+ subgraph Lane_Sistema["Raia: Sistema (Back-end API)"]
+        Task_ValidaDados["Validar dados\ne checar e-mail/RA único"]
+        Gate_Valido{"Dados\nválidos?"}
+        Task_RetornaErros["Retornar erros de validação"]
+        Task_CriaPendente["Criar User (Status: Pendente)\ne registrar TermAcceptance (IP/UTC)"]
+        Task_NotificaSec["Registrar AuditLog e notificar\nSecretaria sobre novo registro"]
+        Task_AtualizaAprovado["Atualizar Status: Aprovado\ne gravar ApprovedByUserId"]
+        Task_AtualizaReprovado["Atualizar Status: Reprovado\ne salvar justificativa"]
+  end
+ subgraph Lane_Secretaria["Raia: Secretaria / Administrador"]
+        Task_VisualizaPendente["Acessar fila de aprovações\nno Dashboard"]
+        Task_AnalisaVinculo["Validar matrícula e\nvínculo acadêmico"]
+        Gate_Aprova{"Aprovar\ncadastro?"}
+        Task_InformaMotivo["Informar motivo do indeferimento"]
+  end
+ subgraph Pool_Cadastro["BPMN: Processo de Cadastro, Termos LGPD e Aprovação de Usuário"]
+        Lane_Aluno
+        Lane_Sistema
+        Lane_Secretaria
+  end
+    Start1 --> Task_Preenche
+    Task_Preenche --> Task_AceitaTermos
+    Task_AceitaTermos --> Task_EnviaReg
+    Task_Corrige --> Task_EnviaReg
+    Task_EnviaReg --> Task_ValidaDados
+    Task_ValidaDados --> Gate_Valido
+    Gate_Valido -- Não --> Task_RetornaErros
+    Task_RetornaErros --> Task_Corrige
+    Gate_Valido -- Sim --> Task_CriaPendente
+    Task_CriaPendente --> Task_NotificaSec
+    Task_NotificaSec --> Task_VisualizaPendente
+    Task_VisualizaPendente --> Task_AnalisaVinculo
+    Task_AnalisaVinculo --> Gate_Aprova
+    Gate_Aprova -- Sim --> Task_AtualizaAprovado
+    Gate_Aprova -- Não --> Task_InformaMotivo
+    Task_InformaMotivo --> Task_AtualizaReprovado
+    Task_AtualizaAprovado --> End_Ativo
+    Task_AtualizaReprovado --> End_Reprovado
