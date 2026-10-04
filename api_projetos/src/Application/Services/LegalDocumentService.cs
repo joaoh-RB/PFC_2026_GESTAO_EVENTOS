@@ -5,8 +5,8 @@ using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 namespace API_Gestao_Eventos.src.Application.Services
 {
     public class LegalDocumentService(
-        LegalDocumentRepository legalDocumentRepository,
-        TermAcceptanceRepository termAcceptanceRepository)
+        ILegalDocumentRepository legalDocumentRepository,
+        ITermAcceptanceRepository termAcceptanceRepository)
     {
         private static LegalDocumentDto ToDto(Domain.Entities.LegalDocument d) => new()
         {

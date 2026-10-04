@@ -4,9 +4,9 @@ using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 
 namespace API_Gestao_Eventos.src.Application.Services
 {
-    public class CourseService(CourseRepository courseRepository)
+    public class CourseService(ICourseRepository courseRepository)
     {
-        private readonly CourseRepository _courseRepository = courseRepository;
+        private readonly ICourseRepository _courseRepository = courseRepository;
         public async Task<IEnumerable<SelectItemDto>> GetCoursesForSelectAsync(Guid? institutionId)
         {
             if (!institutionId.HasValue || institutionId == Guid.Empty)

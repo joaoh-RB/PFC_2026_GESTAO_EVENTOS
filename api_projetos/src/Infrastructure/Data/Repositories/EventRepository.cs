@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
 {
-    public class EventRepository(AppDbContext _context, UserRepository userRepository)
+    public class EventRepository(AppDbContext _context, IUserRepository userRepository) : IEventRepository
     {
         public async Task<IEnumerable<Event>> GetAllActiveAsync()
         {
@@ -141,5 +141,18 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
             _context.EventAddedToCalendars.Update(eventAddedToCalendar);
             await _context.SaveChangesAsync();
         }
+    }
+    public interface IEventRepository
+    {
+        Task<IEnumerable<Event>> GetAllActiveAsync();
+        Task<Event?> GetByIdAsync(Guid eventId);
+        Task<Event> AddAsync(Event eventEntity);
+        Task UpdateAsync(Event eventEntity);
+        Task SetActiveAsync(Event eventEntity, bool isActive);
+        Task<(IEnumerable<Event>, int totalItems)> GetFilteredAvailableForUserAsync(EventFilterDto eventFilterDto, Guid userId);
+        Task<IEnumerable<EventAddedToCalendar>> GetAllAdditionsToCalendarAsync(Guid userId);
+        Task<EventAddedToCalendar?> GetEventAddedToCalendarAsync(Guid eventId, Guid userId);
+        Task AddEventToCalendarAsync(EventAddedToCalendar eventAddedToCalendar);
+        Task UpdateEventInCalendarAsync(EventAddedToCalendar eventAddedToCalendar);
     }
 }

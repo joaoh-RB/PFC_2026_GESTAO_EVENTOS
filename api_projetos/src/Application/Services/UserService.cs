@@ -12,10 +12,10 @@ using SendGrid.Helpers.Mail;
 namespace API_Gestao_Eventos.src.Application.Services
 {
     public class UserService(
-        UserRepository userRepository,
-        InstitutionRepository institutionRepository,
-        CourseRepository courseRepository,
-        EmailService emailService,
+        IUserRepository userRepository,
+        IInstitutionRepository institutionRepository,
+        ICourseRepository courseRepository,
+        IEmailService emailService,
         EmailTemplateRenderer emailTemplateRenderer,
         IConfiguration configuration,
         IHasher passwordHasher)
