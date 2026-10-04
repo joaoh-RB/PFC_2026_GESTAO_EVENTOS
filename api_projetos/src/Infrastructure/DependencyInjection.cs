@@ -1,4 +1,4 @@
-﻿using API_Gestao_Eventos.src.Infrastructure.Data.Context;
+using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 using API_Gestao_Eventos.src.Infrastructure.Services.Email;
 using API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar;
@@ -18,9 +18,12 @@ namespace API_Gestao_Eventos.src.Infrastructure
         this IServiceCollection services,
         IConfiguration configuration)
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-            services.AddDbContext<AppDbContext>(options =>
-                options.UseNpgsql(connectionString));
+            if (configuration["DatabaseProvider"] != "None")
+            {
+                var connectionString = configuration.GetConnectionString("DefaultConnection");
+                services.AddDbContext<AppDbContext>(options =>
+                    options.UseNpgsql(connectionString));
+            }
             services.AddHttpContextAccessor();
 
             services.AddScoped<IHasher, Hasher>();
