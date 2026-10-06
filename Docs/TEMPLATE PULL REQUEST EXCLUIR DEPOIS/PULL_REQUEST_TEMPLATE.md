@@ -64,14 +64,19 @@ Construir êxito em 3,0s
 - **Link do CI (se houver):** não se aplica
 
 ## 8. Decisões e dificuldades
-- **O que foi mockado e por quê:** [texto] [PREENCHER]
+- **O que foi mockado e por quê:** 
+  - Service de Cursos: Criação do mock pois a validação do objeto cursos é essencial para todos os outros módulos do sistema, já que o cadastro de usuários e gestão de eventos é dependente.
+  - Service de Eventos: O ponto central de cadastro, criado mock para verificar que as chamadas feitas à api externa são realizadas apenas quando necessárias, além de validar onde existem as regras de negócio.
+  - Integração na parte de instituição: Criado testes de persistência, para verificar se a estrutura do Entity Framework está funcional independente do banco de dados e se os códigos de requisições estão retornando de acordo com padrões REST, garantindo a segurança. As instituições, assim como os cursos, são usados em todo o sistema como um delimitador de ações que os usuários podem ter.
 - **Bugs encontrados pelos testes (se houver):** Nenhum.
-- **Dificuldades:** [texto] [PREENCHER]
+- **Dificuldades:** 
+  - As dificuldades encontradas no cadastro foram, principalmente, a ausência de interfaces nas classes Repository e Services externos no momento da criação. Foi necessário criar, para não existir uma comunicação direta com o banco de dados nos testes unitários, apenas um mock que simulava essa comunicação.
+  - Nos testes de integração, a criação da estrutura para simular o client HTTP da API, junto com o banco de dados SQLite (Na aplicação, é usado um banco PostgreSQL) foram os pontos de maior dificuldade.
 
 ## 9. Checklist de entrega
 - [X] Todos os testes passam localmente com o comando da seção 6
-- [FAZER] Cada cenário listado nas seções 3 e 4 existe no código
-- [FAZER] Cada arquivo de teste alterado ou criado está listado na seção 5
+- [X] Cada cenário listado nas seções 3 e 4 existe no código
+- [X] Cada arquivo de teste alterado ou criado está listado na seção 5
 - [X] Mínimos do exercício atendidos (10 unitários em 3 classes; 4 de integração)
 - [X] Nenhum teste com @Disabled, sem asserção ou com Thread.sleep
 - [FAZER] Professor adicionado como reviewer
