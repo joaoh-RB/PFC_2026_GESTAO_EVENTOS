@@ -1,35 +1,51 @@
 ## 1. Identificação
 - **Aluno(s):** Gabriel Antonio Vieira Cordeiro - 11231504427
 João Henrique Rodrigues Batista - []
-Pedro Henrique Santos Andrade - []
+Pedro Henrique Santos Andrade - 11231103572
 - **Projeto (PFC):** Symplosio
 - **Branch:** feat/testes-automatizados
 
 ## 2. Resumo da entrega [PREENCHER]
 [2 a 4 linhas: o que foi testado e qual parte do sistema passou a ter cobertura.]
 
-## 3. Cenários de testes unitários implementados [PREENCHER]
+## 3. Cenários de testes unitários implementados
 | # | Classe testada | Método / regra | Cenário | Tipo | Arquivo de teste | Método de teste |
 |---|----------------|----------------|---------|------|------------------|-----------------|
-| 1 | PedidoService | criar() | Estoque suficiente | Feliz | PedidoServiceTest | deveCriarPedido |
-| 2 | PedidoService | criar() | Sem estoque | Violação | PedidoServiceTest | deveLancarExcecao |
+| 1 | CourseService | CreateCourseAsync() | Dados válidos cadastram o curso | Feliz | CourseServiceTests | CreateCourseAsync_QuandoDadosValidos_DeveCadastrarComSucessoEChamarAddAsync |
+| 2 | CourseService | CreateCourseAsync() | Nome de curso já existente | Violação | CourseServiceTests | CreateCourseAsync_QuandoNomeJaExisteNaInstituicao_DeveLancarInvalidOperationExceptionENaoChamarAddAsync |
+| 3 | CourseService | GetCoursesForSelectAsync() | Instituição vazia | Limite | CourseServiceTests | GetCoursesForSelectAsync_QuandoInstitutionIdForVazioOuNulo_DeveRetornarListaVaziaSemConsultarRepositorio |
+| 4 | CreateCourseValidator | Validate() | Dados válidos passam | Feliz | CreateCourseValidatorTests | Validate_QuandoDadosForemValidos_DevePassarNaValidacao |
+| 5 | CreateCourseValidator | Validate() | Nome vazio | Violação | CreateCourseValidatorTests | Validate_QuandoNomeForVazio_DeveFalharComMensagemObrigatoria |
+| 6 | CreateCourseValidator | Validate() | Nome com exatamente 150 caracteres | Limite | CreateCourseValidatorTests | Validate_QuandoNomeTiverExatamente150Caracteres_DevePassarNaValidacao |
+| 7 | EventService | AddAsync() | Dados válidos cadastram o evento | Feliz | EventServiceTests | CreateEventAsync_QuandoDadosForemValidos_DeveCadastrarEventoComSucessoEChamarAddAsync |
+| 8 | EventService | AddAsync() | Curso não pertence à instituição | Violação | EventServiceTests | CreateEventAsync_QuandoCursoNaoPertencerAInstituicao_DeveLancarInvalidOperationExceptionENaoChamarAddAsync |
+| 9 | EventService | SetActiveAsync() | Inativar evento que já começou | Limite | EventServiceTests | SetActiveAsync_QuandoDataForPassadaEForDesativar_DeveLancarArgumentExceptionENaoChamarSetActiveAsyncEDeactivateEventAsync |
+| 10 | CourseService | CreateCourseAsync() | Nome existente e nome novo | Violação | CourseServiceTests | CreateCourseAsync_QuandoNomesJaExistiremNaInstituicao_DeveLancarInvalidOperationExceptionENaoChamarAddAsync |
 
 Tipo: Feliz | Violação | Limite
-**Total de cenários unitários:** [10]
+**Total de cenários unitários:** 10
 
-## 4. Cenários de testes de integração implementados [PREENCHER]
+## 4. Cenários de testes de integração implementados
 | # | Camadas envolvidas | Cenário | Arquivo de teste | Método de teste | Recurso usado |
 |---|--------------------|---------|------------------|-----------------|---------------|
-| 1 | Controller+BD | POST /produtos retorna 201 | ProdutoControllerIT | deveRetornar201 | MockMvc+H2 |
+| 1 | Controller+Service+BD | GET /api/institutions retorna 200 | ApiIntegrationTests | GetInstitutions_QuandoCaminhoFeliz_DeveRetornarStatus200ECorpoComInstituicoes | WebApplicationFactory+SQLite |
+| 2 | Controller+Service+BD | GET /api/institutions/{id} inexistente retorna 404 | ApiIntegrationTests | GetInstitutionById_QuandoNaoEncontrado_DeveRetornarStatus404ECorpoDeErro | WebApplicationFactory+SQLite |
+| 3 | Repository+BD | Salvar e recuperar instituição | PersistenceTests | InstitutionRepository_DeveSalvarERecuperarEConsultarCustomizado | SQLite em memória |
+| 4 | Controller+Service+BD | POST retorna 201 e GET devolve o criado | ApiIntegrationTests | FluxoCompleto_CriarEConsultarInstituicao_DeveCruzarApiComServiceEBanco | WebApplicationFactory+SQLite |
 
-**Total de cenários de integração:** [4]
+**Total de cenários de integração:** 4
 
-## 5. Arquivos de teste criados ou alterados [PREENCHER]
+## 5. Arquivos de teste criados ou alterados
 | Arquivo (caminho completo) | Criado / Alterado | Qtd. de testes |
 |----------------------------|-------------------|----------------|
-| src/test/java/.../PedidoServiceTest | Criado | [N] |
+| api_projetos/tests/API_Gestao_Eventos.Tests/Services/CourseServiceTests.cs | Criado | 6 |
+| api_projetos/tests/API_Gestao_Eventos.Tests/Services/EventServiceTests.cs | Criado | 3 |
+| api_projetos/tests/API_Gestao_Eventos.Tests/Validators/CreateCourseValidatorTests.cs | Criado | 3 |
+| api_projetos/tests/API_Gestao_Eventos.Tests/Integration/ApiIntegrationTests.cs | Criado | 3 |
+| api_projetos/tests/API_Gestao_Eventos.Tests/Integration/PersistenceTests.cs | Criado | 1 |
+| api_projetos/tests/API_Gestao_Eventos.Tests/Integration/CustomWebApplicationFactory.cs | Criado | 0 |
 
-**Total de arquivos de teste:** [N]  |  **Total de testes:** [N]
+**Total de arquivos de teste:** 6  |  **Total de testes:** 16
 
 ## 6. Como executar os testes
 ```
