@@ -8,7 +8,7 @@ using EventEntity = API_Gestao_Eventos.src.Domain.Entities.Event;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar
 {
-    public class GoogleCalendarService
+    public class GoogleCalendarService : IGoogleCalendarService
     {
         private readonly CalendarService _calendarService;
         private readonly string _calendarId;
@@ -172,5 +172,13 @@ namespace API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar
                 _logger.LogWarning("Evento {GoogleEventId} não encontrado para desativação no Google Calendar.", googleEventId);
             }
         }
+    }
+    public interface IGoogleCalendarService
+    {
+        Task<string> CreateEventAsync(EventEntity eventEntity);
+        Task UpdateEventAsync(EventEntity eventEntity);
+        Task AddAttendeeAsync(string googleEventId, string attendeeEmail);
+        Task RemoveAttendeeAsync(string googleEventId, string attendeeEmail);
+        Task DeactivateEventAsync(string googleEventId, bool isActive);
     }
 }

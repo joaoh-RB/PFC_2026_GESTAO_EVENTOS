@@ -8,7 +8,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
 {
-    public class UserRepository
+    public class UserRepository : IUserRepository
     {
         private readonly AppDbContext _context;
         public UserRepository(AppDbContext context)
@@ -141,5 +141,19 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
         }
+    }
+    public interface IUserRepository
+    {
+        Task<User?> GetByIdAsync(Guid id);
+        Task<Student?> GetStudentByIdAsync(Guid id);
+        Task<IEnumerable<Student>?> GetAllStudentsAsync();
+        Task<User?> GetByEmailAsync(string email);
+        Task<bool> ExistsByEmailAsync(string email);
+        Task<bool> ExistsByEmailExceptAsync(string email, Guid userId);
+        Task<bool> ExistsByUniqueIdentifierAndInstitutionAsync(string uniqueIdentifier, Guid institutionId);
+        Task<bool> ExistsByUniqueIdentifierAndInstitutionExceptAsync(string uniqueIdentifier, Guid institutionId, Guid userId);
+        Task AddAsync(User user);
+        Task<(IEnumerable<User>, int totalItems)> GetFilteredInstitutionMembersAsync(InstitutionMemberFilterDto institutionMemberFilterDto);
+        Task UpdateAsync(User user);
     }
 }

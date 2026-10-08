@@ -12,7 +12,7 @@ namespace API_Gestao_Eventos.src.Application
     {
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
-            services.AddScoped<AuthService>();
+            services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<CourseService>();
             services.AddScoped<InstitutionService>();
             services.AddScoped<EventService>();

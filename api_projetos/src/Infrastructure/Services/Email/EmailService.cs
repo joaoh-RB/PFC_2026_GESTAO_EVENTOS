@@ -3,7 +3,7 @@ using SendGrid.Helpers.Mail;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Services.Email
 {
-    public class EmailService(IConfiguration configuration, HttpClient httpClient)
+    public class EmailService(IConfiguration configuration, HttpClient httpClient) : IEmailService
     {
         public async Task SendEmailAsync(EmailAddress to, string subject, string body)
         {
@@ -38,5 +38,9 @@ namespace API_Gestao_Eventos.src.Infrastructure.Services.Email
                 );
             }
         }
+    }
+    public interface IEmailService
+    {
+        Task SendEmailAsync(EmailAddress to, string subject, string body);
     }
 }
