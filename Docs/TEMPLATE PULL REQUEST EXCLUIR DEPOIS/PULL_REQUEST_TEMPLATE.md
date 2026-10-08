@@ -1,12 +1,13 @@
 ## 1. Identificação
-- **Aluno(s):** Gabriel Antonio Vieira Cordeiro - 11231504427
-João Henrique Rodrigues Batista - []
+- **Aluno(s):** <br>
+Gabriel Antonio Vieira Cordeiro - 11231504427 <br>
+João Henrique Rodrigues Batista - 11231103959<br>
 Pedro Henrique Santos Andrade - 11231103572
 - **Projeto (PFC):** Symplosio
 - **Branch:** feat/testes-automatizados
 
-## 2. Resumo da entrega [PREENCHER]
-[2 a 4 linhas: o que foi testado e qual parte do sistema passou a ter cobertura.]
+## 2. Resumo da entrega
+Foram implementados 10 testes unitários e 4 de integração, cobrindo o cadastro de cursos, o cadastro e a inativação de eventos e o fluxo de instituições. Em CourseService e CreateCourseValidator, a cobertura inclui criação com dados válidos, nome duplicado na instituição, nome vazio, limite de 150 caracteres e consulta de cursos com instituição vazia. Em EventService, os testes verificam o cadastro quando o curso pertence à instituição, a recusa quando o curso não pertence e o bloqueio de inativação de evento que já começou. Na integração, a API de instituições (listagem com 200, consulta inexistente com 404 e criação seguida de consulta) e a persistência do repositório passam a ser exercitadas com WebApplicationFactory e SQLite em memória.
 
 ## 3. Cenários de testes unitários implementados
 | # | Classe testada | Método / regra | Cenário | Tipo | Arquivo de teste | Método de teste |
@@ -20,7 +21,7 @@ Pedro Henrique Santos Andrade - 11231103572
 | 7 | EventService | AddAsync() | Dados válidos cadastram o evento | Feliz | EventServiceTests | CreateEventAsync_QuandoDadosForemValidos_DeveCadastrarEventoComSucessoEChamarAddAsync |
 | 8 | EventService | AddAsync() | Curso não pertence à instituição | Violação | EventServiceTests | CreateEventAsync_QuandoCursoNaoPertencerAInstituicao_DeveLancarInvalidOperationExceptionENaoChamarAddAsync |
 | 9 | EventService | SetActiveAsync() | Inativar evento que já começou | Limite | EventServiceTests | SetActiveAsync_QuandoDataForPassadaEForDesativar_DeveLancarArgumentExceptionENaoChamarSetActiveAsyncEDeactivateEventAsync |
-| 10 | CourseService | CreateCourseAsync() | Nome existente e nome novo | Violação | CourseServiceTests | CreateCourseAsync_QuandoNomesJaExistiremNaInstituicao_DeveLancarInvalidOperationExceptionENaoChamarAddAsync |
+| 10 | CourseService | CreateCourseAsync() | Nome existente e nome novo | Feliz e Violação | CourseServiceTests | CreateCourseAsync_QuandoNomesJaExistiremNaInstituicao_DeveLancarInvalidOperationExceptionENaoChamarAddAsync |
 
 Tipo: Feliz | Violação | Limite
 **Total de cenários unitários:** 10
@@ -79,4 +80,3 @@ Construir êxito em 3,0s
 - [X] Cada arquivo de teste alterado ou criado está listado na seção 5
 - [X] Mínimos do exercício atendidos (10 unitários em 3 classes; 4 de integração)
 - [X] Nenhum teste com @Disabled, sem asserção ou com Thread.sleep
-- [FAZER] Professor adicionado como reviewer
