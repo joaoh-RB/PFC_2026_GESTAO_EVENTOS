@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
 {
-    public class TermAcceptanceRepository(AppDbContext _context)
+    public class TermAcceptanceRepository(AppDbContext _context) : ITermAcceptanceRepository
     {
         public async Task<bool> HasAcceptedAsync(Guid userId, Guid legalDocumentId)
         {
@@ -16,5 +16,10 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
             await _context.TermAcceptances.AddAsync(acceptance);
             await _context.SaveChangesAsync();
         }
+    }
+    public interface ITermAcceptanceRepository
+    {
+        Task<bool> HasAcceptedAsync(Guid userId, Guid legalDocumentId);
+        Task AddAsync(TermAcceptance acceptance);
     }
 }

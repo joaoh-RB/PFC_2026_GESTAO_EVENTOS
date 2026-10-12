@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
 {
-    public class InstitutionRepository
+    public class InstitutionRepository : IInstitutionRepository
     {
         private readonly AppDbContext _context;
         public InstitutionRepository(AppDbContext context)
@@ -66,5 +66,19 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
             institution.IsActive = isActive;
             await _context.SaveChangesAsync();
         }
+    }
+    public interface IInstitutionRepository
+    {
+        Task<IEnumerable<Institution>> GetAllActiveAsync();
+        Task<Institution?> GetByIdAsync(Guid id);
+        Task<bool> ExistsByNameAsync(string name);
+        Task<bool> ExistsByCnpjAsync(Domain.Cnpj cnpj);
+        Task<bool> ExistsByNameExceptAsync(string name, Guid id);
+        Task<bool> ExistsByCnpjExceptAsync(Domain.Cnpj cnpj, Guid id);
+        Task<bool> HasDependenciesAsync(Guid id);
+        Task AddAsync(Institution institution);
+        Task UpdateAsync(Institution institution);
+        Task<IEnumerable<Institution>> GetAllForManagementAsync();
+        Task SetActiveAsync(Institution institution, bool isActive);
     }
 }

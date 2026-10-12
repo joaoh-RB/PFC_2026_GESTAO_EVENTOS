@@ -6,7 +6,7 @@ using API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar;
 
 namespace API_Gestao_Eventos.src.Application.Services
 {
-    public class EventService(EventRepository eventRepository, CourseRepository courseRepository, GoogleCalendarService googleCalendarService, AuthService authService)
+    public class EventService(IEventRepository eventRepository, ICourseRepository courseRepository, IGoogleCalendarService googleCalendarService, IAuthService authService)
     {
         public async Task<Event> AddAsync(CreateEventRequestDto request)
         {

@@ -4,3 +4,5 @@
 api_projetos/appsettings.json
 /.vs
 /Frontend/obj
+/api_projetos/tests/API_Gestao_Eventos.Tests/bin
+/api_projetos/tests/API_Gestao_Eventos.Tests/obj
