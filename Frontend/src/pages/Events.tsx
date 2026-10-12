@@ -1,23 +1,20 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { AlertCircle, Plus, ListFilter } from "lucide-react";
 import { CreateEventForm } from "@/components/events/CreateEventForm";
 import {
   EventsList,
   type EventItem,
-  type EventFilterState,
 } from "@/components/events/EventList";
 import { Button } from "@/components/ui/button";
 import { type CreateEventFormData } from "../schemas/eventSchema";
 import { useAuth } from "../hooks/useAuth";
 import type { OptionItem } from "@/types/optionItem";
 import { formatForDatetimeLocal } from "@/utils/format";
-import { type PagedResult } from "@/types/utils";
 import { InitialLoading } from "@/components/InitialLoading";
 import { PageHeader } from "@/components/PageHeader";
 
 export const Events: React.FC = () => {
-  const pageSize = 6;
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
   const [courses, setCourses] = useState<OptionItem[]>([]);
   const [eventTypes, setEventTypes] = useState<OptionItem[]>([]);
@@ -29,25 +26,9 @@ export const Events: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const [eventsData, setEventsData] = useState<PagedResult<EventItem>>({
-    items: [],
-    totalItems: 0,
-    pageNumber: 1,
-    pageSize: pageSize,
-    totalPages: 1,
-    hasPreviousPage: false,
-    hasNextPage: false,
-  });
-
   const [currentEventBeingUpdated, setEventBeingUpdated] = useState<
     (CreateEventFormData & { id: string; isActive: boolean }) | null
   >(null);
-
-  const [isEventsLoading, setIsEventsLoading] = useState(false);
-  const [filters, setFilters] = useState<EventFilterState>({
-    fromDate: new Date().toISOString().split("T")[0],
-  });
-  const [currentPage, setCurrentPage] = useState(1);
 
   const { user } = useAuth();
   const userInstitutionId = user?.institutionId || null;
@@ -85,56 +66,10 @@ export const Events: React.FC = () => {
     };
   }, []);
 
-
-  const fetchEvents = useCallback(
-    async (appliedFilters = filters) => {
-      setIsEventsLoading(true);
-      try {
-        const params: Record<string, string | number | boolean> = {
-          pageNumber: currentPage,
-          pageSize: pageSize,
-        };
-        if (appliedFilters.fromDate) {
-          params.fromDate = new Date(
-            `${appliedFilters.fromDate}T00:00:00-03:00`,
-          ).toISOString();
-        }
-        if (appliedFilters.institutionId) {
-          params.institutionId = appliedFilters.institutionId;
-        }
-        if (appliedFilters.isActive !== undefined) {
-          params.isActive = appliedFilters.isActive;
-        }
-        const res = await api.get<PagedResult<EventItem>>("/events", {
-          params,
-        });
-        setEventsData(res.data);
-      } catch (err) {
-        console.error("Erro ao buscar eventos", err);
-      } finally {
-        setIsEventsLoading(false);
-      }
-    },
-    [filters, currentPage],
-  );
-
-  useEffect(() => {
-    if (!editing) {
-      fetchEvents(filters);
-    }
-  }, [editing, currentPage, fetchEvents, filters]);
-
-  const handleFilterChange = (newFilters: EventFilterState) => {
-    setCurrentPage(1);
-    setFilters(newFilters);
-  };
-
   const handleInstitutionChange = (institutionId: string) => {
     fetchCourses(institutionId);
   };
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+
   const handleStartEdition = (eventItem: EventItem) => {
     fetchCourses(eventItem.institutionId);
     setEventBeingUpdated({
@@ -180,13 +115,6 @@ export const Events: React.FC = () => {
     }
   };
 
-  const handleToggleActive = async (eventItem: EventItem) => {
-    await api.patch(`/events/${eventItem.id}/active`, {
-      isActive: !eventItem.isActive,
-    });
-    setCurrentPage(1);
-    fetchEvents();
-  };
 
   if (isInitialLoading) {
     return <InitialLoading></InitialLoading>;
@@ -265,15 +193,9 @@ export const Events: React.FC = () => {
           />
         ) : (
           <EventsList
-            data={eventsData}
             institutions={institutions}
-            isLoading={isEventsLoading}
-            currentFilters={filters}
             userInstitutionId={userInstitutionId}
-            onFilter={handleFilterChange}
-            onPageChange={handlePageChange}
             handleStartEdition={handleStartEdition}
-            handleToggleActive={handleToggleActive}
           />
         )}
     </div>

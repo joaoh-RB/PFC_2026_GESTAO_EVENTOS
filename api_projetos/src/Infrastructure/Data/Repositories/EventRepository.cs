@@ -28,12 +28,14 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         {
             var currentEvent = await _context.Events
                 .Include(e => e.EventAllowedCourses)
+                .Include(e => e.EventStudents)
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
 
             if (currentEvent == null)
                 throw new KeyNotFoundException("Evento não encontrado.");
-
+            if (eventEntity.EventStudents != null)
+                currentEvent.EventStudents = eventEntity.EventStudents;
             _context.Entry(currentEvent).CurrentValues.SetValues(eventEntity);
 
 
@@ -86,7 +88,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
                         .AsNoTracking()
                         .Include(e => e.Institution)
                         .Include(e => e.AllowedCourses)
-                        .Include(e => e.EventStudents);
+                        .Include(e => e.EventStudents)
+                        .Where(w => w.Institution.IsActive);
             if (eventFilterDto.FromDate.HasValue)
             {
                 var utcFromDate = DateTime.SpecifyKind(eventFilterDto.FromDate.Value, DateTimeKind.Utc);

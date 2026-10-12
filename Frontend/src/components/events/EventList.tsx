@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -26,14 +26,68 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Calendar, Clock, MapPin, Users, Loader2 } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  Loader2,
+  FileUp,
+  LogIn,
+  LogOut,
+} from "lucide-react";
 import { type PagedResult } from "@/types/utils";
 import { formatDateForShort } from "@/utils/format";
 import type { OptionItem } from "@/types/optionItem";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 import { useAuth } from "@/hooks/useAuth";
+import { api } from "@/services/api";
 import { AddToCalendarButton } from "./AddToCalendarButton";
 import { RemoveFromCalendarButton } from "./RemoveFromCalendarButton";
+import { SubmitDocumentModal } from "./SubmitDocumentModal";
+
+export interface FetchEventsParams {
+  pageNumber?: number;
+  pageSize?: number;
+  fromDate?: string;
+  institutionId?: string;
+  isActive?: boolean;
+}
+
+const fetchEvents = async (
+  appliedFilters: EventFilterState | FetchEventsParams = {},
+  pageNumber: number = 1,
+  pageSize: number = 6,
+): Promise<PagedResult<EventItem>> => {
+  const params: Record<string, string | number | boolean> = {
+    pageNumber: (appliedFilters as FetchEventsParams)?.pageNumber ?? pageNumber,
+    pageSize: (appliedFilters as FetchEventsParams)?.pageSize ?? pageSize,
+  };
+  if (appliedFilters.fromDate) {
+    params.fromDate = new Date(
+      `${appliedFilters.fromDate}T00:00:00-03:00`,
+    ).toISOString();
+  }
+  if (appliedFilters.institutionId) {
+    params.institutionId = appliedFilters.institutionId;
+  }
+  if (appliedFilters.isActive !== undefined) {
+    params.isActive = appliedFilters.isActive;
+  }
+  const res = await api.get<PagedResult<EventItem>>("/events", {
+    params,
+  });
+  return res.data;
+};
+
+const toggleEventActive = async (
+  eventId: string,
+  isActive: boolean,
+): Promise<void> => {
+  await api.patch(`/events/${eventId}/active`, {
+    isActive,
+  });
+};
 
 export interface EventItem {
   id: string;
@@ -52,6 +106,7 @@ export interface EventItem {
   isActive: boolean;
   isAddedToCalendar: boolean;
   allowsAddToCalendar: boolean;
+  isUserRegistered?: boolean;
 }
 
 export interface EventFilterState {
@@ -62,47 +117,176 @@ export interface EventFilterState {
 
 type StatusFilterValue = "all" | "active" | "inactive";
 
-interface EventsListProps {
-  data: PagedResult<EventItem>;
+export interface EventsListProps {
+  data?: PagedResult<EventItem>;
   institutions: OptionItem[];
-  isLoading: boolean;
   currentFilters?: EventFilterState;
   userInstitutionId: string | null;
-  onFilter: (filters: EventFilterState) => void;
-  onPageChange: (page: number) => void;
-  handleStartEdition: (eventData: EventItem) => void;
-  handleToggleActive: (eventData: EventItem) => void;
+  onFilter?: (filters: EventFilterState) => void;
+  onPageChange?: (page: number) => void;
+  handleStartEdition?: (eventData: EventItem) => void;
+  handleToggleActive?: (eventData: EventItem) => void;
+  studentMode?: boolean;
+  onJoinEvent?: (eventId: string) => Promise<void>;
+  onLeaveEvent?: (eventId: string) => Promise<void>;
+  pageSize?: number;
 }
 
 export const EventsList: React.FC<EventsListProps> = ({
-  data,
   institutions,
-  isLoading,
   currentFilters,
   userInstitutionId,
   onFilter,
   onPageChange,
   handleStartEdition,
-  handleToggleActive,
+  handleToggleActive: externalHandleToggleActive,
+  studentMode = false,
+  onJoinEvent,
+  onLeaveEvent,
+  pageSize = 6,
 }) => {
   const { user } = useAuth();
   const allInstitutionsName = "Todas as instituições";
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filters, setFilters] = useState<EventFilterState>(
+    currentFilters ?? {
+      fromDate: new Date().toISOString().split("T")[0],
+    },
+  );
+
+  const [data, setData] = useState<PagedResult<EventItem>>({
+    items: [],
+    totalItems: 0,
+    pageNumber: 1,
+    pageSize,
+    totalPages: 1,
+    hasPreviousPage: false,
+    hasNextPage: false,
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [fromDate, setFromDate] = useState<string>(
-    currentFilters?.fromDate || new Date().toISOString().split("T")[0],
+    filters.fromDate || new Date().toISOString().split("T")[0],
   );
   const [institutionId, setInstitutionId] = useState<string>(
-    userInstitutionId || currentFilters?.institutionId || allInstitutionsName,
+    userInstitutionId || filters.institutionId || allInstitutionsName,
   );
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(
-    currentFilters?.isActive === undefined
+    filters.isActive === undefined
       ? "all"
-      : currentFilters.isActive
+      : filters.isActive
         ? "active"
         : "inactive",
   );
   const [calendarOverrides, setCalendarOverrides] = useState<
     Record<string, boolean>
   >({});
+  const [registrationOverrides, setRegistrationOverrides] = useState<
+    Record<string, boolean>
+  >({});
+  const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+  const [documentModalEvent, setDocumentModalEvent] =
+    useState<EventItem | null>(null);
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+
+  const loadEvents = useCallback(
+    async (appliedFilters = filters, page = currentPage) => {
+      setIsLoading(true);
+      try {
+        const res = await fetchEvents(appliedFilters, page, pageSize);
+        setData(res);
+      } catch (err) {
+        console.error("Erro ao buscar eventos", err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [filters, currentPage, pageSize],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    void fetchEvents(filters, currentPage, pageSize)
+      .then((res) => {
+        if (isMounted) {
+          setData(res);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.error("Erro ao buscar eventos", err);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [filters, currentPage, pageSize]);
+
+  const handleFilterChange = (newFilters: EventFilterState) => {
+    setIsLoading(true);
+    setCurrentPage(1);
+    setFilters(newFilters);
+    onFilter?.(newFilters);
+  };
+
+  const handlePageChange = (page: number) => {
+    setIsLoading(true);
+    setCurrentPage(page);
+    onPageChange?.(page);
+  };
+
+  const handleToggleActive = async (eventItem: EventItem) => {
+    if (externalHandleToggleActive) {
+      externalHandleToggleActive(eventItem);
+      return;
+    }
+    try {
+      await toggleEventActive(eventItem.id, !eventItem.isActive);
+      setCurrentPage(1);
+      await loadEvents(filters, 1);
+    } catch (err) {
+      console.error("Erro ao alterar status do evento", err);
+    }
+  };
+
+  const handleJoin = async (eventId: string) => {
+    setLoadingActionId(eventId);
+    try {
+      if (!onJoinEvent) return;
+      await onJoinEvent(eventId);
+      setRegistrationOverrides((current) => ({
+        ...current,
+        [eventId]: true,
+      }));
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
+  const handleLeave = async (eventId: string) => {
+    setLoadingActionId(eventId);
+    try {
+      if (!onLeaveEvent) return;
+      await onLeaveEvent(eventId);
+      setRegistrationOverrides((current) => ({
+        ...current,
+        [eventId]: false,
+      }));
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
+  const handleOpenDocumentModal = (eventItem: EventItem) => {
+    setDocumentModalEvent(eventItem);
+    setIsDocumentModalOpen(true);
+  };
 
   const statusOptions: OptionItem[] = [
     { value: "all", label: "Todos" },
@@ -111,7 +295,7 @@ export const EventsList: React.FC<EventsListProps> = ({
   ];
 
   const handleApplyFilter = () => {
-    onFilter({
+    handleFilterChange({
       fromDate: fromDate || undefined,
       institutionId:
         institutionId !== allInstitutionsName
@@ -228,6 +412,8 @@ export const EventsList: React.FC<EventsListProps> = ({
               const isUpcoming = event.startDate > new Date().toISOString();
               const isAddedToCalendar =
                 calendarOverrides[event.id] ?? event.isAddedToCalendar;
+              const isRegistered =
+                registrationOverrides[event.id] ?? event.isUserRegistered ?? false;
 
               return (
                 <Card
@@ -309,60 +495,149 @@ export const EventsList: React.FC<EventsListProps> = ({
                       </div>
                     )}
                     {event.isActive ? (
-                      isUpcoming && (
+                      studentMode ? (
                         <div className="flex justify-between items-center gap-2 pt-4 flex-wrap">
-                          {event.allowsAddToCalendar &&
-                            (isAddedToCalendar ? (
-                              <RemoveFromCalendarButton
-                                eventId={event.id}
-                                onRemoved={() =>
-                                  setCalendarOverrides((current) => ({
-                                    ...current,
-                                    [event.id]: false,
-                                  }))
-                                }
-                              />
-                            ) : (
-                              <AddToCalendarButton
-                                eventId={event.id}
-                                onAdded={() =>
-                                  setCalendarOverrides((current) => ({
-                                    ...current,
-                                    [event.id]: true,
-                                  }))
-                                }
-                              />
-                            ))}
-                          <Button
-                            className={"secondary-action cursor-pointer"}
-                            onClick={() => handleStartEdition(event)}>
-                            Editar
-                          </Button>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isRegistered &&
+                              event.allowsAddToCalendar &&
+                              (isAddedToCalendar ? (
+                                <RemoveFromCalendarButton
+                                  eventId={event.id}
+                                  onRemoved={() =>
+                                    setCalendarOverrides((current) => ({
+                                      ...current,
+                                      [event.id]: false,
+                                    }))
+                                  }
+                                />
+                              ) : (
+                                <AddToCalendarButton
+                                  eventId={event.id}
+                                  onAdded={() =>
+                                    setCalendarOverrides((current) => ({
+                                      ...current,
+                                      [event.id]: true,
+                                    }))
+                                  }
+                                />
+                              ))}
+                          </div>
 
-                          <DeleteConfirmation
-                            children={
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {/* Permite submissão de documentos: allowDocuments = true, isUpcoming = true e aluno inscrito */}
+                            {event.allowDocuments &&
+                              isUpcoming &&
+                              isRegistered && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2 cursor-pointer"
+                                  onClick={() =>
+                                    handleOpenDocumentModal(event)
+                                  }>
+                                  <FileUp className="h-4 w-4 text-[#109bc6]" />
+                                  Enviar documento
+                                </Button>
+                              )}
+
+                            {/* Botões de Entrar ou Sair dependendo se o estudante está inscrito */}
+                            {isRegistered ? (
                               <Button
-                                className={
-                                  "bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
-                                }>
-                                Inativar
+                                variant="outline"
+                                size="sm"
+                                disabled={loadingActionId === event.id}
+                                className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-200 cursor-pointer"
+                                onClick={() => handleLeave(event.id)}>
+                                {loadingActionId === event.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <LogOut className="h-4 w-4 mr-1" />
+                                )}
+                                Sair do evento
                               </Button>
-                            }
-                            onDelete={() => handleToggleActive(event)}
-                            descriptionText={
-                              "Tem certeza que deseja inativar este evento?"
-                            }
-                            confirmationText={"Inativar"}></DeleteConfirmation>
+                            ) : (
+                              <Button
+                                size="sm"
+                                disabled={
+                                  isFull ||
+                                  !isUpcoming ||
+                                  loadingActionId === event.id
+                                }
+                                className="primary-action cursor-pointer"
+                                onClick={() => handleJoin(event.id)}>
+                                {loadingActionId === event.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <LogIn className="h-4 w-4 mr-1" />
+                                )}
+                                {isFull ? "Esgotado" : "Entrar no evento"}
+                              </Button>
+                            )}
+                          </div>
                         </div>
+                      ) : (
+                        /* Modo Gestão */
+                        isUpcoming && (
+                          <div className="flex justify-between items-center gap-2 pt-4 flex-wrap">
+                            {event.allowsAddToCalendar &&
+                              (isAddedToCalendar ? (
+                                <RemoveFromCalendarButton
+                                  eventId={event.id}
+                                  onRemoved={() =>
+                                    setCalendarOverrides((current) => ({
+                                      ...current,
+                                      [event.id]: false,
+                                    }))
+                                  }
+                                />
+                              ) : (
+                                <AddToCalendarButton
+                                  eventId={event.id}
+                                  onAdded={() =>
+                                    setCalendarOverrides((current) => ({
+                                      ...current,
+                                      [event.id]: true,
+                                    }))
+                                  }
+                                />
+                              ))}
+
+                            <Button
+                              className={"secondary-action cursor-pointer"}
+                              onClick={() => handleStartEdition?.(event)}>
+                              Editar
+                            </Button>
+
+                            <DeleteConfirmation
+                              children={
+                                <Button
+                                  className={
+                                    "bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
+                                  }>
+                                  Inativar
+                                </Button>
+                              }
+                              onDelete={() => handleToggleActive(event)}
+                              descriptionText={
+                                "Tem certeza que deseja inativar este evento?"
+                              }
+                              confirmationText={
+                                "Inativar"
+                              }></DeleteConfirmation>
+                          </div>
+                        )
                       )
                     ) : (
-                      <div className="flex justify-end pt-4">
-                        <Button
-                          className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-                          onClick={() => handleStartEdition(event)}>
-                          Reativar
-                        </Button>
-                      </div>
+                      /* Quando !event.isActive: botão Reativar não aparece se for studentMode */
+                      !studentMode && (
+                        <div className="flex justify-end pt-4">
+                          <Button
+                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                            onClick={() => handleStartEdition?.(event)}>
+                            Reativar
+                          </Button>
+                        </div>
+                      )
                     )}
                   </CardContent>
                 </Card>
@@ -376,7 +651,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
-                      onClick={() => onPageChange(data.pageNumber - 1)}
+                      onClick={() => handlePageChange(data.pageNumber - 1)}
                       className={
                         !data.hasPreviousPage
                           ? "pointer-events-none opacity-50"
@@ -391,7 +666,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                       <PaginationItem key={pageNum}>
                         <PaginationLink
                           isActive={pageNum === data.pageNumber}
-                          onClick={() => onPageChange(pageNum)}
+                          onClick={() => handlePageChange(pageNum)}
                           className="cursor-pointer">
                           {pageNum}
                         </PaginationLink>
@@ -401,7 +676,7 @@ export const EventsList: React.FC<EventsListProps> = ({
 
                   <PaginationItem>
                     <PaginationNext
-                      onClick={() => onPageChange(data.pageNumber + 1)}
+                      onClick={() => handlePageChange(data.pageNumber + 1)}
                       className={
                         !data.hasNextPage
                           ? "pointer-events-none opacity-50"
@@ -415,6 +690,14 @@ export const EventsList: React.FC<EventsListProps> = ({
           )}
         </>
       )}
+
+      <SubmitDocumentModal
+        isOpen={isDocumentModalOpen}
+        onOpenChange={setIsDocumentModalOpen}
+        event={documentModalEvent}
+      />
     </div>
   );
 };
+
+export { EventsList as EventList };

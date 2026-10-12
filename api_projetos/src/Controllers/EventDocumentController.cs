@@ -36,17 +36,13 @@ namespace API_Gestao_Eventos.src.Controllers
             try
             {
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var createdEvent = await eventDocumentService.AddEventDocumentAsync(eventId, userId, file);
+                await eventDocumentService.AddEventDocumentAsync(eventId, userId, file);
                 return StatusCode(StatusCodes.Status201Created);
             }
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
-        }
-        public class ActiveRequest
-        {
-            public bool IsActive { get; set; }
         }
     }
 }

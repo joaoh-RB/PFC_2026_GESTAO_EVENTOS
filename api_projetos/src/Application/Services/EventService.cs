@@ -89,7 +89,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList(),
                 IsActive = e.IsActive,
                 IsAddedToCalendar = additionsToCalendar.Any(a => a.EventId == e.Id),
-                AllowsAddToCalendar = e.GoogleCalendarEventId != null
+                AllowsAddToCalendar = e.GoogleCalendarEventId != null,
+                IsUserRegistered = e.EventStudents.Any(s => s.StudentId == userId && s.Status == RegistrationStatus.Confirmed)
             });
 
             return new PagedResponseDto<EventResponseDto>
@@ -205,6 +206,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 throw new InvalidOperationException("Você não está inscrito neste evento.");
             existingRegistration.Status = RegistrationStatus.Canceled;
             existingRegistration.CanceledAt = DateTime.UtcNow;
+            if (evt.GoogleCalendarEventId != null && user.Email != null)
+                await googleCalendarService.RemoveAttendeeAsync(evt.GoogleCalendarEventId, user.Email);
             await eventRepository.UpdateAsync(evt);
         }
     }

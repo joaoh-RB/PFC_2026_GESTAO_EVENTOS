@@ -116,7 +116,7 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-        [Authorize(nameof(UserRole.Aluno))]
+        [Authorize(Roles = nameof(UserRole.Aluno))]
         [HttpPost("{id:guid}/join")]
         public async Task<IActionResult> JoinEvent([FromRoute] Guid id)
         {
@@ -131,7 +131,7 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-        [Authorize(nameof(UserRole.Aluno))]
+        [Authorize(Roles = nameof(UserRole.Aluno))]
         [HttpPost("{id:guid}/leave")]
         public async Task<IActionResult> LeaveEvent([FromRoute] Guid id)
         {
