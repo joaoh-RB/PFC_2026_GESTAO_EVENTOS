@@ -40,7 +40,7 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public Event Event { get; set; } = null!;
         public Guid StudentId { get; set; }
         public Student Student { get; set; } = null!;
-        public RegistrationStatus Status { get; set; }
+        public RegistrationStatus Status { get; set; } = RegistrationStatus.Confirmed;
         public DateTime RegisteredAt { get; set; }
         public DateTime? CanceledAt { get; set; }
         public bool IsActive { get; set; } = true;

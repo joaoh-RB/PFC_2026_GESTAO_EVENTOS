@@ -18,6 +18,7 @@ namespace API_Gestao_Eventos.src.Application
             services.AddScoped<EventService>();
             services.AddScoped<UserService>();
             services.AddScoped<LegalDocumentService>();
+            services.AddScoped<EventDocumentsService>();
             services.AddFluentValidationAutoValidation();
             services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
             services.AddValidatorsFromAssemblyContaining<CreateEventValidator>();

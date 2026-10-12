@@ -116,6 +116,36 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        [Authorize(nameof(UserRole.Aluno))]
+        [HttpPost("{id:guid}/join")]
+        public async Task<IActionResult> JoinEvent([FromRoute] Guid id)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await eventService.JoinEventAsync(id, userId);
+                return Ok(new { message = "Você se inscreveu no evento com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        [Authorize(nameof(UserRole.Aluno))]
+        [HttpPost("{id:guid}/leave")]
+        public async Task<IActionResult> LeaveEvent([FromRoute] Guid id)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await eventService.LeaveEventAsync(id, userId);
+                return Ok(new { message = "Você saiu do evento com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
         public class ActiveRequest
         {
             public bool IsActive { get; set; }

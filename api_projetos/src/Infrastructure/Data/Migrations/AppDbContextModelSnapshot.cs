@@ -101,6 +101,55 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.ToTable("Courses", (string)null);
                 });
 
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Document", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("Documents", (string)null);
+                });
+
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Event", b =>
                 {
                     b.Property<Guid>("Id")
@@ -216,6 +265,63 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.HasIndex("StudentId");
 
                     b.ToTable("EventStudents", (string)null);
+                });
+
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Group", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<Guid>("LeaderId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("LeaderId");
+
+                    b.ToTable("Groups", (string)null);
+                });
+
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.GroupMember", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("GroupId", "StudentId");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("StudentId", "EventId")
+                        .IsUnique();
+
+                    b.ToTable("GroupMembers", (string)null);
                 });
 
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Institution", b =>
@@ -479,6 +585,25 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Navigation("Institution");
                 });
 
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Document", b =>
+                {
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Group", "Group")
+                        .WithMany("Documents")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Event", b =>
                 {
                     b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Institution", "Institution")
@@ -543,6 +668,52 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Event");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Group", b =>
+                {
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Student", "Leader")
+                        .WithMany()
+                        .HasForeignKey("LeaderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("Leader");
+                });
+
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.GroupMember", b =>
+                {
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Group", "Group")
+                        .WithMany("Members")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("Group");
 
                     b.Navigation("Student");
                 });
@@ -619,6 +790,13 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Navigation("EventAllowedCourses");
 
                     b.Navigation("EventStudents");
+                });
+
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Group", b =>
+                {
+                    b.Navigation("Documents");
+
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Institution", b =>

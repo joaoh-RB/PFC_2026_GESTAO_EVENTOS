@@ -26,6 +26,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Context
         public DbSet<LegalDocument> LegalDocuments => Set<LegalDocument>();
         public DbSet<TermAcceptance> TermAcceptances => Set<TermAcceptance>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+        public DbSet<Group> Groups => Set<Group>();
+        public DbSet<Document> Documents => Set<Document>();
 
         public DbSet<EventAddedToCalendar> EventAddedToCalendars => Set<EventAddedToCalendar>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)

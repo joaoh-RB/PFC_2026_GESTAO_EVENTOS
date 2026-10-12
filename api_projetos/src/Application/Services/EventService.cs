@@ -3,6 +3,7 @@ using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 using API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar;
+using System.Net.WebSockets;
 
 namespace API_Gestao_Eventos.src.Application.Services
 {
@@ -149,6 +150,62 @@ namespace API_Gestao_Eventos.src.Application.Services
                 eventAddedToCalendar.IsActive = false;
                 await eventRepository.UpdateEventInCalendarAsync(eventAddedToCalendar);
             }
+        }
+        public async Task JoinEventAsync(Guid eventId, Guid userId)
+        {
+            var user = await authService.GetUserInfoAsync(userId) ?? throw new KeyNotFoundException("Usuário inválido.");
+            var evt = (await eventRepository.GetFilteredAvailableForUserAsync(new EventFilterDto()
+            {
+                FromDate = DateTime.UtcNow,
+                PageNumber = 1,
+                PageSize = int.MaxValue,
+                InstitutionId = user.InstitutionId
+            }, userId)).Item1.FirstOrDefault(f => f.Id == eventId)
+                ?? throw new KeyNotFoundException("Evento inválido para inscrição.");
+            if (!evt.IsActive)
+                throw new InvalidOperationException("Não é possível se inscrever em um evento inativo.");
+            var confirmedRegistrations = evt.EventStudents.Count(s => s.Status == RegistrationStatus.Confirmed);
+            if (confirmedRegistrations >= evt.Capacity)
+                throw new InvalidOperationException("Não é possível se inscrever neste evento, pois a capacidade máxima foi atingida.");
+            var existingRegistration = evt.EventStudents.FirstOrDefault(f => f.StudentId == userId);
+            if (existingRegistration != null)
+            {
+                if (existingRegistration.Status == RegistrationStatus.Confirmed)
+                    throw new InvalidOperationException("Você já está inscrito neste evento.");
+                else
+                    existingRegistration.Status = RegistrationStatus.Confirmed;
+                await eventRepository.UpdateAsync(evt);
+            }
+            else
+            {
+                var newRegistration = new EventStudent
+                {
+                    EventId = eventId,
+                    StudentId = userId,
+                    Status = RegistrationStatus.Confirmed,
+                    RegisteredAt = DateTime.UtcNow
+                };
+                evt.EventStudents.Add(newRegistration);
+                await eventRepository.UpdateAsync(evt);
+            }
+        }
+        public async Task LeaveEventAsync(Guid eventId, Guid userId)
+        {
+            var user = await authService.GetUserInfoAsync(userId) ?? throw new KeyNotFoundException("Usuário inválido.");
+            var evt = (await eventRepository.GetFilteredAvailableForUserAsync(new EventFilterDto()
+            {
+                FromDate = DateTime.UtcNow,
+                PageNumber = 1,
+                PageSize = int.MaxValue,
+                InstitutionId = user.InstitutionId
+            }, userId)).Item1.FirstOrDefault(f => f.Id == eventId)
+                ?? throw new KeyNotFoundException("Evento inválido para saída.");
+            var existingRegistration = evt.EventStudents.FirstOrDefault(f => f.StudentId == userId);
+            if (existingRegistration == null || existingRegistration.Status != RegistrationStatus.Confirmed)
+                throw new InvalidOperationException("Você não está inscrito neste evento.");
+            existingRegistration.Status = RegistrationStatus.Canceled;
+            existingRegistration.CanceledAt = DateTime.UtcNow;
+            await eventRepository.UpdateAsync(evt);
         }
     }
 }
