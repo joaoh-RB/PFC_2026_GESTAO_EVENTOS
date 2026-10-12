@@ -524,7 +524,6 @@ export const EventsList: React.FC<EventsListProps> = ({
                           </div>
 
                           <div className="flex items-center gap-2 flex-wrap">
-                            {/* Permite submissão de documentos: allowDocuments = true, isUpcoming = true e aluno inscrito */}
                             {event.allowDocuments &&
                               isUpcoming &&
                               isRegistered && (
@@ -536,11 +535,10 @@ export const EventsList: React.FC<EventsListProps> = ({
                                     handleOpenDocumentModal(event)
                                   }>
                                   <FileUp className="h-4 w-4 text-[#109bc6]" />
-                                  Enviar documento
+                                  Gerenciar documentos
                                 </Button>
                               )}
 
-                            {/* Botões de Entrar ou Sair dependendo se o estudante está inscrito */}
                             {isRegistered ? (
                               <Button
                                 variant="outline"
@@ -576,7 +574,6 @@ export const EventsList: React.FC<EventsListProps> = ({
                           </div>
                         </div>
                       ) : (
-                        /* Modo Gestão */
                         isUpcoming && (
                           <div className="flex justify-between items-center gap-2 pt-4 flex-wrap">
                             {event.allowsAddToCalendar &&

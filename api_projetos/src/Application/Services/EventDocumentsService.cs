@@ -75,6 +75,21 @@ namespace API_Gestao_Eventos.src.Application.Services
             await documentRepository.AddAsync(document);
             return MapToDto(document);
         }
+        public async Task<(Stream FileStream, string ContentType, string FileName)> DownloadDocumentAsync(Guid documentId)
+        {
+
+            var document = await documentRepository.GetByIdAsync(documentId) ?? throw new KeyNotFoundException("Documento não encontrado.");
+
+            var fileStream = await storageService.GetFileStreamAsync(document.StorageKey);
+
+            return (fileStream, document.ContentType, document.OriginalFileName);
+        }
+        public async Task DeleteDocumentAsync(Guid documentId)
+        {
+            var document = await documentRepository.GetByIdAsync(documentId) ?? throw new KeyNotFoundException("Documento não encontrado.");
+            await storageService.DeleteFileAsync(document.StorageKey);
+            await documentRepository.DeleteAsync(document);
+        }
         private static EventDocumentDto MapToDto(Document d)
         {
             return new EventDocumentDto()

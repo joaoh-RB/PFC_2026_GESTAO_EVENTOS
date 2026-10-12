@@ -12,6 +12,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
             return await context.Groups
                 .Where(g => g.EventId == eventId && g.Members.Any(s => s.StudentId == studentId))
                 .Include(g => g.Documents)
+                .ThenInclude(g => g.Sender)
                 .FirstOrDefaultAsync();
         }
         public async Task<Group?> GetByIdAsync(Guid groupId)

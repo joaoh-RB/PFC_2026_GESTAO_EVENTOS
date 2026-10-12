@@ -44,5 +44,42 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        [HttpGet("{documentId:guid}/download")]
+        [Authorize]
+        public async Task<IActionResult> DownloadDocument([FromRoute] Guid documentId)
+        {
+            try
+            {
+                var (fileStream, contentType, fileName) = await eventDocumentService.DownloadDocumentAsync(documentId);
+
+                return File(fileStream, contentType, fileName);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (FileNotFoundException ex)
+            {
+                return NotFound(new { message = "O arquivo físico não foi encontrado no servidor de armazenamento." });
+            }
+        }
+        [HttpDelete("{documentId:guid}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteDocument([FromRoute] Guid documentId)
+        {
+            try
+            {
+                await eventDocumentService.DeleteDocumentAsync(documentId);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
     }
 }
