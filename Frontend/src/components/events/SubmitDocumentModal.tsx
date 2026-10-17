@@ -36,6 +36,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { EventItem } from "./EventList";
+import { EventGroupPanel } from "./EventGroupPanel";
 import api from "@/services/api";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 
@@ -112,6 +113,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
   const [isDownloadingId, setIsDownloadingId] = useState<string | null>(null);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [hasGroup, setHasGroup] = useState(false);
 
   const previewUrl = useMemo(() => {
     if (!file || !file.type.startsWith("image/")) return null;
@@ -215,6 +217,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
       loadDocuments();
     } else if (!isOpen) {
       setDocuments([]);
+      setHasGroup(false);
       setDocumentsError(null);
       setFile(null);
       setError(null);
@@ -226,6 +229,10 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
       }
     }
   }, [isOpen, event?.id, loadDocuments]);
+
+  useEffect(() => {
+    if (hasGroup) loadDocuments();
+  }, [hasGroup, loadDocuments]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -374,210 +381,231 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
               </div>
             )}
 
-            <div className="space-y-2.5 w-full min-w-0">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  Documentos Cadastrados
-                  {documents.length > 0 && (
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                      {documents.length}
-                    </span>
-                  )}
-                </Label>
-                {isLoadingDocuments && (
-                  <span className="flex items-center text-xs text-slate-400 gap-1">
-                    <Loader2 className="h-3 w-3 animate-spin text-[#109bc6]" />
-                    Carregando...
-                  </span>
-                )}
-              </div>
-
-              {documentsError && (
-                <div className="flex items-center gap-2 p-2.5 text-xs text-amber-700 bg-amber-50 rounded-lg border border-amber-200">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span className="flex-1">{documentsError}</span>
-                </div>
-              )}
-
-              {isLoadingDocuments && documents.length === 0 ? (
-                <div className="flex items-center justify-center p-6 text-slate-400 gap-2 border rounded-xl bg-slate-50/50">
-                  <Loader2 className="h-4 w-4 animate-spin text-[#109bc6]" />
-                  <span className="text-xs">
-                    Carregando documentos cadastrados...
-                  </span>
-                </div>
-              ) : documents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-5 px-4 border border-dashed rounded-xl bg-slate-50/40 text-slate-400 text-center gap-1">
-                  <FileText className="h-5 w-5 text-slate-300" />
-                  <p className="text-xs font-medium text-slate-500">
-                    Nenhum documento cadastrado
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    Selecione um arquivo abaixo para enviar.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {documents.map((doc) => {
-                    const docId = getDocId(doc);
-                    const fileName = getDocFileName(doc);
-                    const sizeBytes = getDocSizeBytes(doc);
-                    const ext = getFileFormatLabel(fileName, doc.contentType);
-
-                    return (
-                      <Attachment
-                        key={docId}
-                        className="w-full max-w-full min-w-0 shrink flex-nowrap items-center justify-between border rounded-xl bg-slate-50/50 p-2.5 overflow-hidden hover:bg-slate-50 transition-colors">
-                        <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
-                          <AttachmentMedia className="w-9 h-9 rounded-lg shrink-0 bg-white border border-slate-200 text-[#109bc6]">
-                            <FileText className="h-4.5 w-4.5" />
-                          </AttachmentMedia>
-                          <AttachmentContent className="min-w-0 flex-1 overflow-hidden">
-                            <AttachmentTitle
-                              className="text-xs sm:text-sm font-medium text-slate-800 truncate block w-full max-w-full"
-                              title={fileName}>
-                              {fileName}
-                            </AttachmentTitle>
-                            <AttachmentDescription className="text-[11px] text-slate-500 truncate block w-full max-w-full">
-                              {ext} • {formatFileSizeMB(sizeBytes)}
-                              {doc.senderName ? ` • ${doc.senderName}` : ""}
-                            </AttachmentDescription>
-                          </AttachmentContent>
-                        </div>
-                        <AttachmentActions className="shrink-0 ml-2 flex items-center gap-1">
-                          <AttachmentAction
-                            type="button"
-                            variant="ghost"
-                            size="icon-xs"
-                            aria-label="Baixar documento"
-                            title="Baixar documento"
-                            className="h-8 w-8 text-slate-500 hover:text-[#109bc6] hover:bg-sky-50 rounded-lg cursor-pointer"
-                            disabled={isDownloadingId === docId || isSubmitting}
-                            onClick={() => handleDownload(doc)}>
-                            {isDownloadingId === docId ? (
-                              <Loader2 className="h-4 w-4 animate-spin text-[#109bc6]" />
-                            ) : (
-                              <Download className="h-4 w-4" />
-                            )}
-                          </AttachmentAction>
-                          <DeleteConfirmation
-                            descriptionText={`Tem certeza que deseja excluir o documento "${fileName}"?`}
-                            confirmationText="Excluir"
-                            onDelete={() => handleDelete(doc)}>
-                            <AttachmentAction
-                              type="button"
-                              variant="ghost"
-                              size="icon-xs"
-                              aria-label="Excluir documento"
-                              title="Excluir documento"
-                              className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
-                              disabled={isDeletingId === docId || isSubmitting}>
-                              {isDeletingId === docId ? (
-                                <Loader2 className="h-4 w-4 animate-spin text-red-500" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </AttachmentAction>
-                          </DeleteConfirmation>
-                        </AttachmentActions>
-                      </Attachment>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2 w-full min-w-0 border-t border-slate-100 pt-4">
-              <Label
-                htmlFor="document-upload"
-                className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                Enviar Novo Documento
-              </Label>
-              <input
-                ref={fileInputRef}
-                id="document-upload"
-                type="file"
-                onChange={handleFileChange}
-                disabled={isSubmitting}
-                className="hidden"
+            {event && (
+              <EventGroupPanel
+                key={event.id}
+                eventId={event.id}
+                onGroupChange={setHasGroup}
               />
+            )}
 
-              {!file ? (
-                <Attachment
-                  state="idle"
-                  className="w-full max-w-full min-w-0 shrink cursor-pointer hover:bg-slate-50 transition-colors p-5 justify-center items-center flex-col text-center border-dashed border-2 rounded-xl overflow-hidden"
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (isSubmitting) return;
-                    if (
-                      e.dataTransfer.files &&
-                      e.dataTransfer.files.length > 0
-                    ) {
-                      setFile(e.dataTransfer.files[0]);
-                      setError(null);
-                    }
-                  }}>
-                  <AttachmentMedia className="w-10 h-10 rounded-full bg-slate-100 text-[#109bc6] mb-2 shrink-0">
-                    <UploadCloud className="h-5 w-5" />
-                  </AttachmentMedia>
-                  <AttachmentContent className="space-y-1 w-full min-w-0 max-w-full overflow-hidden">
-                    <AttachmentTitle className="text-xs sm:text-sm font-semibold text-slate-800 truncate block w-full max-w-full">
-                      Clique para selecionar ou arraste o arquivo
-                    </AttachmentTitle>
-                    <AttachmentDescription className="text-xs text-slate-500 truncate block w-full max-w-full">
-                      Formatos aceitos: PDF, DOCX, PNG, JPG, etc.
-                    </AttachmentDescription>
-                  </AttachmentContent>
-                </Attachment>
-              ) : (
-                <Attachment
-                  state={isSubmitting ? "uploading" : error ? "error" : "done"}
-                  className="w-full max-w-full min-w-0 shrink flex-nowrap items-center justify-between border rounded-xl bg-slate-50/50 p-3 overflow-hidden">
-                  <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
-                    <AttachmentMedia
-                      variant={
-                        file.type.startsWith("image/") ? "image" : "icon"
-                      }
-                      className="w-10 h-10 rounded-lg shrink-0 bg-white border">
-                      {previewUrl ? (
-                        <img
-                          src={previewUrl}
-                          alt={file.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <FileText className="h-5 w-5 text-[#109bc6]" />
+            {hasGroup && (
+              <>
+                <div className="space-y-2.5 w-full min-w-0">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                      Documentos Cadastrados
+                      {documents.length > 0 && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                          {documents.length}
+                        </span>
                       )}
-                    </AttachmentMedia>
-                    <AttachmentContent className="min-w-0 flex-1 overflow-hidden">
-                      <AttachmentTitle
-                        className="text-sm font-medium text-slate-800 truncate block w-full max-w-full"
-                        title={file.name}>
-                        {file.name}
-                      </AttachmentTitle>
-                      <AttachmentDescription className="text-xs text-slate-500 truncate block w-full max-w-full">
-                        {getFileFormatLabel(file.name, file.type)} •{" "}
-                        {formatFileSizeMB(file.size)}
-                      </AttachmentDescription>
-                    </AttachmentContent>
+                    </Label>
+                    {isLoadingDocuments && (
+                      <span className="flex items-center text-xs text-slate-400 gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin text-[#109bc6]" />
+                        Carregando...
+                      </span>
+                    )}
                   </div>
-                  <AttachmentActions className="shrink-0 ml-2">
-                    <AttachmentAction
-                      type="button"
-                      variant="ghost"
-                      size="icon-xs"
-                      aria-label="Remover arquivo"
-                      className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
-                      disabled={isSubmitting}
-                      onClick={handleRemoveFile}>
-                      <X className="h-4 w-4" />
-                    </AttachmentAction>
-                  </AttachmentActions>
-                </Attachment>
-              )}
-            </div>
+
+                  {documentsError && (
+                    <div className="flex items-center gap-2 p-2.5 text-xs text-amber-700 bg-amber-50 rounded-lg border border-amber-200">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span className="flex-1">{documentsError}</span>
+                    </div>
+                  )}
+
+                  {isLoadingDocuments && documents.length === 0 ? (
+                    <div className="flex items-center justify-center p-6 text-slate-400 gap-2 border rounded-xl bg-slate-50/50">
+                      <Loader2 className="h-4 w-4 animate-spin text-[#109bc6]" />
+                      <span className="text-xs">
+                        Carregando documentos cadastrados...
+                      </span>
+                    </div>
+                  ) : documents.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-5 px-4 border border-dashed rounded-xl bg-slate-50/40 text-slate-400 text-center gap-1">
+                      <FileText className="h-5 w-5 text-slate-300" />
+                      <p className="text-xs font-medium text-slate-500">
+                        Nenhum documento cadastrado
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        Selecione um arquivo abaixo para enviar.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {documents.map((doc) => {
+                        const docId = getDocId(doc);
+                        const fileName = getDocFileName(doc);
+                        const sizeBytes = getDocSizeBytes(doc);
+                        const ext = getFileFormatLabel(
+                          fileName,
+                          doc.contentType,
+                        );
+
+                        return (
+                          <Attachment
+                            key={docId}
+                            className="w-full max-w-full min-w-0 shrink flex-nowrap items-center justify-between border rounded-xl bg-slate-50/50 p-2.5 overflow-hidden hover:bg-slate-50 transition-colors">
+                            <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+                              <AttachmentMedia className="w-9 h-9 rounded-lg shrink-0 bg-white border border-slate-200 text-[#109bc6]">
+                                <FileText className="h-4.5 w-4.5" />
+                              </AttachmentMedia>
+                              <AttachmentContent className="min-w-0 flex-1 overflow-hidden">
+                                <AttachmentTitle
+                                  className="text-xs sm:text-sm font-medium text-slate-800 truncate block w-full max-w-full"
+                                  title={fileName}>
+                                  {fileName}
+                                </AttachmentTitle>
+                                <AttachmentDescription className="text-[11px] text-slate-500 truncate block w-full max-w-full">
+                                  {ext} • {formatFileSizeMB(sizeBytes)}
+                                  {doc.senderName ? ` • ${doc.senderName}` : ""}
+                                </AttachmentDescription>
+                              </AttachmentContent>
+                            </div>
+                            <AttachmentActions className="shrink-0 ml-2 flex items-center gap-1">
+                              <AttachmentAction
+                                type="button"
+                                variant="ghost"
+                                size="icon-xs"
+                                aria-label="Baixar documento"
+                                title="Baixar documento"
+                                className="h-8 w-8 text-slate-500 hover:text-[#109bc6] hover:bg-sky-50 rounded-lg cursor-pointer"
+                                disabled={
+                                  isDownloadingId === docId || isSubmitting
+                                }
+                                onClick={() => handleDownload(doc)}>
+                                {isDownloadingId === docId ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-[#109bc6]" />
+                                ) : (
+                                  <Download className="h-4 w-4" />
+                                )}
+                              </AttachmentAction>
+                              <DeleteConfirmation
+                                descriptionText={`Tem certeza que deseja excluir o documento "${fileName}"?`}
+                                confirmationText="Excluir"
+                                onDelete={() => handleDelete(doc)}>
+                                <AttachmentAction
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  aria-label="Excluir documento"
+                                  title="Excluir documento"
+                                  className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                                  disabled={
+                                    isDeletingId === docId || isSubmitting
+                                  }>
+                                  {isDeletingId === docId ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </AttachmentAction>
+                              </DeleteConfirmation>
+                            </AttachmentActions>
+                          </Attachment>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2 w-full min-w-0 border-t border-slate-100 pt-4">
+                  <Label
+                    htmlFor="document-upload"
+                    className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    Enviar Novo Documento
+                  </Label>
+                  <input
+                    ref={fileInputRef}
+                    id="document-upload"
+                    type="file"
+                    onChange={handleFileChange}
+                    disabled={isSubmitting}
+                    className="hidden"
+                  />
+
+                  {!file ? (
+                    <Attachment
+                      state="idle"
+                      className="w-full max-w-full min-w-0 shrink cursor-pointer hover:bg-slate-50 transition-colors p-5 justify-center items-center flex-col text-center border-dashed border-2 rounded-xl overflow-hidden"
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (isSubmitting) return;
+                        if (
+                          e.dataTransfer.files &&
+                          e.dataTransfer.files.length > 0
+                        ) {
+                          setFile(e.dataTransfer.files[0]);
+                          setError(null);
+                        }
+                      }}>
+                      <AttachmentMedia className="w-10 h-10 rounded-full bg-slate-100 text-[#109bc6] mb-2 shrink-0">
+                        <UploadCloud className="h-5 w-5" />
+                      </AttachmentMedia>
+                      <AttachmentContent className="space-y-1 w-full min-w-0 max-w-full overflow-hidden">
+                        <AttachmentTitle className="text-xs sm:text-sm font-semibold text-slate-800 truncate block w-full max-w-full">
+                          Clique para selecionar ou arraste o arquivo
+                        </AttachmentTitle>
+                        <AttachmentDescription className="text-xs text-slate-500 truncate block w-full max-w-full">
+                          Formatos aceitos: PDF, DOCX, PNG, JPG, etc.
+                        </AttachmentDescription>
+                      </AttachmentContent>
+                    </Attachment>
+                  ) : (
+                    <Attachment
+                      state={
+                        isSubmitting ? "uploading" : error ? "error" : "done"
+                      }
+                      className="w-full max-w-full min-w-0 shrink flex-nowrap items-center justify-between border rounded-xl bg-slate-50/50 p-3 overflow-hidden">
+                      <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+                        <AttachmentMedia
+                          variant={
+                            file.type.startsWith("image/") ? "image" : "icon"
+                          }
+                          className="w-10 h-10 rounded-lg shrink-0 bg-white border">
+                          {previewUrl ? (
+                            <img
+                              src={previewUrl}
+                              alt={file.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <FileText className="h-5 w-5 text-[#109bc6]" />
+                          )}
+                        </AttachmentMedia>
+                        <AttachmentContent className="min-w-0 flex-1 overflow-hidden">
+                          <AttachmentTitle
+                            className="text-sm font-medium text-slate-800 truncate block w-full max-w-full"
+                            title={file.name}>
+                            {file.name}
+                          </AttachmentTitle>
+                          <AttachmentDescription className="text-xs text-slate-500 truncate block w-full max-w-full">
+                            {getFileFormatLabel(file.name, file.type)} •{" "}
+                            {formatFileSizeMB(file.size)}
+                          </AttachmentDescription>
+                        </AttachmentContent>
+                      </div>
+                      <AttachmentActions className="shrink-0 ml-2">
+                        <AttachmentAction
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          aria-label="Remover arquivo"
+                          className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                          disabled={isSubmitting}
+                          onClick={handleRemoveFile}>
+                          <X className="h-4 w-4" />
+                        </AttachmentAction>
+                      </AttachmentActions>
+                    </Attachment>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter className="m-0 shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 w-full rounded-b-xl">
@@ -592,7 +620,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
             <Button
               type="submit"
               className="w-full sm:w-auto primary-action cursor-pointer"
-              disabled={!file || isSubmitting}>
+              disabled={!file || isSubmitting || !hasGroup}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

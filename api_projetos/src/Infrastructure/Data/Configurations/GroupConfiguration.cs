@@ -12,6 +12,9 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
 
             builder.HasKey(g => g.Id);
 
+            builder.HasIndex(g => new { g.EventId, g.Number })
+                   .IsUnique();
+
             builder.Property(g => g.IsActive)
                    .HasDefaultValue(true);
 

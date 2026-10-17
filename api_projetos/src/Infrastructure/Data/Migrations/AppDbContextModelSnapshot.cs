@@ -289,11 +289,15 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Property<Guid>("LeaderId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("EventId");
-
                     b.HasIndex("LeaderId");
+
+                    b.HasIndex("EventId", "Number")
+                        .IsUnique();
 
                     b.ToTable("Groups", (string)null);
                 });
@@ -314,12 +318,18 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
 
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.HasKey("GroupId", "StudentId");
 
                     b.HasIndex("EventId");
 
                     b.HasIndex("StudentId", "EventId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 2");
 
                     b.ToTable("GroupMembers", (string)null);
                 });

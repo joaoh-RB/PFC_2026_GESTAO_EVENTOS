@@ -50,8 +50,8 @@ namespace API_Gestao_Eventos.src.Controllers
         {
             try
             {
-                var (fileStream, contentType, fileName) = await eventDocumentService.DownloadDocumentAsync(documentId);
-
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var (fileStream, contentType, fileName) = await eventDocumentService.DownloadDocumentAsync(documentId, userId);
                 return File(fileStream, contentType, fileName);
             }
             catch (KeyNotFoundException ex)
@@ -73,12 +73,17 @@ namespace API_Gestao_Eventos.src.Controllers
         {
             try
             {
-                await eventDocumentService.DeleteDocumentAsync(documentId);
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await eventDocumentService.DeleteDocumentAsync(documentId, userId);
                 return NoContent();
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
             }
         }
     }

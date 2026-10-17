@@ -14,7 +14,10 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         }
         public async Task<Document?> GetByIdAsync(Guid documentId)
         {
-            return await context.Documents.Include(g => g.Group).ThenInclude(g => g.Members).FirstOrDefaultAsync(f => f.Id == documentId);
+            return await context.Documents
+                .Include(g => g.Group).ThenInclude(g => g.Members)
+                .Include(g => g.Group).ThenInclude(g => g.Event).ThenInclude(e => e.AllowedCourses)
+                .FirstOrDefaultAsync(f => f.Id == documentId);
         }
         public async Task DeleteAsync(Document document)
         {

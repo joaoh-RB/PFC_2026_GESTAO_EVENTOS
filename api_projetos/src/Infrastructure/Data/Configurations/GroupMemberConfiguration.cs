@@ -1,4 +1,5 @@
 ﻿using API_Gestao_Eventos.src.Domain.Entities;
+using API_Gestao_Eventos.src.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,10 +14,14 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
             builder.HasKey(gm => new { gm.GroupId, gm.StudentId });
 
             builder.HasIndex(gm => new { gm.StudentId, gm.EventId })
-                   .IsUnique();
+                   .IsUnique()
+                   .HasFilter("\"Status\" = 2");
 
             builder.Property(gm => gm.JoinedAt)
                    .HasDefaultValueSql("NOW()");
+
+            builder.Property(gm => gm.Status)
+                   .HasDefaultValue(GroupMemberStatus.Invited);
 
             builder.HasOne(gm => gm.Group)
                    .WithMany(g => g.Members)
