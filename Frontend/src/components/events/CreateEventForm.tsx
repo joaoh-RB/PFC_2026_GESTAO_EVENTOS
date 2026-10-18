@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { isAxiosError } from "axios";
 import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -24,6 +25,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -31,13 +48,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { api } from "@/services/api";
 import type { OptionItem } from "@/types/optionItem";
+import type { PagedResult } from "@/types/utils";
+import { formatDateForShort } from "@/utils/format";
+
+interface EventRegistrationItem {
+  studentId: string;
+  studentName: string;
+  courseName: string;
+  registeredAt: string;
+}
+
+type CreateEventTab = "details" | "registrations";
 
 interface CreateEventFormProps {
   institutions: OptionItem[];
   courses: OptionItem[];
   eventTypes: OptionItem[];
-  currentEventData?: CreateEventFormData | null;
+  currentEventData?: (CreateEventFormData & { id: string }) | null;
   userInstitutionId?: string | null;
   onSubmit: (data: CreateEventFormData) => void;
   isSubmitting: boolean;
@@ -59,6 +88,20 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
   handleInstitutionChange,
 }) => {
   const anchor = useComboboxAnchor();
+  const [activeTab, setActiveTab] = useState<CreateEventTab>("details");
+  const [isRegistrationsLoading, setIsRegistrationsLoading] = useState(false);
+  const [registrationsError, setRegistrationsError] = useState<string | null>(null);
+  const [registrationsData, setRegistrationsData] = useState<
+    PagedResult<EventRegistrationItem>
+  >({
+    items: [],
+    totalItems: 0,
+    pageNumber: 1,
+    pageSize: 10,
+    totalPages: 1,
+    hasPreviousPage: false,
+    hasNextPage: false,
+  });
 
   const {
     register,
@@ -100,6 +143,51 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
     }
   }, [currentEventData, reset, userInstitutionId]);
 
+  const loadRegistrations = async (page: number = 1) => {
+    if (!currentEventData?.id) return;
+
+    setIsRegistrationsLoading(true);
+    setRegistrationsError(null);
+
+    try {
+      const response = await api.get<PagedResult<EventRegistrationItem>>(
+        `/events/${currentEventData.id}/registrations`,
+        {
+          params: {
+            pageNumber: page,
+            pageSize: registrationsData.pageSize,
+          },
+        },
+      );
+
+      setRegistrationsData(response.data);
+    } catch (error: unknown) {
+      const responseData = isAxiosError(error)
+        ? (error.response?.data as { message?: string } | undefined)
+        : undefined;
+      setRegistrationsError(
+        typeof responseData?.message === "string"
+          ? responseData.message
+          : "Não foi possível carregar os inscritos deste evento.",
+      );
+    } finally {
+      setIsRegistrationsLoading(false);
+    }
+  };
+
+  const handleTabChange = async (tab: CreateEventTab) => {
+    setActiveTab(tab);
+
+    if (tab === "registrations") {
+      await loadRegistrations(1);
+    }
+  };
+
+  const handleRegistrationsPageChange = async (page: number) => {
+    if (page < 1 || page > registrationsData.totalPages) return;
+    await loadRegistrations(page);
+  };
+
   return (
     <Card className="surface-card max-w-4xl mx-auto shadow-none">
       <CardHeader className="text-center pb-8 pt-6">
@@ -135,7 +223,35 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {currentEventData?.id && (
+          <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-1">
+            <div className="grid grid-cols-2 gap-1">
+              <button
+                type="button"
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "details"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+                onClick={() => void handleTabChange("details")}>
+                Dados do evento
+              </button>
+              <button
+                type="button"
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "registrations"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+                onClick={() => void handleTabChange("registrations")}>
+                Inscritos
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "details" || !currentEventData?.id ? (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-1">
               <Label htmlFor="name" required>Nome do Evento</Label>
@@ -362,6 +478,116 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
             )}
           </Button>
         </form>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">
+                Inscritos no evento
+              </h3>
+              <p className="text-sm text-slate-500">
+                {currentEventData?.name || "Lista de pessoas inscritas no evento."}
+              </p>
+            </div>
+
+            {isRegistrationsLoading ? (
+              <div className="py-8 text-center text-slate-500">
+                Carregando inscritos...
+              </div>
+            ) : registrationsError ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {registrationsError}
+              </div>
+            ) : registrationsData.items.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">
+                Ainda não há inscritos confirmados neste evento.
+              </div>
+            ) : (
+              <>
+                <div className="overflow-hidden rounded-xl border border-slate-200">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Aluno</TableHead>
+                        <TableHead>Curso</TableHead>
+                        <TableHead>Data e hora da inscrição</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {registrationsData.items.map((item) => (
+                        <TableRow key={item.studentId}>
+                          <TableCell className="font-medium text-slate-900">
+                            {item.studentName}
+                          </TableCell>
+                          <TableCell>{item.courseName}</TableCell>
+                          <TableCell>{formatDateForShort(item.registeredAt)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {registrationsData.totalPages > 1 && (
+                  <div className="flex justify-center pt-2">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              void handleRegistrationsPageChange(
+                                registrationsData.pageNumber - 1,
+                              );
+                            }}
+                            className={
+                              !registrationsData.hasPreviousPage
+                                ? "pointer-events-none opacity-50"
+                                : "cursor-pointer"
+                            }
+                          />
+                        </PaginationItem>
+
+                        {Array.from(
+                          { length: registrationsData.totalPages },
+                          (_, index) => index + 1,
+                        ).map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              href="#"
+                              isActive={page === registrationsData.pageNumber}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                void handleRegistrationsPageChange(page);
+                              }}>
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              void handleRegistrationsPageChange(
+                                registrationsData.pageNumber + 1,
+                              );
+                            }}
+                            className={
+                              !registrationsData.hasNextPage
+                                ? "pointer-events-none opacity-50"
+                                : "cursor-pointer"
+                            }
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

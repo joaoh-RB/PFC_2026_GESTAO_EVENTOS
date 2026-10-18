@@ -11,6 +11,8 @@
         public DateTime EndDate { get; set; }
         public int Capacity { get; set; }
         public int ConfirmedRegistrations { get; set; }
+        public int AvailableSeats { get; set; }
+        public bool IsFull { get; set; }
         public int EventType { get; set; }
         public bool AllowDocuments { get; set; }
         public List<string> AllowedCourseNames { get; set; } = new();

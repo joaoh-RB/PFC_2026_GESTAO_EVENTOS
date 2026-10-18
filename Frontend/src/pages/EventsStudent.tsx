@@ -10,6 +10,7 @@ import { InitialLoading } from "@/components/InitialLoading";
 
 export const EventsStudent: React.FC = () => {
   const [pageError, setPageError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const { user } = useAuth();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
@@ -79,6 +80,11 @@ export const EventsStudent: React.FC = () => {
       <PageHeader
         title="Eventos"
         description={"Inscreva-se em eventos disponíveis"}></PageHeader>
+      {actionError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {actionError}
+        </div>
+      )}
       <EventsList
         userInstitutionId={userInstitutionId}
         studentMode={true}

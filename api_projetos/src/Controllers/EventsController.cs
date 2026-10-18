@@ -146,6 +146,22 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        [HttpGet("{id:guid}/registrations")]
+        public async Task<IActionResult> GetRegistrations([FromRoute] Guid id, [FromQuery] EventRegistrationFilterDto filter)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var registrations = await eventService.GetRegistrationsAsync(id, userId, filter);
+                return Ok(registrations);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
         public class ActiveRequest
         {
             public bool IsActive { get; set; }

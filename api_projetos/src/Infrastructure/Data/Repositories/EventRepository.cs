@@ -89,6 +89,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
                         .Include(e => e.Institution)
                         .Include(e => e.AllowedCourses)
                         .Include(e => e.EventStudents)
+                            .ThenInclude(es => es.Student)
+                                .ThenInclude(s => s.Course)
                         .Where(w => w.Institution.IsActive);
             if (eventFilterDto.FromDate.HasValue)
             {

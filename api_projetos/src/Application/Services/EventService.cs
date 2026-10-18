@@ -72,25 +72,33 @@ namespace API_Gestao_Eventos.src.Application.Services
         {
             var (events, totalCount) = await eventRepository.GetFilteredAvailableForUserAsync(parameters, userId);
             var additionsToCalendar = await eventRepository.GetAllAdditionsToCalendarAsync(userId);
-            var items = events.Select(e => new EventResponseDto
+            var items = events.Select(e =>
             {
-                Id = e.Id,
-                Name = e.Name,
-                Description = e.Description,
-                InstitutionId = e.InstitutionId,
-                InstitutionName = e.Institution.Name.ToString(),
-                StartDate = e.StartDate,
-                EndDate = e.EndDate,
-                Capacity = e.Capacity,
-                ConfirmedRegistrations = e.EventStudents.Count(s => s.Status == RegistrationStatus.Confirmed),
-                EventType = (int)e.EventType,
-                AllowDocuments = e.AllowDocuments,
-                AllowedCourseNames = e.AllowedCourses.Select(c => c.Name.ToString()).ToList(),
-                AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList(),
-                IsActive = e.IsActive,
-                IsAddedToCalendar = additionsToCalendar.Any(a => a.EventId == e.Id),
-                AllowsAddToCalendar = e.GoogleCalendarEventId != null,
-                IsUserRegistered = e.EventStudents.Any(s => s.StudentId == userId && s.Status == RegistrationStatus.Confirmed)
+                var confirmedRegistrations = e.EventStudents.Count(s => s.Status == RegistrationStatus.Confirmed);
+                var availableSeats = Math.Max(e.Capacity - confirmedRegistrations, 0);
+
+                return new EventResponseDto
+                {
+                    Id = e.Id,
+                    Name = e.Name,
+                    Description = e.Description,
+                    InstitutionId = e.InstitutionId,
+                    InstitutionName = e.Institution.Name.ToString(),
+                    StartDate = e.StartDate,
+                    EndDate = e.EndDate,
+                    Capacity = e.Capacity,
+                    ConfirmedRegistrations = confirmedRegistrations,
+                    AvailableSeats = availableSeats,
+                    IsFull = availableSeats == 0,
+                    EventType = (int)e.EventType,
+                    AllowDocuments = e.AllowDocuments,
+                    AllowedCourseNames = e.AllowedCourses.Select(c => c.Name.ToString()).ToList(),
+                    AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList(),
+                    IsActive = e.IsActive,
+                    IsAddedToCalendar = additionsToCalendar.Any(a => a.EventId == e.Id),
+                    AllowsAddToCalendar = e.GoogleCalendarEventId != null,
+                    IsUserRegistered = e.EventStudents.Any(s => s.StudentId == userId && s.Status == RegistrationStatus.Confirmed)
+                };
             });
 
             return new PagedResponseDto<EventResponseDto>
@@ -166,15 +174,19 @@ namespace API_Gestao_Eventos.src.Application.Services
             if (!evt.IsActive)
                 throw new InvalidOperationException("Não é possível se inscrever em um evento inativo.");
             var confirmedRegistrations = evt.EventStudents.Count(s => s.Status == RegistrationStatus.Confirmed);
-            if (confirmedRegistrations >= evt.Capacity)
-                throw new InvalidOperationException("Não é possível se inscrever neste evento, pois a capacidade máxima foi atingida.");
             var existingRegistration = evt.EventStudents.FirstOrDefault(f => f.StudentId == userId);
+            if (existingRegistration is null && confirmedRegistrations >= evt.Capacity)
+                throw new InvalidOperationException("Não é possível se inscrever neste evento, pois a capacidade máxima foi atingida.");
             if (existingRegistration != null)
             {
                 if (existingRegistration.Status == RegistrationStatus.Confirmed)
                     throw new InvalidOperationException("Você já está inscrito neste evento.");
-                else
-                    existingRegistration.Status = RegistrationStatus.Confirmed;
+                if (confirmedRegistrations >= evt.Capacity)
+                    throw new InvalidOperationException("Não é possível se inscrever neste evento, pois a capacidade máxima foi atingida.");
+
+                existingRegistration.Status = RegistrationStatus.Confirmed;
+                existingRegistration.RegisteredAt = DateTime.UtcNow;
+                existingRegistration.CanceledAt = null;
                 await eventRepository.UpdateAsync(evt);
             }
             else
@@ -209,6 +221,46 @@ namespace API_Gestao_Eventos.src.Application.Services
             if (evt.GoogleCalendarEventId != null && user.Email != null)
                 await googleCalendarService.RemoveAttendeeAsync(evt.GoogleCalendarEventId, user.Email);
             await eventRepository.UpdateAsync(evt);
+        }
+
+        public async Task<PagedResponseDto<EventRegistrationDto>> GetRegistrationsAsync(Guid eventId, Guid userId, EventRegistrationFilterDto filter)
+        {
+            var user = await authService.GetUserInfoAsync(userId) ?? throw new KeyNotFoundException("Usuário inválido.");
+            var evt = (await eventRepository.GetFilteredAvailableForUserAsync(new EventFilterDto()
+            {
+                FromDate = DateTime.UtcNow,
+                PageNumber = 1,
+                PageSize = int.MaxValue,
+                InstitutionId = user.InstitutionId
+            }, userId)).Item1.FirstOrDefault(f => f.Id == eventId)
+                ?? throw new KeyNotFoundException("Evento inválido para consulta.");
+
+            var registrations = evt.EventStudents
+                .Where(s => s.Status == RegistrationStatus.Confirmed)
+                .OrderBy(s => s.RegisteredAt)
+                .Select(s => new EventRegistrationDto
+                {
+                    StudentId = s.StudentId,
+                    StudentName = s.Student.Name,
+                    CourseName = s.Student.Course.Name,
+                    RegisteredAt = s.RegisteredAt
+                });
+
+            var totalItems = registrations.Count();
+            var pageNumber = filter.PageNumber < 1 ? 1 : filter.PageNumber;
+            var pageSize = filter.PageSize < 1 ? 10 : Math.Min(filter.PageSize, 50);
+            var items = registrations
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new PagedResponseDto<EventRegistrationDto>
+            {
+                Items = items,
+                TotalItems = totalItems,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
     }
 }

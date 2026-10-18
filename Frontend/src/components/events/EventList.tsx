@@ -99,6 +99,8 @@ export interface EventItem {
   endDate: string;
   capacity: number;
   confirmedRegistrations: number;
+  availableSeats: number;
+  isFull: boolean;
   eventType: number;
   allowDocuments: boolean;
   allowedCourseNames: string[];
@@ -406,9 +408,8 @@ export const EventsList: React.FC<EventsListProps> = ({
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {data.items.map((event) => {
-              const availableSeats =
-                event.capacity - event.confirmedRegistrations;
-              const isFull = availableSeats <= 0;
+              const availableSeats = event.availableSeats;
+              const isFull = event.isFull;
               const isUpcoming = event.startDate > new Date().toISOString();
               const isAddedToCalendar =
                 calendarOverrides[event.id] ?? event.isAddedToCalendar;
@@ -496,11 +497,10 @@ export const EventsList: React.FC<EventsListProps> = ({
                     )}
                     {event.isActive ? (
                       studentMode ? (
-                        <div className="flex justify-between items-center gap-2 pt-4 flex-wrap">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {isRegistered &&
-                              event.allowsAddToCalendar &&
-                              (isAddedToCalendar ? (
+                        <div className="pt-4 space-y-3">
+                          {isRegistered && event.allowsAddToCalendar && (
+                            <div className="flex justify-end">
+                              {isAddedToCalendar ? (
                                 <RemoveFromCalendarButton
                                   eventId={event.id}
                                   onRemoved={() =>
@@ -520,10 +520,11 @@ export const EventsList: React.FC<EventsListProps> = ({
                                     }))
                                   }
                                 />
-                              ))}
-                          </div>
+                              )}
+                            </div>
+                          )}
 
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex flex-wrap items-start justify-end gap-2">
                             {event.allowDocuments &&
                               isUpcoming &&
                               isRegistered && (
@@ -554,28 +555,35 @@ export const EventsList: React.FC<EventsListProps> = ({
                                 Sair do evento
                               </Button>
                             ) : (
-                              <Button
-                                size="sm"
-                                disabled={
-                                  isFull ||
-                                  !isUpcoming ||
-                                  loadingActionId === event.id
-                                }
-                                className="primary-action cursor-pointer"
-                                onClick={() => handleJoin(event.id)}>
-                                {loadingActionId === event.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                                ) : (
-                                  <LogIn className="h-4 w-4 mr-1" />
+                              <div className="flex flex-col items-end gap-1">
+                                <Button
+                                  size="sm"
+                                  disabled={
+                                    isFull ||
+                                    !isUpcoming ||
+                                    loadingActionId === event.id
+                                  }
+                                  className="primary-action cursor-pointer"
+                                  onClick={() => handleJoin(event.id)}>
+                                  {loadingActionId === event.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                  ) : (
+                                    <LogIn className="h-4 w-4 mr-1" />
+                                  )}
+                                  {isFull ? "Esgotado" : "Entrar no evento"}
+                                </Button>
+                                {isFull && (
+                                  <p className="text-right text-xs text-red-600">
+                                    Inscritos máximos atingidos.
+                                  </p>
                                 )}
-                                {isFull ? "Esgotado" : "Entrar no evento"}
-                              </Button>
+                              </div>
                             )}
                           </div>
                         </div>
                       ) : (
                         isUpcoming && (
-                          <div className="flex justify-between items-center gap-2 pt-4 flex-wrap">
+                          <div className="flex justify-end items-center gap-2 pt-4 flex-wrap">
                             {event.allowsAddToCalendar &&
                               (isAddedToCalendar ? (
                                 <RemoveFromCalendarButton
