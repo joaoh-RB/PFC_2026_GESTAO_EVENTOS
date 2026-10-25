@@ -44,7 +44,7 @@ namespace API_Gestao_Eventos.src.Controllers
         }
 
         [HttpGet("event/{eventId:guid}")]
-        [Authorize(Roles = nameof(UserRole.Professor))]
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
         public async Task<IActionResult> GetEventGroups([FromRoute] Guid eventId)
         {
             try

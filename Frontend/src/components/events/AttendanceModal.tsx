@@ -78,7 +78,10 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
   }, [event]);
 
   useEffect(() => {
-    if (isOpen) loadData();
+    if (!isOpen) return;
+    queueMicrotask(() => {
+      void loadData();
+    });
   }, [isOpen, loadData]);
 
   const handleToggle = async (registration: AttendanceRegistration) => {

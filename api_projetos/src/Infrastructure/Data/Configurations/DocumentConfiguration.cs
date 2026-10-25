@@ -39,6 +39,11 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
                    .WithMany()
                    .HasForeignKey(d => d.SenderId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasMany(d => d.ApprovalHistory)
+                   .WithOne(a => a.Document)
+                   .HasForeignKey(a => a.DocumentId)
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
