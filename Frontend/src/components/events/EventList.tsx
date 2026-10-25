@@ -632,7 +632,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                             <Button
                               className={"secondary-action cursor-pointer"}
                               onClick={() => handleStartEdition?.(event)}>
-                              Editar
+                              Detalhes do evento
                             </Button>
 
                             <DeleteConfirmation

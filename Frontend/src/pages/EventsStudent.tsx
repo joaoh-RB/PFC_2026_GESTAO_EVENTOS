@@ -10,7 +10,6 @@ import { InitialLoading } from "@/components/InitialLoading";
 
 export const EventsStudent: React.FC = () => {
   const [pageError, setPageError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const { user } = useAuth();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
@@ -19,16 +18,21 @@ export const EventsStudent: React.FC = () => {
     setPageError(null);
     try {
       await api.post(`/events/${eventId}/join`);
-    } catch (err: any) {
-      setPageError(err.response?.data?.message || "Erro ao criar o evento.");
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } } };
+      setPageError(
+        errorObj.response?.data?.message || "Erro ao entrar no evento.",
+      );
     }
   };
+
   const handleLeaveEvent = async (eventId: string) => {
     setPageError(null);
     try {
       await api.post(`/events/${eventId}/leave`);
-    } catch (err: any) {
-      setPageError(err.response?.data?.message || "Erro ao criar o evento.");
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } } };
+      setPageError(errorObj.response?.data?.message || "Erro ao sair do evento.");
     }
   };
 
@@ -80,11 +84,6 @@ export const EventsStudent: React.FC = () => {
       <PageHeader
         title="Eventos"
         description={"Inscreva-se em eventos disponíveis"}></PageHeader>
-      {actionError && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {actionError}
-        </div>
-      )}
       <EventsList
         userInstitutionId={userInstitutionId}
         studentMode={true}

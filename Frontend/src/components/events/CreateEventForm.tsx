@@ -6,7 +6,13 @@ import {
   createEventSchema,
   type CreateEventFormData,
 } from "@/schemas/eventSchema";
-import { Loader2, AlertCircle, CheckCircle2, CalendarPlus } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  CalendarPlus,
+  Download,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -52,6 +58,7 @@ import { api } from "@/services/api";
 import type { OptionItem } from "@/types/optionItem";
 import type { PagedResult } from "@/types/utils";
 import { formatDateForShort } from "@/utils/format";
+import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 
 interface EventRegistrationItem {
   studentId: string;
@@ -60,7 +67,44 @@ interface EventRegistrationItem {
   registeredAt: string;
 }
 
-type CreateEventTab = "details" | "registrations";
+interface GroupMemberItem {
+  studentId: string;
+  name: string;
+  status: number;
+  isLeader: boolean;
+}
+
+interface EventGroupItem {
+  id: string;
+  number: number;
+  leaderName: string;
+  members: GroupMemberItem[];
+}
+
+interface EventDocumentItem {
+  id: string;
+  groupId: string;
+  groupNumber?: number | null;
+  senderId: string;
+  senderName: string;
+  originalFileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  submittedAt: string;
+  status: number;
+  feedback?: string | null;
+  reviewedById?: string | null;
+  reviewedByName?: string | null;
+  reviewedAt?: string | null;
+}
+
+type CreateEventTab = "details" | "registrations" | "groups";
+
+const groupMemberStatusLabel: Record<number, string> = {
+  1: "Convidado",
+  2: "Aceito",
+  3: "Recusado",
+};
 
 interface CreateEventFormProps {
   institutions: OptionItem[];
@@ -102,6 +146,36 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
     hasPreviousPage: false,
     hasNextPage: false,
   });
+  const [isGroupsLoading, setIsGroupsLoading] = useState(false);
+  const [groupsError, setGroupsError] = useState<string | null>(null);
+  const [groupsData, setGroupsData] = useState<EventGroupItem[]>([]);
+  const [isDocumentsLoading, setIsDocumentsLoading] = useState(false);
+  const [documentsError, setDocumentsError] = useState<string | null>(null);
+  const [pendingDocuments, setPendingDocuments] = useState<EventDocumentItem[]>(
+    [],
+  );
+  const [approvedDocuments, setApprovedDocuments] = useState<EventDocumentItem[]>(
+    [],
+  );
+  const [feedbackByDocument, setFeedbackByDocument] = useState<
+    Record<string, string>
+  >({});
+  const [reviewingDocumentId, setReviewingDocumentId] = useState<string | null>(
+    null,
+  );
+  const [downloadingDocumentId, setDownloadingDocumentId] = useState<
+    string | null
+  >(null);
+
+  const getApiMessage = (error: unknown, fallback: string): string => {
+    const responseData = isAxiosError(error)
+      ? (error.response?.data as { message?: string } | undefined)
+      : undefined;
+
+    return typeof responseData?.message === "string"
+      ? responseData.message
+      : fallback;
+  };
 
   const {
     register,
@@ -162,16 +236,118 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
 
       setRegistrationsData(response.data);
     } catch (error: unknown) {
-      const responseData = isAxiosError(error)
-        ? (error.response?.data as { message?: string } | undefined)
-        : undefined;
       setRegistrationsError(
-        typeof responseData?.message === "string"
-          ? responseData.message
-          : "Não foi possível carregar os inscritos deste evento.",
+        getApiMessage(error, "Não foi possível carregar os inscritos deste evento."),
       );
     } finally {
       setIsRegistrationsLoading(false);
+    }
+  };
+
+  const loadGroups = async () => {
+    if (!currentEventData?.id) return;
+
+    setIsGroupsLoading(true);
+    setGroupsError(null);
+
+    try {
+      const response = await api.get<EventGroupItem[]>(
+        `/groups/event/${currentEventData.id}`,
+      );
+
+      setGroupsData(response.data ?? []);
+    } catch (error: unknown) {
+      setGroupsError(
+        getApiMessage(error, "Não foi possível carregar os grupos do evento."),
+      );
+    } finally {
+      setIsGroupsLoading(false);
+    }
+  };
+
+  const loadDocuments = async () => {
+    if (!currentEventData?.id) return;
+
+    setIsDocumentsLoading(true);
+    setDocumentsError(null);
+
+    try {
+      const pendingRes = await api.get<EventDocumentItem[]>(
+        `/eventdocuments/${currentEventData.id}/pending-approvals`,
+      );
+
+      let reviewedItems: EventDocumentItem[] = [];
+      try {
+        const reviewedRes = await api.get<EventDocumentItem[]>(
+          `/eventdocuments/${currentEventData.id}/reviewed`,
+        );
+        reviewedItems = reviewedRes.data ?? [];
+      } catch (reviewedError: unknown) {
+        if (isAxiosError(reviewedError) && reviewedError.response?.status === 404) {
+          const approvedRes = await api.get<EventDocumentItem[]>(
+            `/eventdocuments/${currentEventData.id}/approved`,
+          );
+          reviewedItems = approvedRes.data ?? [];
+        } else {
+          throw reviewedError;
+        }
+      }
+
+      setPendingDocuments(pendingRes.data ?? []);
+      setApprovedDocuments(reviewedItems);
+    } catch (error: unknown) {
+      setDocumentsError(
+        getApiMessage(error, "Não foi possível carregar os documentos do evento."),
+      );
+    } finally {
+      setIsDocumentsLoading(false);
+    }
+  };
+
+  const handleReviewDocument = async (documentId: string, approve: boolean) => {
+    setReviewingDocumentId(documentId);
+    setDocumentsError(null);
+
+    try {
+      await api.post(`/eventdocuments/${documentId}/review`, {
+        approve,
+        feedback: feedbackByDocument[documentId] || null,
+      });
+
+      setFeedbackByDocument((current) => {
+        const updated = { ...current };
+        delete updated[documentId];
+        return updated;
+      });
+
+      await loadDocuments();
+    } catch (error: unknown) {
+      setDocumentsError(getApiMessage(error, "Não foi possível avaliar o documento."));
+    } finally {
+      setReviewingDocumentId(null);
+    }
+  };
+
+  const handleDownloadDocument = async (doc: EventDocumentItem) => {
+    setDownloadingDocumentId(doc.id);
+
+    try {
+      const response = await api.get(`/eventdocuments/${doc.id}/download`, {
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", doc.originalFileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: unknown) {
+      setDocumentsError(getApiMessage(error, "Não foi possível baixar o documento."));
+    } finally {
+      setDownloadingDocumentId(null);
     }
   };
 
@@ -180,6 +356,11 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
 
     if (tab === "registrations") {
       await loadRegistrations(1);
+      return;
+    }
+
+    if (tab === "groups") {
+      await Promise.all([loadGroups(), loadDocuments()]);
     }
   };
 
@@ -225,7 +406,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
 
         {currentEventData?.id && (
           <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-1">
-            <div className="grid grid-cols-2 gap-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
               <button
                 type="button"
                 className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
@@ -245,6 +426,16 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                 }`}
                 onClick={() => void handleTabChange("registrations")}>
                 Inscritos
+              </button>
+              <button
+                type="button"
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === "groups"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+                onClick={() => void handleTabChange("groups")}>
+                Grupos
               </button>
             </div>
           </div>
@@ -478,7 +669,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
             )}
           </Button>
         </form>
-        ) : (
+        ) : activeTab === "registrations" ? (
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold text-slate-900">
@@ -585,6 +776,245 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                   </div>
                 )}
               </>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Grupos e documentos</h3>
+              <p className="text-sm text-slate-500">
+                Visualize os grupos com todos os participantes e aprove/reprove os documentos do grupo.
+              </p>
+            </div>
+
+            {isGroupsLoading || isDocumentsLoading ? (
+              <div className="py-8 text-center text-slate-500">Carregando grupos e documentos...</div>
+            ) : groupsError || documentsError ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {groupsError || documentsError}
+              </div>
+            ) : groupsData.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">
+                Ainda não há grupos cadastrados neste evento.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {groupsData.map((group) => {
+                  const groupPendingDocuments = pendingDocuments.filter(
+                    (doc) => doc.groupId === group.id,
+                  );
+                  const groupReviewedDocuments = approvedDocuments.filter(
+                    (doc) => doc.groupId === group.id,
+                  );
+                  const groupApprovedDocuments = groupReviewedDocuments.filter(
+                    (doc) => Number(doc.status) === 1,
+                  );
+                  const groupRejectedDocuments = groupReviewedDocuments.filter(
+                    (doc) => Number(doc.status) === 2,
+                  );
+
+                  return (
+                    <div key={group.id} className="rounded-xl border border-slate-200 p-4 space-y-4">
+                      <div>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="font-semibold text-slate-900">Grupo {group.number}</p>
+                          <span className="text-xs text-slate-500">Líder: {group.leaderName}</span>
+                        </div>
+                        <ul className="space-y-2">
+                          {group.members.map((member) => (
+                            <li
+                              key={member.studentId}
+                              className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-slate-800">{member.name}</p>
+                                <p className="text-xs text-slate-500">
+                                  {groupMemberStatusLabel[member.status] ?? "Não informado"}
+                                </p>
+                              </div>
+                              {member.isLeader && (
+                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 shrink-0">
+                                  Líder
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                            Documentos pendentes do grupo
+                          </Label>
+                          <span className="text-xs text-slate-500">
+                            {groupPendingDocuments.length} pendente(s)
+                          </span>
+                        </div>
+
+                        {groupPendingDocuments.length === 0 ? (
+                          <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
+                            Sem documentos pendentes neste grupo.
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {groupPendingDocuments.map((doc) => (
+                              <div
+                                key={doc.id}
+                                className="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold text-slate-900">
+                                      {doc.originalFileName}
+                                    </p>
+                                    <p className="text-xs text-slate-500">Enviado por {doc.senderName}</p>
+                                    <p className="text-xs text-slate-500">
+                                      Em {formatDateForShort(doc.submittedAt)}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2 cursor-pointer shrink-0"
+                                    disabled={downloadingDocumentId === doc.id}
+                                    onClick={() => void handleDownloadDocument(doc)}>
+                                    {downloadingDocumentId === doc.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Download className="h-4 w-4" />
+                                    )}
+                                    Baixar
+                                  </Button>
+                                </div>
+
+                                <Textarea
+                                  value={feedbackByDocument[doc.id] ?? ""}
+                                  onChange={(e) =>
+                                    setFeedbackByDocument((current) => ({
+                                      ...current,
+                                      [doc.id]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Feedback da avaliação (opcional)."
+                                  className="min-h-[78px]"
+                                />
+
+                                <div className="flex items-center justify-end gap-2">
+                                  <DeleteConfirmation
+                                    descriptionText={`Deseja reprovar o documento "${doc.originalFileName}"?`}
+                                    confirmationText="Confirmar reprovação"
+                                    onDelete={() => {
+                                      void handleReviewDocument(doc.id, false);
+                                    }}>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                                      disabled={reviewingDocumentId === doc.id}>
+                                      {reviewingDocumentId === doc.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        "Reprovar"
+                                      )}
+                                    </Button>
+                                  </DeleteConfirmation>
+                                  <DeleteConfirmation
+                                    descriptionText={`Deseja aprovar o documento "${doc.originalFileName}"?`}
+                                    confirmationText="Confirmar aprovação"
+                                    deleteButtonClassName="bg-emerald-600 hover:bg-emerald-700"
+                                    onDelete={() => {
+                                      void handleReviewDocument(doc.id, true);
+                                    }}>
+                                    <Button
+                                      type="button"
+                                      className="primary-action cursor-pointer"
+                                      disabled={reviewingDocumentId === doc.id}>
+                                      {reviewingDocumentId === doc.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        "Aprovar"
+                                      )}
+                                    </Button>
+                                  </DeleteConfirmation>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                            Histórico de documentos do grupo
+                          </Label>
+                          <span className="text-xs text-slate-500">
+                            {groupReviewedDocuments.length} registro(s)
+                          </span>
+                        </div>
+
+                        {groupReviewedDocuments.length === 0 ? (
+                          <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
+                            Sem histórico de avaliações neste grupo.
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {groupReviewedDocuments.map((doc) => {
+                              const isRejected = Number(doc.status) === 2;
+                              const statusLabel = isRejected ? "Reprovado" : "Aprovado";
+                              const statusClass = isRejected
+                                ? "text-red-700"
+                                : "text-emerald-700";
+
+                              return (
+                                <div
+                                  key={doc.id}
+                                  className="rounded-xl border border-slate-200 px-4 py-3 flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold text-slate-900">
+                                      {doc.originalFileName}
+                                    </p>
+                                    <p className="text-xs text-slate-500">Enviado por {doc.senderName}</p>
+                                    {doc.reviewedByName && doc.reviewedAt && (
+                                      <p className={`text-xs ${statusClass}`}>
+                                        {statusLabel} por {doc.reviewedByName} em {formatDateForShort(doc.reviewedAt)}
+                                      </p>
+                                    )}
+                                    {doc.feedback && (
+                                      <p className="text-xs text-slate-600 break-words">
+                                        Feedback: {doc.feedback}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2 cursor-pointer shrink-0"
+                                    disabled={downloadingDocumentId === doc.id}
+                                    onClick={() => void handleDownloadDocument(doc)}>
+                                    {downloadingDocumentId === doc.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Download className="h-4 w-4" />
+                                    )}
+                                    Baixar
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        <div className="flex gap-4 text-xs text-slate-500">
+                          <span>{groupApprovedDocuments.length} aprovado(s)</span>
+                          <span>{groupRejectedDocuments.length} reprovado(s)</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}

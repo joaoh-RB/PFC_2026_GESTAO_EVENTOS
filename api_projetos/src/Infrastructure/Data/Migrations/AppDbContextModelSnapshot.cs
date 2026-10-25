@@ -150,6 +150,39 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.ToTable("Documents", (string)null);
                 });
 
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.DocumentApprovalHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Feedback")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("ReviewedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<Guid>("ReviewerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewerId");
+
+                    b.HasIndex("DocumentId", "ReviewedAt");
+
+                    b.ToTable("DocumentApprovalHistories", (string)null);
+                });
+
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Event", b =>
                 {
                     b.Property<Guid>("Id")
@@ -623,6 +656,25 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.DocumentApprovalHistory", b =>
+                {
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Document", "Document")
+                        .WithMany("ApprovalHistory")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.User", "Reviewer")
+                        .WithMany()
+                        .HasForeignKey("ReviewerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+
+                    b.Navigation("Reviewer");
+                });
+
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Event", b =>
                 {
                     b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Institution", "Institution")
@@ -802,6 +854,11 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Course", b =>
                 {
                     b.Navigation("Students");
+                });
+
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Document", b =>
+                {
+                    b.Navigation("ApprovalHistory");
                 });
 
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Event", b =>

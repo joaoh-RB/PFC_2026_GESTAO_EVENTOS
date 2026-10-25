@@ -13,7 +13,7 @@
         public long FileSizeBytes { get; set; }
         public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
         public DocumentStatus Status { get; set; } = DocumentStatus.Pending;
-
+        public ICollection<DocumentApprovalHistory> ApprovalHistory { get; set; } = new List<DocumentApprovalHistory>();
     }
     public enum DocumentStatus
     {

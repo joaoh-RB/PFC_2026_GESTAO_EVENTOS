@@ -16,7 +16,10 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
                 .Include(g => g.Members)
                 .ThenInclude(m => m.Student)
                 .Include(g => g.Documents)
-                .ThenInclude(g => g.Sender)
+                .ThenInclude(d => d.Sender)
+                .Include(g => g.Documents)
+                .ThenInclude(d => d.ApprovalHistory)
+                .ThenInclude(a => a.Reviewer)
                 .FirstOrDefaultAsync();
         }
         public async Task<Group?> GetByIdAsync(Guid groupId)

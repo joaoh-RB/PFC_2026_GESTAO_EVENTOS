@@ -52,6 +52,9 @@ export interface EventDocumentDto {
   fileSizeBytes: number;
   submittedAt: string;
   status: DocumentStatus;
+  feedback?: string | null;
+  reviewedByName?: string | null;
+  reviewedAt?: string | null;
 }
 
 const submitDocument = async (eventId: string, file: File): Promise<void> => {
@@ -150,6 +153,25 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
     (doc as unknown as { FileSizeBytes?: number }).FileSizeBytes ??
     0;
 
+  const getStatusLabel = (status: DocumentStatus): string => {
+    const numericStatus = Number(status);
+    if (numericStatus === 0) return "Pendente";
+    if (numericStatus === 1) return "Aprovado";
+    if (numericStatus === 2) return "Reprovado";
+    if (status === "Pending") return "Pendente";
+    if (status === "Approved") return "Aprovado";
+    if (status === "Rejected") return "Reprovado";
+    return "Status não informado";
+  };
+
+  const getStatusBadgeClassName = (status: DocumentStatus): string => {
+    const label = getStatusLabel(status);
+    if (label === "Pendente") return "bg-amber-100 text-amber-700 border-amber-200";
+    if (label === "Aprovado") return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    if (label === "Reprovado") return "bg-red-100 text-red-700 border-red-200";
+    return "bg-slate-100 text-slate-700 border-slate-200";
+  };
+
   const getFileFormatLabel = (
     fileName?: string,
     contentType?: string,
@@ -214,24 +236,18 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
 
   useEffect(() => {
     if (isOpen && event?.id) {
-      loadDocuments();
-    } else if (!isOpen) {
-      setDocuments([]);
-      setHasGroup(false);
-      setDocumentsError(null);
-      setFile(null);
-      setError(null);
-      setIsSuccess(false);
-      setIsDeletingId(null);
-      setIsDownloadingId(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      queueMicrotask(() => {
+        void loadDocuments();
+      });
     }
   }, [isOpen, event?.id, loadDocuments]);
 
   useEffect(() => {
-    if (hasGroup) loadDocuments();
+    if (hasGroup) {
+      queueMicrotask(() => {
+        void loadDocuments();
+      });
+    }
   }, [hasGroup, loadDocuments]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,6 +327,48 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
     }
   };
 
+  const getApiErrorMessage = (
+    err: unknown,
+    fallbackMessage: string,
+  ): string => {
+    const errorObj = err as {
+      response?: {
+        data?:
+          | { message?: string; error?: string; errors?: Record<string, string | string[]> }
+          | string;
+      };
+      message?: string;
+    };
+
+    const data = errorObj?.response?.data;
+    if (typeof data === "string" && data.trim().length > 0) {
+      return data;
+    }
+
+    if (data && typeof data === "object") {
+      if (data.message && data.message.trim().length > 0) {
+        return data.message;
+      }
+      if (data.error && data.error.trim().length > 0) {
+        return data.error;
+      }
+      if (data.errors && typeof data.errors === "object") {
+        const firstError = Object.values(data.errors)
+          .flatMap((value) => (Array.isArray(value) ? value : [value]))
+          .find((value) => typeof value === "string" && value.trim().length > 0);
+        if (firstError) {
+          return firstError;
+        }
+      }
+    }
+
+    if (errorObj?.message && !errorObj.message.toLowerCase().includes("status code")) {
+      return errorObj.message;
+    }
+
+    return fallbackMessage;
+  };
+
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!event || !file) {
@@ -333,15 +391,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
         setIsSuccess(false);
       }, 3000);
     } catch (err: unknown) {
-      const errorObj = err as {
-        response?: { data?: { message?: string } };
-        message?: string;
-      };
-      setError(
-        errorObj?.response?.data?.message ||
-          errorObj?.message ||
-          "Erro ao enviar o documento.",
-      );
+      setError(getApiErrorMessage(err, "Erro ao enviar o documento."));
     } finally {
       setIsSubmitting(false);
     }
@@ -349,7 +399,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-[540px] max-h-[90vh] flex flex-col p-0 overflow-hidden gap-0">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-[760px] max-h-[92vh] flex flex-col p-0 overflow-hidden gap-0">
         <DialogHeader className="px-6 pt-6 pb-4 pr-12 min-w-0 shrink-0 border-b border-slate-100">
           <DialogTitle className="truncate text-lg font-semibold text-slate-800">
             Documentos do Evento
@@ -365,13 +415,6 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
           onSubmit={handleSubmit}
           className="flex flex-col flex-1 min-h-0 w-full min-w-0 max-w-full m-0 p-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 w-full min-w-0 max-w-full">
-            {error && (
-              <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200 w-full min-w-0">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span className="min-w-0 flex-1 break-words">{error}</span>
-              </div>
-            )}
-
             {isSuccess && (
               <div className="flex items-center gap-2 p-3 text-sm text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 w-full min-w-0">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
@@ -462,6 +505,34 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
                                   {ext} • {formatFileSizeMB(sizeBytes)}
                                   {doc.senderName ? ` • ${doc.senderName}` : ""}
                                 </AttachmentDescription>
+                                <div className="mt-1">
+                                  <span
+                                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusBadgeClassName(doc.status)}`}>
+                                    {getStatusLabel(doc.status) === "Pendente"
+                                      ? "Pendente de aprovação"
+                                      : getStatusLabel(doc.status)}
+                                  </span>
+                                </div>
+                                {getStatusLabel(doc.status) !== "Pendente" && (
+                                  <div className="mt-1.5 rounded-md border border-slate-200 bg-white/80 px-2 py-1.5 text-[11px] space-y-1">
+                                    <p className="text-slate-700 break-words">
+                                      <span className="font-semibold">Motivo:</span>{" "}
+                                      {doc.feedback && doc.feedback.trim().length > 0
+                                        ? doc.feedback
+                                        : "Sem feedback informado."}
+                                    </p>
+                                    {(doc.reviewedByName || doc.reviewedAt) && (
+                                      <p className="text-slate-500 break-words">
+                                        {doc.reviewedByName
+                                          ? `Avaliado por ${doc.reviewedByName}`
+                                          : "Avaliação registrada"}
+                                        {doc.reviewedAt
+                                          ? ` em ${new Date(doc.reviewedAt).toLocaleString("pt-BR")}`
+                                          : ""}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
                               </AttachmentContent>
                             </div>
                             <AttachmentActions className="shrink-0 ml-2 flex items-center gap-1">
@@ -512,6 +583,12 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
                 </div>
 
                 <div className="space-y-2 w-full min-w-0 border-t border-slate-100 pt-4">
+                  {error && (
+                    <div className="flex items-start gap-2 p-3 text-sm text-red-700 bg-red-50 rounded-lg border border-red-200">
+                      <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                      <span className="flex-1 break-words">{error}</span>
+                    </div>
+                  )}
                   <Label
                     htmlFor="document-upload"
                     className="text-xs font-semibold text-slate-700 uppercase tracking-wider">

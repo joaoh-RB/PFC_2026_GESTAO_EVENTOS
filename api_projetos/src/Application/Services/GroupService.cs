@@ -114,9 +114,21 @@ namespace API_Gestao_Eventos.src.Application.Services
         {
             var evt = await eventRepository.GetByIdAsync(eventId)
                 ?? throw new KeyNotFoundException("Evento não encontrado.");
-            var user = await userRepository.GetByIdAsync(userId);
-            if (user is not Teacher teacher || !evt.AllowedCourses.Any(c => teacher.Courses.Any(tc => tc.Id == c.Id)))
-                throw new InvalidOperationException("Este evento não pertence aos seus cursos.");
+
+            var user = await userRepository.GetByIdAsync(userId)
+                ?? throw new KeyNotFoundException("Usuário não encontrado.");
+
+            if (user is Teacher teacher)
+            {
+                var allowedForTeacher = evt.AllowedCourses.Any(c => teacher.Courses.Any(tc => tc.Id == c.Id));
+                if (!allowedForTeacher)
+                    throw new InvalidOperationException("Este evento não pertence aos seus cursos.");
+            }
+            else if (user is not Administrator && user is not AcademicDepartment)
+            {
+                throw new InvalidOperationException("Você não possui permissão para visualizar os grupos deste evento.");
+            }
+
             var groups = await groupRepository.GetByEventAsync(eventId);
             return groups.Select(MapToDto);
         }
