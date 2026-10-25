@@ -21,6 +21,7 @@ namespace API_Gestao_Eventos.src.Application
             services.AddScoped<LegalDocumentService>();
             services.AddScoped<EventDocumentsService>();
             services.AddScoped<GroupService>();
+            services.AddScoped<AttendanceService>();
             services.AddFluentValidationAutoValidation();
             services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
             services.AddValidatorsFromAssemblyContaining<CreateEventValidator>();
@@ -34,6 +35,7 @@ namespace API_Gestao_Eventos.src.Application
             services.AddValidatorsFromAssemblyContaining<UpdateInstitutionValidator>();
             services.AddValidatorsFromAssemblyContaining<CreateGroupValidator>();
             services.AddValidatorsFromAssemblyContaining<InviteGroupMembersValidator>();
+            services.AddValidatorsFromAssemblyContaining<ConfirmAttendanceValidator>();
             services.AddValidatorsFromAssemblyContaining<ChangeInitialPasswordValidator>();
             services.AddValidatorsFromAssemblyContaining<ResetPasswordValidator>();
             return services;

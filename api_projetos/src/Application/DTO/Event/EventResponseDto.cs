@@ -21,5 +21,6 @@
         public bool IsAddedToCalendar { get; set; }
         public bool AllowsAddToCalendar { get; set; }
         public bool IsUserRegistered { get; set; }
+        public bool IsUserAttended { get; set; }
     }
 }

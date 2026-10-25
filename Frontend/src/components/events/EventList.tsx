@@ -35,6 +35,7 @@ import {
   FileUp,
   LogIn,
   LogOut,
+  ClipboardCheck,
 } from "lucide-react";
 import { type PagedResult } from "@/types/utils";
 import { formatDateForShort } from "@/utils/format";
@@ -45,6 +46,8 @@ import { api } from "@/services/api";
 import { AddToCalendarButton } from "./AddToCalendarButton";
 import { RemoveFromCalendarButton } from "./RemoveFromCalendarButton";
 import { SubmitDocumentModal } from "./SubmitDocumentModal";
+import { AttendanceConfirm } from "./AttendanceConfirm";
+import { AttendanceModal } from "./AttendanceModal";
 
 export interface FetchEventsParams {
   pageNumber?: number;
@@ -109,6 +112,7 @@ export interface EventItem {
   isAddedToCalendar: boolean;
   allowsAddToCalendar: boolean;
   isUserRegistered?: boolean;
+  isUserAttended?: boolean;
 }
 
 export interface EventFilterState {
@@ -190,6 +194,9 @@ export const EventsList: React.FC<EventsListProps> = ({
   const [documentModalEvent, setDocumentModalEvent] =
     useState<EventItem | null>(null);
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const [attendanceModalEvent, setAttendanceModalEvent] =
+    useState<EventItem | null>(null);
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
 
   const loadEvents = useCallback(
     async (appliedFilters = filters, page = currentPage) => {
@@ -288,6 +295,11 @@ export const EventsList: React.FC<EventsListProps> = ({
   const handleOpenDocumentModal = (eventItem: EventItem) => {
     setDocumentModalEvent(eventItem);
     setIsDocumentModalOpen(true);
+  };
+
+  const handleOpenAttendanceModal = (eventItem: EventItem) => {
+    setAttendanceModalEvent(eventItem);
+    setIsAttendanceModalOpen(true);
   };
 
   const statusOptions: OptionItem[] = [
@@ -411,6 +423,8 @@ export const EventsList: React.FC<EventsListProps> = ({
               const availableSeats = event.availableSeats;
               const isFull = event.isFull;
               const isUpcoming = event.startDate > new Date().toISOString();
+              const isOngoing =
+                !isUpcoming && event.endDate > new Date().toISOString();
               const isAddedToCalendar =
                 calendarOverrides[event.id] ?? event.isAddedToCalendar;
               const isRegistered =
@@ -524,6 +538,14 @@ export const EventsList: React.FC<EventsListProps> = ({
                             </div>
                           )}
 
+                          {isRegistered &&
+                            (isOngoing || event.isUserAttended) && (
+                              <AttendanceConfirm
+                                eventId={event.id}
+                                attended={event.isUserAttended ?? false}
+                              />
+                            )}
+
                           <div className="flex flex-wrap items-start justify-end gap-2">
                             {event.allowDocuments &&
                               isUpcoming &&
@@ -582,7 +604,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                           </div>
                         </div>
                       ) : (
-                        isUpcoming && (
+                        isUpcoming ? (
                           <div className="flex justify-end items-center gap-2 pt-4 flex-wrap">
                             {event.allowsAddToCalendar &&
                               (isAddedToCalendar ? (
@@ -629,6 +651,17 @@ export const EventsList: React.FC<EventsListProps> = ({
                               confirmationText={
                                 "Inativar"
                               }></DeleteConfirmation>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end pt-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2 cursor-pointer"
+                              onClick={() => handleOpenAttendanceModal(event)}>
+                              <ClipboardCheck className="h-4 w-4 text-[#109bc6]" />
+                              Presença
+                            </Button>
                           </div>
                         )
                       )
@@ -700,6 +733,12 @@ export const EventsList: React.FC<EventsListProps> = ({
         isOpen={isDocumentModalOpen}
         onOpenChange={setIsDocumentModalOpen}
         event={documentModalEvent}
+      />
+
+      <AttendanceModal
+        isOpen={isAttendanceModalOpen}
+        onOpenChange={setIsAttendanceModalOpen}
+        event={attendanceModalEvent}
       />
     </div>
   );

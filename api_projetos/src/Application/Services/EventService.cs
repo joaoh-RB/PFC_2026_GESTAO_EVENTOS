@@ -97,7 +97,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                     IsActive = e.IsActive,
                     IsAddedToCalendar = additionsToCalendar.Any(a => a.EventId == e.Id),
                     AllowsAddToCalendar = e.GoogleCalendarEventId != null,
-                    IsUserRegistered = e.EventStudents.Any(s => s.StudentId == userId && s.Status == RegistrationStatus.Confirmed)
+                    IsUserRegistered = e.EventStudents.Any(s => s.StudentId == userId && s.Status == RegistrationStatus.Confirmed),
+                    IsUserAttended = e.EventStudents.Any(s => s.StudentId == userId && s.AttendedAt != null)
                 };
             });
 

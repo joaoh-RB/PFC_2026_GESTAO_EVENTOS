@@ -32,6 +32,7 @@ namespace API_Gestao_Eventos.src.Infrastructure
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IDocumentRepository, DocumentRepository>();
             services.AddScoped<IGroupRepository, GroupRepository>();
+            services.AddScoped<IAttendanceRepository, AttendanceRepository>();
             services.AddScoped<IInstitutionRepository, InstitutionRepository>();
             services.AddScoped<ICourseRepository, CourseRepository>();
             services.AddScoped<IEventRepository, EventRepository>();

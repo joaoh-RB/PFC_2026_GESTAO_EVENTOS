@@ -20,6 +20,7 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public bool AllowDocuments { get; set; }
         public EventType EventType { get; set; }
         public string? GoogleCalendarEventId { get; set; }
+        public string? AttendanceCode { get; set; }
         //public EventStatus EventStatus { get; set; }
     }
     public enum RegistrationStatus
@@ -43,6 +44,8 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public RegistrationStatus Status { get; set; } = RegistrationStatus.Confirmed;
         public DateTime RegisteredAt { get; set; }
         public DateTime? CanceledAt { get; set; }
+        public DateTime? AttendedAt { get; set; }
+        public AttendanceMethod? AttendanceMethod { get; set; }
         public bool IsActive { get; set; } = true;
     }
     public class EventAllowedCourse

@@ -11,7 +11,7 @@ namespace API_Gestao_Eventos.src.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class EventsController(EventService eventService) : Controller
+    public class EventsController(EventService eventService, AttendanceService attendanceService) : Controller
     {
         [HttpPost]
         [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
@@ -156,6 +156,86 @@ namespace API_Gestao_Eventos.src.Controllers
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
                 var registrations = await eventService.GetRegistrationsAsync(id, userId, filter);
                 return Ok(registrations);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        [HttpGet("{id:guid}/attendance/code")]
+        public async Task<IActionResult> GetAttendanceCode([FromRoute] Guid id)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var code = await attendanceService.GetCodeAsync(id, userId);
+                return Ok(new { code });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        [HttpGet("{id:guid}/attendance")]
+        public async Task<IActionResult> GetAttendance([FromRoute] Guid id)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var registrations = await attendanceService.GetRegistrationsAsync(id, userId);
+                return Ok(registrations);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = nameof(UserRole.Aluno))]
+        [HttpPost("{id:guid}/attendance/confirm")]
+        public async Task<IActionResult> ConfirmAttendance([FromRoute] Guid id, [FromBody] ConfirmAttendanceRequestDto request)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await attendanceService.ConfirmWithCodeAsync(id, userId, request.Code);
+                return Ok(new { message = "Presença confirmada." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        [HttpPost("{id:guid}/attendance/{studentId:guid}")]
+        public async Task<IActionResult> MarkAttendance([FromRoute] Guid id, [FromRoute] Guid studentId)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await attendanceService.MarkAttendanceAsync(id, studentId, userId);
+                return Ok(new { message = "Presença registrada." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        [HttpDelete("{id:guid}/attendance/{studentId:guid}")]
+        public async Task<IActionResult> UnmarkAttendance([FromRoute] Guid id, [FromRoute] Guid studentId)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await attendanceService.UnmarkAttendanceAsync(id, studentId, userId);
+                return Ok(new { message = "Presença removida." });
             }
             catch (Exception ex)
             {

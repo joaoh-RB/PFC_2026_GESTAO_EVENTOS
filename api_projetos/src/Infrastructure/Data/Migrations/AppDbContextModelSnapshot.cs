@@ -159,6 +159,9 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Property<bool>("AllowDocuments")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("AttendanceCode")
+                        .HasColumnType("text");
+
                     b.Property<int>("Capacity")
                         .HasColumnType("integer");
 
@@ -247,6 +250,12 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
 
                     b.Property<Guid>("StudentId")
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("AttendanceMethod")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("AttendedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("CanceledAt")
                         .HasColumnType("timestamp with time zone");
