@@ -1,4 +1,4 @@
-﻿using API_Gestao_Eventos.src.Domain.Entities;
+using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
@@ -30,6 +30,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Context
         public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
         public DbSet<Document> Documents => Set<Document>();
         public DbSet<EventAddedToCalendar> EventAddedToCalendars => Set<EventAddedToCalendar>();
+        public DbSet<EventFeedback> EventFeedbacks => Set<EventFeedback>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

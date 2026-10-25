@@ -1,4 +1,4 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.Event;
+using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
@@ -98,7 +98,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                     IsAddedToCalendar = additionsToCalendar.Any(a => a.EventId == e.Id),
                     AllowsAddToCalendar = e.GoogleCalendarEventId != null,
                     IsUserRegistered = e.EventStudents.Any(s => s.StudentId == userId && s.Status == RegistrationStatus.Confirmed),
-                    IsUserAttended = e.EventStudents.Any(s => s.StudentId == userId && s.AttendedAt != null)
+                    IsUserAttended = e.EventStudents.Any(s => s.StudentId == userId && (s.Status == RegistrationStatus.Attended || s.AttendedAt != null))
                 };
             });
 
@@ -229,7 +229,6 @@ namespace API_Gestao_Eventos.src.Application.Services
             var user = await authService.GetUserInfoAsync(userId) ?? throw new KeyNotFoundException("Usuário inválido.");
             var evt = (await eventRepository.GetFilteredAvailableForUserAsync(new EventFilterDto()
             {
-                FromDate = DateTime.UtcNow,
                 PageNumber = 1,
                 PageSize = int.MaxValue,
                 InstitutionId = user.InstitutionId
@@ -237,7 +236,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                 ?? throw new KeyNotFoundException("Evento inválido para consulta.");
 
             var registrations = evt.EventStudents
-                .Where(s => s.Status == RegistrationStatus.Confirmed)
+                .Where(s => s.Status == RegistrationStatus.Confirmed || s.Status == RegistrationStatus.Attended)
                 .OrderBy(s => s.RegisteredAt)
                 .Select(s => new EventRegistrationDto
                 {

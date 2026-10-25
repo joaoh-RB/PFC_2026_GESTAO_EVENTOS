@@ -243,6 +243,43 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.ToTable("EventAllowedCourses", (string)null);
                 });
 
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.EventFeedback", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FeedbackText")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("EventId", "StudentId")
+                        .IsUnique();
+
+                    b.ToTable("EventFeedbacks", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_EventFeedback_Rating", "\"Rating\" >= 0 AND \"Rating\" <= 10");
+                        });
+                });
+
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.EventStudent", b =>
                 {
                     b.Property<Guid>("EventId")
@@ -670,6 +707,25 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Navigation("Course");
 
                     b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.EventFeedback", b =>
+                {
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.EventStudent", b =>

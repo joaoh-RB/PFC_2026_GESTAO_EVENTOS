@@ -9,6 +9,7 @@ import {
 import { Loader2, AlertCircle, CheckCircle2, CalendarPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Combobox,
   ComboboxChips,
@@ -52,6 +53,7 @@ import { api } from "@/services/api";
 import type { OptionItem } from "@/types/optionItem";
 import type { PagedResult } from "@/types/utils";
 import { formatDateForShort } from "@/utils/format";
+import type { EventFeedbackDto } from "./EventFeedbackModal";
 
 interface EventRegistrationItem {
   studentId: string;
@@ -102,6 +104,9 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
     hasPreviousPage: false,
     hasNextPage: false,
   });
+  const [isFeedbacksLoading, setIsFeedbacksLoading] = useState(false);
+  const [feedbacksError, setFeedbacksError] = useState<string | null>(null);
+  const [feedbacks, setFeedbacks] = useState<EventFeedbackDto[]>([]);
 
   const {
     register,
@@ -175,11 +180,36 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
     }
   };
 
+  const loadFeedbacks = async () => {
+    if (!currentEventData?.id) return;
+
+    setIsFeedbacksLoading(true);
+    setFeedbacksError(null);
+
+    try {
+      const response = await api.get<EventFeedbackDto[]>(
+        `/events/${currentEventData.id}/feedbacks`,
+      );
+      setFeedbacks(Array.isArray(response.data) ? response.data : []);
+    } catch (error: unknown) {
+      const responseData = isAxiosError(error)
+        ? (error.response?.data as { message?: string } | undefined)
+        : undefined;
+      setFeedbacksError(
+        typeof responseData?.message === "string"
+          ? responseData.message
+          : "Não foi possível carregar os feedbacks deste evento.",
+      );
+    } finally {
+      setIsFeedbacksLoading(false);
+    }
+  };
+
   const handleTabChange = async (tab: CreateEventTab) => {
     setActiveTab(tab);
 
     if (tab === "registrations") {
-      await loadRegistrations(1);
+      await Promise.all([loadRegistrations(1), loadFeedbacks()]);
     }
   };
 
@@ -187,6 +217,14 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
     if (page < 1 || page > registrationsData.totalPages) return;
     await loadRegistrations(page);
   };
+
+  const averageRating =
+    feedbacks.length > 0
+      ? (
+          feedbacks.reduce((sum, item) => sum + item.rating, 0) /
+          feedbacks.length
+        ).toFixed(1)
+      : null;
 
   return (
     <Card className="surface-card max-w-4xl mx-auto shadow-none">
@@ -479,113 +517,186 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
           </Button>
         </form>
         ) : (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">
-                Inscritos no evento
-              </h3>
-              <p className="text-sm text-slate-500">
-                {currentEventData?.name || "Lista de pessoas inscritas no evento."}
-              </p>
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Inscritos no evento
+                </h3>
+                <p className="text-sm text-slate-500">
+                  {currentEventData?.name || "Lista de pessoas inscritas no evento."}
+                </p>
+              </div>
+
+              {isRegistrationsLoading ? (
+                <div className="py-8 text-center text-slate-500">
+                  Carregando inscritos...
+                </div>
+              ) : registrationsError ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {registrationsError}
+                </div>
+              ) : registrationsData.items.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">
+                  Ainda não há inscritos confirmados neste evento.
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-hidden rounded-xl border border-slate-200">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Aluno</TableHead>
+                          <TableHead>Curso</TableHead>
+                          <TableHead>Data e hora da inscrição</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {registrationsData.items.map((item) => (
+                          <TableRow key={item.studentId}>
+                            <TableCell className="font-medium text-slate-900">
+                              {item.studentName}
+                            </TableCell>
+                            <TableCell>{item.courseName}</TableCell>
+                            <TableCell>{formatDateForShort(item.registeredAt)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {registrationsData.totalPages > 1 && (
+                    <div className="flex justify-center pt-2">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                void handleRegistrationsPageChange(
+                                  registrationsData.pageNumber - 1,
+                                );
+                              }}
+                              className={
+                                !registrationsData.hasPreviousPage
+                                  ? "pointer-events-none opacity-50"
+                                  : "cursor-pointer"
+                              }
+                            />
+                          </PaginationItem>
+
+                          {Array.from(
+                            { length: registrationsData.totalPages },
+                            (_, index) => index + 1,
+                          ).map((page) => (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                href="#"
+                                isActive={page === registrationsData.pageNumber}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  void handleRegistrationsPageChange(page);
+                                }}>
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          ))}
+
+                          <PaginationItem>
+                            <PaginationNext
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                void handleRegistrationsPageChange(
+                                  registrationsData.pageNumber + 1,
+                                );
+                              }}
+                              className={
+                                !registrationsData.hasNextPage
+                                  ? "pointer-events-none opacity-50"
+                                  : "cursor-pointer"
+                              }
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
-            {isRegistrationsLoading ? (
-              <div className="py-8 text-center text-slate-500">
-                Carregando inscritos...
+            <div className="space-y-4 border-t border-slate-100 pt-6">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Feedbacks do evento
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    Avaliações enviadas pelos alunos que participaram do evento.
+                  </p>
+                </div>
+                {averageRating && (
+                  <Badge variant="secondary" className="text-sm font-semibold">
+                    Média: {averageRating} / 10 ({feedbacks.length})
+                  </Badge>
+                )}
               </div>
-            ) : registrationsError ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                {registrationsError}
-              </div>
-            ) : registrationsData.items.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">
-                Ainda não há inscritos confirmados neste evento.
-              </div>
-            ) : (
-              <>
+
+              {isFeedbacksLoading ? (
+                <div className="py-8 text-center text-slate-500">
+                  Carregando feedbacks...
+                </div>
+              ) : feedbacksError ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {feedbacksError}
+                </div>
+              ) : feedbacks.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">
+                  Ainda não há feedbacks registrados para este evento.
+                </div>
+              ) : (
                 <div className="overflow-hidden rounded-xl border border-slate-200">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Aluno</TableHead>
                         <TableHead>Curso</TableHead>
-                        <TableHead>Data e hora da inscrição</TableHead>
+                        <TableHead>Nota</TableHead>
+                        <TableHead>Comentário</TableHead>
+                        <TableHead>Data</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {registrationsData.items.map((item) => (
-                        <TableRow key={item.studentId}>
+                      {feedbacks.map((item) => (
+                        <TableRow key={item.id}>
                           <TableCell className="font-medium text-slate-900">
                             {item.studentName}
                           </TableCell>
                           <TableCell>{item.courseName}</TableCell>
-                          <TableCell>{formatDateForShort(item.registeredAt)}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {item.rating} / 10
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-xs whitespace-normal break-words text-slate-700">
+                            {item.feedbackText || (
+                              <span className="italic text-slate-400">
+                                Sem comentário
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {formatDateForShort(item.createdAt)}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
-
-                {registrationsData.totalPages > 1 && (
-                  <div className="flex justify-center pt-2">
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              void handleRegistrationsPageChange(
-                                registrationsData.pageNumber - 1,
-                              );
-                            }}
-                            className={
-                              !registrationsData.hasPreviousPage
-                                ? "pointer-events-none opacity-50"
-                                : "cursor-pointer"
-                            }
-                          />
-                        </PaginationItem>
-
-                        {Array.from(
-                          { length: registrationsData.totalPages },
-                          (_, index) => index + 1,
-                        ).map((page) => (
-                          <PaginationItem key={page}>
-                            <PaginationLink
-                              href="#"
-                              isActive={page === registrationsData.pageNumber}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                void handleRegistrationsPageChange(page);
-                              }}>
-                              {page}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))}
-
-                        <PaginationItem>
-                          <PaginationNext
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              void handleRegistrationsPageChange(
-                                registrationsData.pageNumber + 1,
-                              );
-                            }}
-                            className={
-                              !registrationsData.hasNextPage
-                                ? "pointer-events-none opacity-50"
-                                : "cursor-pointer"
-                            }
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                )}
-              </>
-            )}
+              )}
+            </div>
           </div>
         )}
       </CardContent>

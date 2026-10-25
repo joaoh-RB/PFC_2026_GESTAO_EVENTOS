@@ -1,4 +1,4 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.Event;
+using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Application.Services;
 using API_Gestao_Eventos.src.Domain.Entities;
@@ -11,7 +11,7 @@ namespace API_Gestao_Eventos.src.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class EventsController(EventService eventService, AttendanceService attendanceService) : Controller
+    public class EventsController(EventService eventService, AttendanceService attendanceService, EventFeedbackService eventFeedbackService) : Controller
     {
         [HttpPost]
         [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
@@ -242,6 +242,68 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        [Authorize(Roles = nameof(UserRole.Aluno))]
+        [HttpPost("{id:guid}/feedback")]
+        public async Task<IActionResult> CreateFeedback([FromRoute] Guid id, [FromBody] CreateEventFeedbackRequestDto request)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var feedback = await eventFeedbackService.CreateFeedbackAsync(id, userId, request);
+                return StatusCode(StatusCodes.Status201Created, feedback);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = nameof(UserRole.Aluno))]
+        [HttpGet("{id:guid}/feedback/mine")]
+        public async Task<IActionResult> GetMyFeedback([FromRoute] Guid id)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var feedback = await eventFeedbackService.GetMyFeedbackAsync(id, userId);
+                if (feedback == null)
+                    return NotFound(new { message = "Você ainda não avaliou este evento." });
+                return Ok(feedback);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        [HttpGet("{id:guid}/feedbacks")]
+        public async Task<IActionResult> GetEventFeedbacks([FromRoute] Guid id)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var feedbacks = await eventFeedbackService.GetEventFeedbacksAsync(id, userId);
+                return Ok(feedbacks);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         public class ActiveRequest
         {
             public bool IsActive { get; set; }

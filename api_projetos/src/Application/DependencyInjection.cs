@@ -1,4 +1,4 @@
-﻿using API_Gestao_Eventos.src.Application.Services;
+using API_Gestao_Eventos.src.Application.Services;
 using API_Gestao_Eventos.src.Application.Validators.Auth;
 using API_Gestao_Eventos.src.Application.Validators.Course;
 using API_Gestao_Eventos.src.Application.Validators.Event;
@@ -22,6 +22,7 @@ namespace API_Gestao_Eventos.src.Application
             services.AddScoped<EventDocumentsService>();
             services.AddScoped<GroupService>();
             services.AddScoped<AttendanceService>();
+            services.AddScoped<EventFeedbackService>();
             services.AddFluentValidationAutoValidation();
             services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
             services.AddValidatorsFromAssemblyContaining<CreateEventValidator>();
@@ -36,6 +37,7 @@ namespace API_Gestao_Eventos.src.Application
             services.AddValidatorsFromAssemblyContaining<CreateGroupValidator>();
             services.AddValidatorsFromAssemblyContaining<InviteGroupMembersValidator>();
             services.AddValidatorsFromAssemblyContaining<ConfirmAttendanceValidator>();
+            services.AddValidatorsFromAssemblyContaining<CreateEventFeedbackValidator>();
             services.AddValidatorsFromAssemblyContaining<ChangeInitialPasswordValidator>();
             services.AddValidatorsFromAssemblyContaining<ResetPasswordValidator>();
             return services;

@@ -8,10 +8,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import api from "@/services/api";
 import { formatDateForShort } from "@/utils/format";
 import type { EventItem } from "./EventList";
+import type { EventFeedbackDto } from "./EventFeedbackModal";
 
 interface AttendanceRegistration {
   studentId: string;
@@ -50,6 +52,7 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
   const [registrations, setRegistrations] = useState<AttendanceRegistration[]>(
     [],
   );
+  const [feedbacks, setFeedbacks] = useState<EventFeedbackDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,12 +62,14 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      const [codeRes, listRes] = await Promise.all([
+      const [codeRes, listRes, feedbacksRes] = await Promise.all([
         api.get<{ code: string }>(`/events/${event.id}/attendance/code`),
         api.get<AttendanceRegistration[]>(`/events/${event.id}/attendance`),
+        api.get<EventFeedbackDto[]>(`/events/${event.id}/feedbacks`),
       ]);
       setCode(codeRes.data.code);
       setRegistrations(listRes.data);
+      setFeedbacks(Array.isArray(feedbacksRes.data) ? feedbacksRes.data : []);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Não foi possível carregar a presença."));
     } finally {
@@ -193,6 +198,48 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
                             ? "Desmarcar"
                             : "Marcar presença"}
                         </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="space-y-2 border-t border-slate-100 pt-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    Feedbacks do Evento
+                  </Label>
+                  <span className="text-xs text-slate-500">
+                    {feedbacks.length} avaliação(ões)
+                  </span>
+                </div>
+
+                {feedbacks.length === 0 ? (
+                  <p className="rounded-xl border border-dashed p-4 text-center text-sm text-slate-500">
+                    Nenhum feedback enviado para este evento ainda.
+                  </p>
+                ) : (
+                  <ul className="divide-y rounded-xl border">
+                    {feedbacks.map((fb) => (
+                      <li key={fb.id} className="space-y-1.5 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-800">
+                              {fb.studentName}
+                            </p>
+                            <p className="truncate text-xs text-slate-500">
+                              {fb.courseName} • {formatDateForShort(fb.createdAt)}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="shrink-0">
+                            {fb.rating} / 10
+                          </Badge>
+                        </div>
+                        {fb.feedbackText && (
+                          <p className="text-xs text-slate-700 break-words bg-slate-50 rounded-lg p-2">
+                            {fb.feedbackText}
+                          </p>
+                        )}
                       </li>
                     ))}
                   </ul>

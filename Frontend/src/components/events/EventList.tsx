@@ -36,6 +36,7 @@ import {
   LogIn,
   LogOut,
   ClipboardCheck,
+  MessageSquare,
 } from "lucide-react";
 import { type PagedResult } from "@/types/utils";
 import { formatDateForShort } from "@/utils/format";
@@ -48,6 +49,7 @@ import { RemoveFromCalendarButton } from "./RemoveFromCalendarButton";
 import { SubmitDocumentModal } from "./SubmitDocumentModal";
 import { AttendanceConfirm } from "./AttendanceConfirm";
 import { AttendanceModal } from "./AttendanceModal";
+import { EventFeedbackModal } from "./EventFeedbackModal";
 
 export interface FetchEventsParams {
   pageNumber?: number;
@@ -197,6 +199,9 @@ export const EventsList: React.FC<EventsListProps> = ({
   const [attendanceModalEvent, setAttendanceModalEvent] =
     useState<EventItem | null>(null);
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [feedbackModalEvent, setFeedbackModalEvent] =
+    useState<EventItem | null>(null);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   const loadEvents = useCallback(
     async (appliedFilters = filters, page = currentPage) => {
@@ -300,6 +305,11 @@ export const EventsList: React.FC<EventsListProps> = ({
   const handleOpenAttendanceModal = (eventItem: EventItem) => {
     setAttendanceModalEvent(eventItem);
     setIsAttendanceModalOpen(true);
+  };
+
+  const handleOpenFeedbackModal = (eventItem: EventItem) => {
+    setFeedbackModalEvent(eventItem);
+    setIsFeedbackModalOpen(true);
   };
 
   const statusOptions: OptionItem[] = [
@@ -423,6 +433,7 @@ export const EventsList: React.FC<EventsListProps> = ({
               const availableSeats = event.availableSeats;
               const isFull = event.isFull;
               const isUpcoming = event.startDate > new Date().toISOString();
+              const isEnded = event.endDate <= new Date().toISOString();
               const isOngoing =
                 !isUpcoming && event.endDate > new Date().toISOString();
               const isAddedToCalendar =
@@ -547,6 +558,17 @@ export const EventsList: React.FC<EventsListProps> = ({
                             )}
 
                           <div className="flex flex-wrap items-start justify-end gap-2">
+                            {isEnded && event.isUserAttended && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-2 cursor-pointer"
+                                onClick={() => handleOpenFeedbackModal(event)}>
+                                <MessageSquare className="h-4 w-4 text-[#109bc6]" />
+                                Feedback
+                              </Button>
+                            )}
+
                             {event.allowDocuments &&
                               isUpcoming &&
                               isRegistered && (
@@ -653,7 +675,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                               }></DeleteConfirmation>
                           </div>
                         ) : (
-                          <div className="flex justify-end pt-4">
+                          <div className="flex justify-end items-center gap-2 pt-4 flex-wrap">
                             <Button
                               variant="outline"
                               size="sm"
@@ -661,6 +683,12 @@ export const EventsList: React.FC<EventsListProps> = ({
                               onClick={() => handleOpenAttendanceModal(event)}>
                               <ClipboardCheck className="h-4 w-4 text-[#109bc6]" />
                               Presença
+                            </Button>
+                            <Button
+                              size="sm"
+                              className={"secondary-action cursor-pointer"}
+                              onClick={() => handleStartEdition?.(event)}>
+                              Editar
                             </Button>
                           </div>
                         )
@@ -739,6 +767,12 @@ export const EventsList: React.FC<EventsListProps> = ({
         isOpen={isAttendanceModalOpen}
         onOpenChange={setIsAttendanceModalOpen}
         event={attendanceModalEvent}
+      />
+
+      <EventFeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onOpenChange={setIsFeedbackModalOpen}
+        event={feedbackModalEvent}
       />
     </div>
   );
