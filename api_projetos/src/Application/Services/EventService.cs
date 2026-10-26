@@ -71,8 +71,12 @@ namespace API_Gestao_Eventos.src.Application.Services
         public async Task<PagedResponseDto<EventResponseDto>> GetFilteredEventsPagedAsync(EventFilterDto parameters, Guid userId)
         {
             var (events, totalCount) = await eventRepository.GetFilteredAvailableForUserAsync(parameters, userId);
+            var eventList = events.ToList();
             var additionsToCalendar = await eventRepository.GetAllAdditionsToCalendarAsync(userId);
-            var items = events.Select(e =>
+            var eventsWithApprovedDocs = await eventRepository.GetEventIdsWithApprovedDocumentsAsync(eventList.Select(e => e.Id))
+                ?? new HashSet<Guid>();
+
+            var items = eventList.Select(e =>
             {
                 var confirmedRegistrations = e.EventStudents.Count(s => s.Status == RegistrationStatus.Confirmed);
                 var availableSeats = Math.Max(e.Capacity - confirmedRegistrations, 0);
@@ -92,6 +96,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                     IsFull = availableSeats == 0,
                     EventType = (int)e.EventType,
                     AllowDocuments = e.AllowDocuments,
+                    HasApprovedDocuments = eventsWithApprovedDocs.Contains(e.Id),
                     AllowedCourseNames = e.AllowedCourses.Select(c => c.Name.ToString()).ToList(),
                     AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList(),
                     IsActive = e.IsActive,

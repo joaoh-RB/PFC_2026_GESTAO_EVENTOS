@@ -1,4 +1,4 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.Event;
+using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Application.DTO.EventDocument;
 using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Application.Services;
@@ -134,6 +134,34 @@ namespace API_Gestao_Eventos.src.Controllers
             catch (UnauthorizedAccessException ex)
             {
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("{eventId:guid}/compiled-zip")]
+        [Authorize]
+        public async Task<IActionResult> DownloadCompiledDocuments([FromRoute] Guid eventId)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var (fileStream, contentType, fileName) = await eventDocumentService.DownloadCompiledDocumentsAsync(eventId, userId);
+                return File(fileStream, contentType, fileName);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (FileNotFoundException)
+            {
+                return NotFound(new { message = "Um ou mais arquivos não foram encontrados no servidor de armazenamento." });
             }
             catch (Exception ex)
             {

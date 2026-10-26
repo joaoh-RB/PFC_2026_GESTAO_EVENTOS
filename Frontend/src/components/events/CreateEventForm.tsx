@@ -136,7 +136,9 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
   const anchor = useComboboxAnchor();
   const [activeTab, setActiveTab] = useState<CreateEventTab>("details");
   const [isRegistrationsLoading, setIsRegistrationsLoading] = useState(false);
-  const [registrationsError, setRegistrationsError] = useState<string | null>(null);
+  const [registrationsError, setRegistrationsError] = useState<string | null>(
+    null,
+  );
   const [registrationsData, setRegistrationsData] = useState<
     PagedResult<EventRegistrationItem>
   >({
@@ -156,9 +158,9 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
   const [pendingDocuments, setPendingDocuments] = useState<EventDocumentItem[]>(
     [],
   );
-  const [approvedDocuments, setApprovedDocuments] = useState<EventDocumentItem[]>(
-    [],
-  );
+  const [approvedDocuments, setApprovedDocuments] = useState<
+    EventDocumentItem[]
+  >([]);
   const [feedbackByDocument, setFeedbackByDocument] = useState<
     Record<string, string>
   >({});
@@ -168,6 +170,8 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
   const [downloadingDocumentId, setDownloadingDocumentId] = useState<
     string | null
   >(null);
+  const [isDownloadingCompiledZip, setIsDownloadingCompiledZip] =
+    useState(false);
   const [isFeedbacksLoading, setIsFeedbacksLoading] = useState(false);
   const [feedbacksError, setFeedbacksError] = useState<string | null>(null);
   const [feedbacks, setFeedbacks] = useState<EventFeedbackDto[]>([]);
@@ -242,7 +246,10 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
       setRegistrationsData(response.data);
     } catch (error: unknown) {
       setRegistrationsError(
-        getApiMessage(error, "Não foi possível carregar os inscritos deste evento."),
+        getApiMessage(
+          error,
+          "Não foi possível carregar os inscritos deste evento.",
+        ),
       );
     } finally {
       setIsRegistrationsLoading(false);
@@ -288,7 +295,10 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
         );
         reviewedItems = reviewedRes.data ?? [];
       } catch (reviewedError: unknown) {
-        if (isAxiosError(reviewedError) && reviewedError.response?.status === 404) {
+        if (
+          isAxiosError(reviewedError) &&
+          reviewedError.response?.status === 404
+        ) {
           const approvedRes = await api.get<EventDocumentItem[]>(
             `/eventdocuments/${currentEventData.id}/approved`,
           );
@@ -302,7 +312,10 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
       setApprovedDocuments(reviewedItems);
     } catch (error: unknown) {
       setDocumentsError(
-        getApiMessage(error, "Não foi possível carregar os documentos do evento."),
+        getApiMessage(
+          error,
+          "Não foi possível carregar os documentos do evento.",
+        ),
       );
     } finally {
       setIsDocumentsLoading(false);
@@ -327,7 +340,9 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
 
       await loadDocuments();
     } catch (error: unknown) {
-      setDocumentsError(getApiMessage(error, "Não foi possível avaliar o documento."));
+      setDocumentsError(
+        getApiMessage(error, "Não foi possível avaliar o documento."),
+      );
     } finally {
       setReviewingDocumentId(null);
     }
@@ -350,9 +365,53 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error: unknown) {
-      setDocumentsError(getApiMessage(error, "Não foi possível baixar o documento."));
+      setDocumentsError(
+        getApiMessage(error, "Não foi possível baixar o documento."),
+      );
     } finally {
       setDownloadingDocumentId(null);
+    }
+  };
+
+  const handleDownloadCompiledZip = async () => {
+    if (!currentEventData?.id) return;
+    setIsDownloadingCompiledZip(true);
+    setDocumentsError(null);
+
+    try {
+      const response = await api.get(
+        `/eventdocuments/${currentEventData.id}/compiled-zip`,
+        {
+          responseType: "blob",
+        },
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `documentos-aprovados-${currentEventData.id}.zip`,
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: unknown) {
+      let message = "Não foi possível baixar o compilado de documentos.";
+      if (isAxiosError(error) && error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const parsed = JSON.parse(text) as { message?: string };
+          if (parsed?.message) message = parsed.message;
+        } catch {
+          // Mantém fallback
+        }
+      } else {
+        message = getApiMessage(error, message);
+      }
+      setDocumentsError(message);
+    } finally {
+      setIsDownloadingCompiledZip(false);
     }
   };
 
@@ -385,9 +444,8 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
     setActiveTab(tab);
 
     if (tab === "registrations") {
-      await loadRegistrations(1);
-      return;
       await Promise.all([loadRegistrations(1), loadFeedbacks()]);
+      return;
     }
 
     if (tab === "groups") {
@@ -407,6 +465,11 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
           feedbacks.length
         ).toFixed(1)
       : null;
+
+  const isEventEnded = Boolean(
+    currentEventData?.endDate &&
+      new Date(currentEventData.endDate).getTime() <= Date.now(),
+  );
 
   return (
     <Card className="surface-card max-w-4xl mx-auto shadow-none">
@@ -482,60 +545,148 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
 
         {activeTab === "details" || !currentEventData?.id ? (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <Label htmlFor="name" required>Nome do Evento</Label>
-              <Input
-                id="name"
-                {...register("name")}
-                placeholder="Ex: Semana da Computação"
-              />
-              {errors.name && (
-                <p className="text-xs text-red-600">{errors.name.message}</p>
-              )}
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="name" required>
+                  Nome do Evento
+                </Label>
+                <Input
+                  id="name"
+                  {...register("name")}
+                  placeholder="Ex: Semana da Computação"
+                />
+                {errors.name && (
+                  <p className="text-xs text-red-600">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="description" required>
+                  Descrição
+                </Label>
+                <Textarea
+                  id="description"
+                  {...register("description")}
+                  rows={3}
+                  className="resize-none"
+                  placeholder="Detalhes sobre o evento..."
+                />
+                {errors.description && (
+                  <p className="text-xs text-red-600">
+                    {errors.description.message}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="description" required>Descrição</Label>
-              <Textarea
-                id="description"
-                {...register("description")}
-                rows={3}
-                className="resize-none"
-                placeholder="Detalhes sobre o evento..."
-              />
-              {errors.description && (
-                <p className="text-xs text-red-600">
-                  {errors.description.message}
-                </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {!userInstitutionId && (
+                <div className="sm:col-span-2 space-y-1">
+                  <Label required>Instituição</Label>
+                  <Controller
+                    name="institutionId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        items={institutions}
+                        onValueChange={(institutionId) => {
+                          field.onChange(institutionId);
+                          setValue("allowedCourses", []);
+                          handleInstitutionChange(institutionId!);
+                        }}
+                        value={field.value}>
+                        <SelectTrigger className={"w-full"}>
+                          <SelectValue placeholder="Selecione uma instituição" />
+                        </SelectTrigger>
+                        <SelectContent alignItemWithTrigger={true}>
+                          <SelectGroup>
+                            {institutions.map((inst) => (
+                              <SelectItem key={inst.value} value={inst.value}>
+                                {inst.label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.institutionId && (
+                    <p className="text-xs text-red-600">
+                      {errors.institutionId.message}
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {!userInstitutionId && (
-              <div className="sm:col-span-2 space-y-1">
-                <Label required>Instituição</Label>
+              <div className="space-y-1">
+                <Label htmlFor="startDate" required>
+                  Data de Início
+                </Label>
+                <Input
+                  type="datetime-local"
+                  id="startDate"
+                  {...register("startDate")}
+                />
+                {errors.startDate && (
+                  <p className="text-xs text-red-600">
+                    {errors.startDate.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="endDate" required>
+                  Data de Término
+                </Label>
+                <Input
+                  type="datetime-local"
+                  id="endDate"
+                  {...register("endDate")}
+                />
+                {errors.endDate && (
+                  <p className="text-xs text-red-600">
+                    {errors.endDate.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="capacity" required>
+                  Capacidade Máxima
+                </Label>
+                <Input
+                  type="number"
+                  id="capacity"
+                  min="1"
+                  {...register("capacity")}
+                />
+                {errors.capacity && (
+                  <p className="text-xs text-red-600">
+                    {errors.capacity.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label required>Tipo de Evento</Label>
                 <Controller
-                  name="institutionId"
+                  name="eventType"
                   control={control}
                   render={({ field }) => (
                     <Select
-                      items={institutions}
-                      onValueChange={(institutionId) => {
-                        field.onChange(institutionId);
-                        setValue("allowedCourses", []);
-                        handleInstitutionChange(institutionId!);
-                      }}
-                      value={field.value}>
-                      <SelectTrigger className={"w-full"}>
-                        <SelectValue placeholder="Selecione uma instituição" />
+                      items={eventTypes}
+                      onValueChange={(val) => field.onChange(Number(val))}
+                      value={field.value?.toString()}>
+                      <SelectTrigger className={"w-full !h-10"}>
+                        <SelectValue placeholder="Selecione o tipo" />
                       </SelectTrigger>
                       <SelectContent alignItemWithTrigger={true}>
                         <SelectGroup>
-                          {institutions.map((inst) => (
-                            <SelectItem key={inst.value} value={inst.value}>
-                              {inst.label}
+                          {eventTypes.map((type) => (
+                            <SelectItem
+                              key={type.value}
+                              value={type.value.toString()}>
+                              {type.label}
                             </SelectItem>
                           ))}
                         </SelectGroup>
@@ -543,182 +694,96 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                     </Select>
                   )}
                 />
-                {errors.institutionId && (
+                {errors.eventType && (
                   <p className="text-xs text-red-600">
-                    {errors.institutionId.message}
+                    {errors.eventType.message}
                   </p>
                 )}
               </div>
-            )}
-
-            <div className="space-y-1">
-              <Label htmlFor="startDate" required>Data de Início</Label>
-              <Input
-                type="datetime-local"
-                id="startDate"
-                {...register("startDate")}
-              />
-              {errors.startDate && (
-                <p className="text-xs text-red-600">
-                  {errors.startDate.message}
-                </p>
-              )}
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="endDate" required>Data de Término</Label>
-              <Input
-                type="datetime-local"
-                id="endDate"
-                {...register("endDate")}
-              />
-              {errors.endDate && (
-                <p className="text-xs text-red-600">{errors.endDate.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="capacity" required>Capacidade Máxima</Label>
-              <Input
-                type="number"
-                id="capacity"
-                min="1"
-                {...register("capacity")}
-              />
-              {errors.capacity && (
-                <p className="text-xs text-red-600">
-                  {errors.capacity.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <Label required>Tipo de Evento</Label>
+            <div className="space-y-1 pt-2">
+              <Label required>Cursos Permitidos</Label>
               <Controller
-                name="eventType"
+                name="allowedCourses"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    items={eventTypes}
-                    onValueChange={(val) => field.onChange(Number(val))}
-                    value={field.value?.toString()}>
-                    <SelectTrigger className={"w-full !h-10"}>
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent alignItemWithTrigger={true}>
-                      <SelectGroup>
-                        {eventTypes.map((type) => (
-                          <SelectItem
-                            key={type.value}
-                            value={type.value.toString()}>
-                            {type.label}
-                          </SelectItem>
+                  <Combobox
+                    items={courses}
+                    multiple
+                    value={field.value.map((id) => id)}
+                    onValueChange={(selectedNames) => {
+                      field.onChange(selectedNames);
+                    }}>
+                    <ComboboxChips className={"w-full"} ref={anchor}>
+                      <ComboboxValue>
+                        {field.value.map((id) => {
+                          const course = courses.find((c) => c.value === id);
+
+                          return (
+                            <ComboboxChip key={id}>
+                              {course?.label ?? id}
+                            </ComboboxChip>
+                          );
+                        })}
+                      </ComboboxValue>
+                    </ComboboxChips>
+                    <ComboboxContent anchor={anchor}>
+                      <ComboboxEmpty>Nenhum curso disponível</ComboboxEmpty>
+                      <ComboboxList>
+                        {courses.map((course) => (
+                          <ComboboxItem key={course.value} value={course.value}>
+                            {course.label}
+                          </ComboboxItem>
                         ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
                 )}
               />
-              {errors.eventType && (
+              {errors.allowedCourses && (
                 <p className="text-xs text-red-600">
-                  {errors.eventType.message}
+                  {errors.allowedCourses.message}
                 </p>
               )}
             </div>
-          </div>
 
-          <div className="space-y-1 pt-2">
-            <Label required>Cursos Permitidos</Label>
-            <Controller
-              name="allowedCourses"
-              control={control}
-              render={({ field }) => (
-                <Combobox
-                  items={courses}
-                  multiple
-                  value={field.value.map((id) => id)}
-                  onValueChange={(selectedNames) => {
-                    field.onChange(selectedNames);
-                  }}>
-                  <ComboboxChips className={"w-full"} ref={anchor}>
-                    <ComboboxValue>
-                      {field.value.map((id) => {
-                        const course = courses.find((c) => c.value === id);
-
-                        return (
-                          <ComboboxChip key={id}>
-                            {course?.label ?? id}
-                          </ComboboxChip>
-                        );
-                      })}
-                    </ComboboxValue>
-                  </ComboboxChips>
-                  <ComboboxContent anchor={anchor}>
-                    <ComboboxEmpty>Nenhum curso disponível</ComboboxEmpty>
-                    <ComboboxList>
-                      {courses.map((course) => (
-                        <ComboboxItem key={course.value} value={course.value}>
-                          {course.label}
-                        </ComboboxItem>
-                      ))}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-              )}
-            />
-            {errors.allowedCourses && (
-              <p className="text-xs text-red-600">
-                {errors.allowedCourses.message}
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center space-x-3 py-4 border-b border-slate-100">
-            <Controller
-              name="allowDocuments"
-              control={control}
-              render={({ field }) => (
-                <Switch
-                  id="allow-docs"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-            <Label
-              htmlFor="allow-docs"
-              className="cursor-pointer font-medium text-slate-700">
-              Permitir envio de documentos para a apresentação de trabalhos
-            </Label>
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isSubmitting || isSuccess}
-            className="primary-action mt-4 h-11 w-full">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Criando
-                evento...
-              </>
-            ) : currentEventData ? (
-              "Atualizar Evento"
-            ) : (
-              "Criar Evento"
-            )}
-          </Button>
-        </form>
-        ) : activeTab === "registrations" ? (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">
-                Inscritos no evento
-              </h3>
-              <p className="text-sm text-slate-500">
-                {currentEventData?.name || "Lista de pessoas inscritas no evento."}
-              </p>
+            <div className="flex items-center space-x-3 py-4 border-b border-slate-100">
+              <Controller
+                name="allowDocuments"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    id="allow-docs"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+              <Label
+                htmlFor="allow-docs"
+                className="cursor-pointer font-medium text-slate-700">
+                Permitir envio de documentos para a apresentação de trabalhos
+              </Label>
             </div>
-        ) : (
+
+            <Button
+              type="submit"
+              disabled={isSubmitting || isSuccess}
+              className="primary-action mt-4 h-11 w-full">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Criando
+                  evento...
+                </>
+              ) : currentEventData ? (
+                "Atualizar Evento"
+              ) : (
+                "Criar Evento"
+              )}
+            </Button>
+          </form>
+        ) : activeTab === "registrations" ? (
           <div className="space-y-8">
             <div className="space-y-4">
               <div>
@@ -726,7 +791,8 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                   Inscritos no evento
                 </h3>
                 <p className="text-sm text-slate-500">
-                  {currentEventData?.name || "Lista de pessoas inscritas no evento."}
+                  {currentEventData?.name ||
+                    "Lista de pessoas inscritas no evento."}
                 </p>
               </div>
 
@@ -760,7 +826,9 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                               {item.studentName}
                             </TableCell>
                             <TableCell>{item.courseName}</TableCell>
-                            <TableCell>{formatDateForShort(item.registeredAt)}</TableCell>
+                            <TableCell>
+                              {formatDateForShort(item.registeredAt)}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -805,268 +873,6 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                             </PaginationItem>
                           ))}
 
-                        <PaginationItem>
-                          <PaginationNext
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              void handleRegistrationsPageChange(
-                                registrationsData.pageNumber + 1,
-                              );
-                            }}
-                            className={
-                              !registrationsData.hasNextPage
-                                ? "pointer-events-none opacity-50"
-                                : "cursor-pointer"
-                            }
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">Grupos e documentos</h3>
-              <p className="text-sm text-slate-500">
-                Visualize os grupos com todos os participantes e aprove/reprove os documentos do grupo.
-              </p>
-            </div>
-
-            {isGroupsLoading || isDocumentsLoading ? (
-              <div className="py-8 text-center text-slate-500">Carregando grupos e documentos...</div>
-            ) : groupsError || documentsError ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                {groupsError || documentsError}
-              </div>
-            ) : groupsData.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">
-                Ainda não há grupos cadastrados neste evento.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {groupsData.map((group) => {
-                  const groupPendingDocuments = pendingDocuments.filter(
-                    (doc) => doc.groupId === group.id,
-                  );
-                  const groupReviewedDocuments = approvedDocuments.filter(
-                    (doc) => doc.groupId === group.id,
-                  );
-                  const groupApprovedDocuments = groupReviewedDocuments.filter(
-                    (doc) => Number(doc.status) === 1,
-                  );
-                  const groupRejectedDocuments = groupReviewedDocuments.filter(
-                    (doc) => Number(doc.status) === 2,
-                  );
-
-                  return (
-                    <div key={group.id} className="rounded-xl border border-slate-200 p-4 space-y-4">
-                      <div>
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <p className="font-semibold text-slate-900">Grupo {group.number}</p>
-                          <span className="text-xs text-slate-500">Líder: {group.leaderName}</span>
-                        </div>
-                        <ul className="space-y-2">
-                          {group.members.map((member) => (
-                            <li
-                              key={member.studentId}
-                              className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 gap-3">
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-slate-800">{member.name}</p>
-                                <p className="text-xs text-slate-500">
-                                  {groupMemberStatusLabel[member.status] ?? "Não informado"}
-                                </p>
-                              </div>
-                              {member.isLeader && (
-                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 shrink-0">
-                                  Líder
-                                </span>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                            Documentos pendentes do grupo
-                          </Label>
-                          <span className="text-xs text-slate-500">
-                            {groupPendingDocuments.length} pendente(s)
-                          </span>
-                        </div>
-
-                        {groupPendingDocuments.length === 0 ? (
-                          <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
-                            Sem documentos pendentes neste grupo.
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {groupPendingDocuments.map((doc) => (
-                              <div
-                                key={doc.id}
-                                className="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="truncate text-sm font-semibold text-slate-900">
-                                      {doc.originalFileName}
-                                    </p>
-                                    <p className="text-xs text-slate-500">Enviado por {doc.senderName}</p>
-                                    <p className="text-xs text-slate-500">
-                                      Em {formatDateForShort(doc.submittedAt)}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-2 cursor-pointer shrink-0"
-                                    disabled={downloadingDocumentId === doc.id}
-                                    onClick={() => void handleDownloadDocument(doc)}>
-                                    {downloadingDocumentId === doc.id ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Download className="h-4 w-4" />
-                                    )}
-                                    Baixar
-                                  </Button>
-                                </div>
-
-                                <Textarea
-                                  value={feedbackByDocument[doc.id] ?? ""}
-                                  onChange={(e) =>
-                                    setFeedbackByDocument((current) => ({
-                                      ...current,
-                                      [doc.id]: e.target.value,
-                                    }))
-                                  }
-                                  placeholder="Feedback da avaliação (opcional)."
-                                  className="min-h-[78px]"
-                                />
-
-                                <div className="flex items-center justify-end gap-2">
-                                  <DeleteConfirmation
-                                    descriptionText={`Deseja reprovar o documento "${doc.originalFileName}"?`}
-                                    confirmationText="Confirmar reprovação"
-                                    onDelete={() => {
-                                      void handleReviewDocument(doc.id, false);
-                                    }}>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
-                                      disabled={reviewingDocumentId === doc.id}>
-                                      {reviewingDocumentId === doc.id ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        "Reprovar"
-                                      )}
-                                    </Button>
-                                  </DeleteConfirmation>
-                                  <DeleteConfirmation
-                                    descriptionText={`Deseja aprovar o documento "${doc.originalFileName}"?`}
-                                    confirmationText="Confirmar aprovação"
-                                    deleteButtonClassName="bg-emerald-600 hover:bg-emerald-700"
-                                    onDelete={() => {
-                                      void handleReviewDocument(doc.id, true);
-                                    }}>
-                                    <Button
-                                      type="button"
-                                      className="primary-action cursor-pointer"
-                                      disabled={reviewingDocumentId === doc.id}>
-                                      {reviewingDocumentId === doc.id ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        "Aprovar"
-                                      )}
-                                    </Button>
-                                  </DeleteConfirmation>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                            Histórico de documentos do grupo
-                          </Label>
-                          <span className="text-xs text-slate-500">
-                            {groupReviewedDocuments.length} registro(s)
-                          </span>
-                        </div>
-
-                        {groupReviewedDocuments.length === 0 ? (
-                          <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
-                            Sem histórico de avaliações neste grupo.
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {groupReviewedDocuments.map((doc) => {
-                              const isRejected = Number(doc.status) === 2;
-                              const statusLabel = isRejected ? "Reprovado" : "Aprovado";
-                              const statusClass = isRejected
-                                ? "text-red-700"
-                                : "text-emerald-700";
-
-                              return (
-                                <div
-                                  key={doc.id}
-                                  className="rounded-xl border border-slate-200 px-4 py-3 flex items-start justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <p className="truncate text-sm font-semibold text-slate-900">
-                                      {doc.originalFileName}
-                                    </p>
-                                    <p className="text-xs text-slate-500">Enviado por {doc.senderName}</p>
-                                    {doc.reviewedByName && doc.reviewedAt && (
-                                      <p className={`text-xs ${statusClass}`}>
-                                        {statusLabel} por {doc.reviewedByName} em {formatDateForShort(doc.reviewedAt)}
-                                      </p>
-                                    )}
-                                    {doc.feedback && (
-                                      <p className="text-xs text-slate-600 break-words">
-                                        Feedback: {doc.feedback}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-2 cursor-pointer shrink-0"
-                                    disabled={downloadingDocumentId === doc.id}
-                                    onClick={() => void handleDownloadDocument(doc)}>
-                                    {downloadingDocumentId === doc.id ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Download className="h-4 w-4" />
-                                    )}
-                                    Baixar
-                                  </Button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        <div className="flex gap-4 text-xs text-slate-500">
-                          <span>{groupApprovedDocuments.length} aprovado(s)</span>
-                          <span>{groupRejectedDocuments.length} reprovado(s)</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
                           <PaginationItem>
                             <PaginationNext
                               href="#"
@@ -1161,6 +967,292 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                 </div>
               )}
             </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Grupos e documentos
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Visualize os grupos com todos os participantes e
+                  aprove/reprove os documentos do grupo.
+                </p>
+              </div>
+              {currentEventData?.allowDocuments && isEventEnded && approvedDocuments.some((doc) => Number(doc.status) === 1) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isDownloadingCompiledZip}
+                  onClick={() => void handleDownloadCompiledZip()}
+                  className="gap-2 cursor-pointer">
+                  {isDownloadingCompiledZip ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-[#109bc6]" />
+                  ) : (
+                    <Download className="h-4 w-4 text-[#109bc6]" />
+                  )}
+                  Baixar documentos (.zip)
+                </Button>
+              )}
+            </div>
+
+            {isGroupsLoading || isDocumentsLoading ? (
+              <div className="py-8 text-center text-slate-500">
+                Carregando grupos e documentos...
+              </div>
+            ) : groupsError || documentsError ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {groupsError || documentsError}
+              </div>
+            ) : groupsData.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">
+                Ainda não há grupos cadastrados neste evento.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {groupsData.map((group) => {
+                  const groupPendingDocuments = pendingDocuments.filter(
+                    (doc) => doc.groupId === group.id,
+                  );
+                  const groupReviewedDocuments = approvedDocuments.filter(
+                    (doc) => doc.groupId === group.id,
+                  );
+                  const groupApprovedDocuments = groupReviewedDocuments.filter(
+                    (doc) => Number(doc.status) === 1,
+                  );
+                  const groupRejectedDocuments = groupReviewedDocuments.filter(
+                    (doc) => Number(doc.status) === 2,
+                  );
+
+                  return (
+                    <div
+                      key={group.id}
+                      className="rounded-xl border border-slate-200 p-4 space-y-4">
+                      <div>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="font-semibold text-slate-900">
+                            Grupo {group.number}
+                          </p>
+                          <span className="text-xs text-slate-500">
+                            Líder: {group.leaderName}
+                          </span>
+                        </div>
+                        <ul className="space-y-2">
+                          {group.members.map((member) => (
+                            <li
+                              key={member.studentId}
+                              className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-slate-800">
+                                  {member.name}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  {groupMemberStatusLabel[member.status] ??
+                                    "Não informado"}
+                                </p>
+                              </div>
+                              {member.isLeader && (
+                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 shrink-0">
+                                  Líder
+                                </span >
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                            Documentos pendentes do grupo
+                          </Label>
+                          <span className="text-xs text-slate-500">
+                            {groupPendingDocuments.length} pendente(s)
+                          </span>
+                        </div>
+
+                        {groupPendingDocuments.length === 0 ? (
+                          <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
+                            Sem documentos pendentes neste grupo.
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {groupPendingDocuments.map((doc) => (
+                              <div
+                                key={doc.id}
+                                className="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold text-slate-900">
+                                      {doc.originalFileName}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                      Enviado por {doc.senderName}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                      Em {formatDateForShort(doc.submittedAt)}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2 cursor-pointer shrink-0"
+                                    disabled={downloadingDocumentId === doc.id}
+                                    onClick={() =>
+                                      void handleDownloadDocument(doc)
+                                    }>
+                                    {downloadingDocumentId === doc.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Download className="h-4 w-4" />
+                                    )}
+                                    Baixar
+                                  </Button>
+                                </div>
+
+                                <Textarea
+                                  value={feedbackByDocument[doc.id] ?? ""}
+                                  onChange={(e) =>
+                                    setFeedbackByDocument((current) => ({
+                                      ...current,
+                                      [doc.id]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Feedback da avaliação (opcional)."
+                                  className="min-h-[78px]"
+                                />
+
+                                <div className="flex items-center justify-end gap-2">
+                                  <DeleteConfirmation
+                                    descriptionText={`Deseja reprovar o documento "${doc.originalFileName}"?`}
+                                    confirmationText="Confirmar reprovação"
+                                    onDelete={() => {
+                                      void handleReviewDocument(doc.id, false);
+                                    }}>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                                      disabled={reviewingDocumentId === doc.id}>
+                                      {reviewingDocumentId === doc.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        "Reprovar"
+                                      )}
+                                    </Button>
+                                  </DeleteConfirmation>
+                                  <DeleteConfirmation
+                                    descriptionText={`Deseja aprovar o documento "${doc.originalFileName}"?`}
+                                    confirmationText="Confirmar aprovação"
+                                    deleteButtonClassName="bg-emerald-600 hover:bg-emerald-700"
+                                    onDelete={() => {
+                                      void handleReviewDocument(doc.id, true);
+                                    }}>
+                                    <Button
+                                      type="button"
+                                      className="primary-action cursor-pointer"
+                                      disabled={reviewingDocumentId === doc.id}>
+                                      {reviewingDocumentId === doc.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        "Aprovar"
+                                      )}
+                                    </Button>
+                                  </DeleteConfirmation>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                            Histórico de documentos do grupo
+                          </Label>
+                          <span className="text-xs text-slate-500">
+                            {groupReviewedDocuments.length} registro(s)
+                          </span>
+                        </div>
+
+                        {groupReviewedDocuments.length === 0 ? (
+                          <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
+                            Sem histórico de avaliações neste grupo.
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {groupReviewedDocuments.map((doc) => {
+                              const isRejected = Number(doc.status) === 2;
+                              const statusLabel = isRejected
+                                ? "Reprovado"
+                                : "Aprovado";
+                              const statusClass = isRejected
+                                ? "text-red-700"
+                                : "text-emerald-700";
+
+                              return (
+                                <div
+                                  key={doc.id}
+                                  className="rounded-xl border border-slate-200 px-4 py-3 flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold text-slate-900">
+                                      {doc.originalFileName}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                      Enviado por {doc.senderName}
+                                    </p>
+                                    {doc.reviewedByName && doc.reviewedAt && (
+                                      <p className={`text-xs ${statusClass}`}>
+                                        {statusLabel} por {doc.reviewedByName}{" "}
+                                        em {formatDateForShort(doc.reviewedAt)}
+                                      </p>
+                                    )}
+                                    {doc.feedback && (
+                                      <p className="text-xs text-slate-600 break-words">
+                                        Feedback: {doc.feedback}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2 cursor-pointer shrink-0"
+                                    disabled={downloadingDocumentId === doc.id}
+                                    onClick={() =>
+                                      void handleDownloadDocument(doc)
+                                    }>
+                                    {downloadingDocumentId === doc.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Download className="h-4 w-4" />
+                                    )}
+                                    Baixar
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        <div className="flex gap-4 text-xs text-slate-500">
+                          <span>
+                            {groupApprovedDocuments.length} aprovado(s)
+                          </span>
+                          <span>
+                            {groupRejectedDocuments.length} reprovado(s)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </CardContent>

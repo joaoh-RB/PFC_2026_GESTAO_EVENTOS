@@ -1,4 +1,4 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.Event;
+using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
@@ -146,6 +146,21 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
             _context.EventAddedToCalendars.Update(eventAddedToCalendar);
             await _context.SaveChangesAsync();
         }
+        public async Task<HashSet<Guid>> GetEventIdsWithApprovedDocumentsAsync(IEnumerable<Guid> eventIds)
+        {
+            var idList = eventIds.ToList();
+            if (idList.Count == 0)
+                return new HashSet<Guid>();
+
+            var ids = await _context.Documents
+                .AsNoTracking()
+                .Where(d => d.Group != null && idList.Contains(d.Group.EventId) && d.Status == DocumentStatus.Approved)
+                .Select(d => d.Group!.EventId)
+                .Distinct()
+                .ToListAsync();
+
+            return ids.ToHashSet();
+        }
     }
     public interface IEventRepository
     {
@@ -159,5 +174,6 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         Task<EventAddedToCalendar?> GetEventAddedToCalendarAsync(Guid eventId, Guid userId);
         Task AddEventToCalendarAsync(EventAddedToCalendar eventAddedToCalendar);
         Task UpdateEventInCalendarAsync(EventAddedToCalendar eventAddedToCalendar);
+        Task<HashSet<Guid>> GetEventIdsWithApprovedDocumentsAsync(IEnumerable<Guid> eventIds);
     }
 }

@@ -47,6 +47,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
                 .AsNoTracking()
                 .Include(d => d.Sender)
                 .Include(d => d.Group)
+                .ThenInclude(d => d!.Leader)
                 .Include(d => d.ApprovalHistory).ThenInclude(a => a.Reviewer)
                 .Where(d => d.Group != null && d.Group.EventId == eventId && d.Status == DocumentStatus.Approved)
                 .OrderByDescending(d => d.SubmittedAt)

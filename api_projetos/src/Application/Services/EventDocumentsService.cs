@@ -1,8 +1,9 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.EventDocument;
+using API_Gestao_Eventos.src.Application.DTO.EventDocument;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 using API_Gestao_Eventos.src.Infrastructure.Services.Storage;
+using System.IO.Compression;
 
 namespace API_Gestao_Eventos.src.Application.Services
 {
@@ -28,6 +29,8 @@ namespace API_Gestao_Eventos.src.Application.Services
             "image/png",
             "image/jpeg"
         };
+
+        private static string GetCompiledZipStorageKey(Guid eventId) => $"events/{eventId}/compiled-documents.zip";
 
         public async Task<List<EventDocumentDto>> GetEventDocumentsAsync(Guid eventId, Guid userId)
         {
@@ -82,6 +85,11 @@ namespace API_Gestao_Eventos.src.Application.Services
             await documentRepository.AddApprovalAsync(approvalRecord);
             document.ApprovalHistory.Add(approvalRecord);
 
+            if (document.Group?.EventId is Guid eventId && eventId != Guid.Empty)
+            {
+                await storageService.DeleteFileAsync(GetCompiledZipStorageKey(eventId));
+            }
+
             return MapToDto(document);
         }
 
@@ -133,6 +141,73 @@ namespace API_Gestao_Eventos.src.Application.Services
             return (fileStream, document.ContentType, document.OriginalFileName);
         }
 
+        public async Task<(Stream FileStream, string ContentType, string FileName)> DownloadCompiledDocumentsAsync(Guid eventId, Guid userId)
+        {
+            var evt = await eventRepository.GetByIdAsync(eventId)
+                ?? throw new KeyNotFoundException("Evento não encontrado.");
+
+            if (!evt.AllowDocuments)
+                throw new InvalidOperationException("Este evento não permite submissão de documentos.");
+
+            if (DateTime.UtcNow <= evt.EndDate)
+                throw new InvalidOperationException("O compilado de documentos só fica disponível após o término do evento.");
+
+            await EnsureCanDownloadCompiledDocumentsAsync(evt, userId);
+
+            var approvedDocuments = await documentRepository.GetApprovedByEventAsync(eventId);
+            if (approvedDocuments.Count == 0)
+                throw new InvalidOperationException("Não há documentos aprovados para compilar neste evento.");
+
+            var downloadFileName = $"documentos-aprovados-{evt.Name.Replace(" ", "-")}.zip";
+            var compiledStorageKey = GetCompiledZipStorageKey(eventId);
+
+            try
+            {
+                var existingStream = await storageService.GetFileStreamAsync(compiledStorageKey);
+                return (existingStream, "application/zip", downloadFileName);
+            }
+            catch (FileNotFoundException)
+            {
+            }
+
+            using var memoryStream = new MemoryStream();
+            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
+            {
+                var groupedDocuments = approvedDocuments
+                    .GroupBy(d => new { d.GroupId, GroupNumber = d.Group?.Number, LeaderName = d.Group.Leader.Name })
+                    .OrderBy(g => g.Key.GroupNumber ?? int.MaxValue);
+
+                foreach (var group in groupedDocuments)
+                {
+                    var folderName = group.Key.LeaderName != null
+                        ? $"Grupo de {group.Key.LeaderName}"
+                        : $"Grupo {group.Key.GroupId}";
+
+                    var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var doc in group.OrderBy(d => d.SubmittedAt))
+                    {
+                        var safeFileName = GetUniqueEntryFileName(doc.OriginalFileName, usedFileNames);
+                        var entryPath = $"{folderName}/{safeFileName}";
+
+                        await using var docStream = await storageService.GetFileStreamAsync(doc.StorageKey);
+                        var entry = archive.CreateEntry(entryPath, CompressionLevel.Optimal);
+                        await using var entryStream = entry.Open();
+                        await docStream.CopyToAsync(entryStream);
+                    }
+                }
+            }
+
+            var zipBytes = memoryStream.ToArray();
+
+            await using (var uploadStream = new MemoryStream(zipBytes))
+            {
+                await storageService.UploadFileAsync(uploadStream, compiledStorageKey, "application/zip");
+            }
+
+            return (new MemoryStream(zipBytes), "application/zip", downloadFileName);
+        }
+
         public async Task DeleteDocumentAsync(Guid documentId, Guid userId)
         {
             var document = await documentRepository.GetByIdAsync(documentId) ?? throw new KeyNotFoundException("Documento não encontrado.");
@@ -140,6 +215,58 @@ namespace API_Gestao_Eventos.src.Application.Services
                 throw new UnauthorizedAccessException("Somente quem enviou o documento ou o líder do grupo pode excluí-lo.");
             await storageService.DeleteFileAsync(document.StorageKey);
             await documentRepository.DeleteAsync(document);
+
+            if (document.Status == DocumentStatus.Approved && document.Group?.EventId is Guid eventId && eventId != Guid.Empty)
+            {
+                await storageService.DeleteFileAsync(GetCompiledZipStorageKey(eventId));
+            }
+        }
+
+        private async Task EnsureCanDownloadCompiledDocumentsAsync(Event evt, Guid userId)
+        {
+            var user = await userRepository.GetByIdAsync(userId)
+                ?? throw new UnauthorizedAccessException("Usuário não encontrado.");
+
+            if (user is Student student)
+            {
+                var allowedForCourse = evt.AllowedCourses.Any(c => c.Id == student.CourseId);
+                var isRegistered = evt.Students.Any(s => s.Id == userId);
+                if (!allowedForCourse && !isRegistered)
+                    throw new UnauthorizedAccessException("Você não tem permissão para baixar os documentos deste evento.");
+                return;
+            }
+
+            if (user is Teacher teacher)
+            {
+                var canAccess = evt.AllowedCourses.Any(c => teacher.Courses.Any(tc => tc.Id == c.Id));
+                if (!canAccess)
+                    throw new UnauthorizedAccessException("Este evento não pertence aos seus cursos.");
+                return;
+            }
+
+            if (user.Role == UserRole.Secretaria && user.InstitutionId != evt.InstitutionId)
+            {
+                throw new UnauthorizedAccessException("Este evento não pertence à sua instituição.");
+            }
+        }
+
+        private static string GetUniqueEntryFileName(string originalFileName, HashSet<string> usedFileNames)
+        {
+            var baseName = Path.GetFileName(string.IsNullOrWhiteSpace(originalFileName) ? "documento" : originalFileName);
+            if (usedFileNames.Add(baseName))
+                return baseName;
+
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(baseName);
+            var extension = Path.GetExtension(baseName);
+            var counter = 2;
+
+            while (true)
+            {
+                var candidate = $"{nameWithoutExtension} ({counter}){extension}";
+                if (usedFileNames.Add(candidate))
+                    return candidate;
+                counter++;
+            }
         }
 
         private async Task EnsureCanManageEventDocumentsAsync(Guid eventId, Guid userId)

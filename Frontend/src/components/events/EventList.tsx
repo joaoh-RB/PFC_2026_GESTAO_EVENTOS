@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { isAxiosError } from "axios";
 import {
   Card,
   CardContent,
@@ -37,6 +38,8 @@ import {
   LogOut,
   ClipboardCheck,
   MessageSquare,
+  Download,
+  AlertCircle,
 } from "lucide-react";
 import { type PagedResult } from "@/types/utils";
 import { formatDateForShort } from "@/utils/format";
@@ -108,6 +111,7 @@ export interface EventItem {
   isFull: boolean;
   eventType: number;
   allowDocuments: boolean;
+  hasApprovedDocuments?: boolean;
   allowedCourseNames: string[];
   allowedCourseIds: string[];
   isActive: boolean;
@@ -193,6 +197,10 @@ export const EventsList: React.FC<EventsListProps> = ({
     Record<string, boolean>
   >({});
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+  const [downloadingZipEventId, setDownloadingZipEventId] = useState<
+    string | null
+  >(null);
+  const [zipDownloadError, setZipDownloadError] = useState<string | null>(null);
   const [documentModalEvent, setDocumentModalEvent] =
     useState<EventItem | null>(null);
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
@@ -312,6 +320,41 @@ export const EventsList: React.FC<EventsListProps> = ({
     setIsFeedbackModalOpen(true);
   };
 
+  const handleDownloadCompiledZip = async (eventItem: EventItem) => {
+    setDownloadingZipEventId(eventItem.id);
+    setZipDownloadError(null);
+    try {
+      const response = await api.get(
+        `/eventdocuments/${eventItem.id}/compiled-zip`,
+        {
+          responseType: "blob",
+        },
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `documentos-aprovados-${eventItem.name.replaceAll(" ", "-")}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: unknown) {
+      let message = "Não foi possível baixar o compilado de documentos.";
+      if (isAxiosError(error) && error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const parsed = JSON.parse(text) as { message?: string };
+          if (parsed?.message) message = parsed.message;
+        } catch {
+          // Mantém mensagem padrão
+        }
+      }
+      setZipDownloadError(message);
+    } finally {
+      setDownloadingZipEventId(null);
+    }
+  };
+
   const statusOptions: OptionItem[] = [
     { value: "all", label: "Todos" },
     { value: "active", label: "Ativos" },
@@ -331,6 +374,13 @@ export const EventsList: React.FC<EventsListProps> = ({
 
   return (
     <div className="space-y-6">
+      {zipDownloadError && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{zipDownloadError}</span>
+        </div>
+      )}
+
       <Card className="surface-card bg-white shadow-none">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-8 gap-2 items-end">
@@ -558,6 +608,24 @@ export const EventsList: React.FC<EventsListProps> = ({
                             )}
 
                           <div className="flex flex-wrap items-start justify-end gap-2">
+                            {isEnded && event.allowDocuments && event.hasApprovedDocuments && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={downloadingZipEventId === event.id}
+                                className="gap-2 cursor-pointer"
+                                onClick={() =>
+                                  void handleDownloadCompiledZip(event)
+                                }>
+                                {downloadingZipEventId === event.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-[#109bc6]" />
+                                ) : (
+                                  <Download className="h-4 w-4 text-[#109bc6]" />
+                                )}
+                                Baixar documentos (.zip)
+                              </Button>
+                            )}
+
                             {isEnded && event.isUserAttended && (
                               <Button
                                 variant="outline"
@@ -676,6 +744,23 @@ export const EventsList: React.FC<EventsListProps> = ({
                           </div>
                         ) : (
                           <div className="flex justify-end items-center gap-2 pt-4 flex-wrap">
+                            {isEnded && event.allowDocuments && event.hasApprovedDocuments && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={downloadingZipEventId === event.id}
+                                className="gap-2 cursor-pointer"
+                                onClick={() =>
+                                  void handleDownloadCompiledZip(event)
+                                }>
+                                {downloadingZipEventId === event.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-[#109bc6]" />
+                                ) : (
+                                  <Download className="h-4 w-4 text-[#109bc6]" />
+                                )}
+                                Baixar documentos (.zip)
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -688,7 +773,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                               size="sm"
                               className={"secondary-action cursor-pointer"}
                               onClick={() => handleStartEdition?.(event)}>
-                              Editar
+                              Detalhes do evento
                             </Button>
                           </div>
                         )
