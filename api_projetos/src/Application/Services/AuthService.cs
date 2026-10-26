@@ -59,7 +59,7 @@ namespace API_Gestao_Eventos.src.Application.Services
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
         {
             var user = await _userRepository.GetByEmailAsync(request.Email);
-            if (user == null /*||*/ /*!_passwordHasher.VerifyPassword(request.Password, user.PasswordHash)*/)
+            if (user == null || !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Credenciais inválidas.");
             if (!user.IsActive)
                 throw new UnauthorizedAccessException("Usuário inativo. Entre em contato com a sua instituição.");
