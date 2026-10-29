@@ -14,6 +14,10 @@ namespace API_Gestao_Eventos.src.Application.DTO.Event
         public int AvailableSeats { get; set; }
         public bool IsFull { get; set; }
         public int EventType { get; set; }
+        public int EventStatus { get; set; }
+        public Guid? CreatedByUserId { get; set; }
+        public string? CreatedByUserName { get; set; }
+        public string? CreatedByUniqueIdentifier { get; set; }
         public bool AllowDocuments { get; set; }
         public bool HasApprovedDocuments { get; set; }
         public List<string> AllowedCourseNames { get; set; } = new();
