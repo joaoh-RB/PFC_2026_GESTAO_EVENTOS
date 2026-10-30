@@ -110,6 +110,10 @@ export interface EventItem {
   availableSeats: number;
   isFull: boolean;
   eventType: number;
+  eventStatus?: number;
+  createdByUserId?: string | null;
+  createdByUserName?: string | null;
+  createdByUniqueIdentifier?: string | null;
   allowDocuments: boolean;
   maxGroupSize?: number | null;
   hasApprovedDocuments?: boolean;

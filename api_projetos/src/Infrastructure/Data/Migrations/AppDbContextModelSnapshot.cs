@@ -198,12 +198,20 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                     b.Property<int>("Capacity")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Description")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EventStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<int>("EventType")
                         .HasColumnType("integer");
@@ -229,6 +237,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("InstitutionId");
 
@@ -717,11 +727,18 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("API_Gestao_Eventos.src.Domain.Entities.Event", b =>
                 {
+                    b.HasOne("API_Gestao_Eventos.src.Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("API_Gestao_Eventos.src.Domain.Entities.Institution", "Institution")
                         .WithMany("Events")
                         .HasForeignKey("InstitutionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("CreatedByUser");
 
                     b.Navigation("Institution");
                 });

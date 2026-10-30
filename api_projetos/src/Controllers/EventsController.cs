@@ -14,12 +14,13 @@ namespace API_Gestao_Eventos.src.Controllers
     public class EventsController(EventService eventService, AttendanceService attendanceService, EventFeedbackService eventFeedbackService) : Controller
     {
         [HttpPost]
-        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        [Authorize(Roles = nameof(UserRole.Aluno) + "," + nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
         public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequestDto request)
         {
             try
             {
-                var createdEvent = await eventService.AddAsync(request);
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var createdEvent = await eventService.AddAsync(request, userId);
                 return StatusCode(StatusCodes.Status201Created);
             }
             catch (Exception ex)
@@ -51,6 +52,46 @@ namespace API_Gestao_Eventos.src.Controllers
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
                 var events = await eventService.GetFilteredEventsPagedAsync(eventFilterDto, userId);
                 return Ok(events);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("requested")]
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        public async Task<IActionResult> GetRequestedEvents([FromQuery] EventFilterDto eventFilterDto)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var events = await eventService.GetRequestedEventsPagedAsync(eventFilterDto, userId);
+                return Ok(events);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPatch("{id:guid}/approval")]
+        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        public async Task<IActionResult> SetApproval([FromRoute] Guid id, [FromBody] ApprovalEventRequest request)
+        {
+            try
+            {
+                var approverId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await eventService.SetApprovalAsync(id, request.Status, approverId);
+                return Ok(new { message = request.Status == EventStatus.Agendado ? "Evento aprovado." : "Evento reprovado." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -302,6 +343,11 @@ namespace API_Gestao_Eventos.src.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        public class ApprovalEventRequest
+        {
+            public EventStatus Status { get; set; }
         }
 
         public class ActiveRequest

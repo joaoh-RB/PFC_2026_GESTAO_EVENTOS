@@ -1,4 +1,4 @@
-﻿using API_Gestao_Eventos.src.Domain.Enums;
+using API_Gestao_Eventos.src.Domain.Enums;
 
 namespace API_Gestao_Eventos.src.Domain.Entities
 {
@@ -22,7 +22,9 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public EventType EventType { get; set; }
         public string? GoogleCalendarEventId { get; set; }
         public string? AttendanceCode { get; set; }
-        //public EventStatus EventStatus { get; set; }
+        public EventStatus EventStatus { get; set; } = EventStatus.Agendado;
+        public Guid? CreatedByUserId { get; set; }
+        public User? CreatedByUser { get; set; }
     }
     public enum RegistrationStatus
     {
@@ -33,7 +35,8 @@ namespace API_Gestao_Eventos.src.Domain.Entities
     public enum EventStatus
     {
         Agendado = 1,
-        Cancelado = 2
+        Reprovado = 2,
+        Solicitado = 3
     }
 
     public class EventStudent
@@ -68,4 +71,3 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public DateTime AddedAt { get; set; } = DateTime.UtcNow;
     }
 }
-

@@ -1,21 +1,27 @@
 using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Domain.Entities;
+using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 using API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar;
-using System.Net.WebSockets;
 
 namespace API_Gestao_Eventos.src.Application.Services
 {
     public class EventService(IEventRepository eventRepository, ICourseRepository courseRepository, IGoogleCalendarService googleCalendarService, IAuthService authService, IGroupRepository groupRepository)
     {
-        public async Task<Event> AddAsync(CreateEventRequestDto request)
+        public async Task<Event> AddAsync(CreateEventRequestDto request, Guid userId)
         {
+            var user = await authService.GetUserInfoAsync(userId)
+                ?? throw new KeyNotFoundException("Usuário não encontrado.");
+
             var allowedCourses = (await courseRepository.GetByInstitutionAsync(request.InstitutionId)).Where(w => request.AllowedCourses.Contains(w.Id)).ToList();
             if (allowedCourses.Count != request.AllowedCourses.Count)
             {
                 throw new InvalidOperationException("Nem todos os cursos cadastrados são permitidos.");
             }
+
+            var eventStatus = user.Role == UserRole.Aluno.ToString() ? EventStatus.Solicitado : EventStatus.Agendado;
+
             var newEvent = new Event
             {
                 Name = request.Name,
@@ -27,10 +33,17 @@ namespace API_Gestao_Eventos.src.Application.Services
                 AllowDocuments = request.AllowDocuments,
                 MaxGroupSize = request.AllowDocuments ? request.MaxGroupSize : null,
                 EventType = request.EventType,
-                AllowedCourses = allowedCourses
+                AllowedCourses = allowedCourses,
+                EventStatus = eventStatus,
+                CreatedByUserId = userId
             };
-            string googleEventId = await googleCalendarService.CreateEventAsync(newEvent);
-            newEvent.GoogleCalendarEventId = googleEventId;
+
+            if (eventStatus == EventStatus.Agendado)
+            {
+                string googleEventId = await googleCalendarService.CreateEventAsync(newEvent);
+                newEvent.GoogleCalendarEventId = googleEventId;
+            }
+
             return await eventRepository.AddAsync(newEvent);
         }
         public async Task UpdateAsync(Guid id, CreateEventRequestDto request)
@@ -57,10 +70,35 @@ namespace API_Gestao_Eventos.src.Application.Services
                 AllowedCourses = (request.AllowedCourses ?? new List<Guid>())
                         .Select(courseId => new Course { Id = courseId })
                         .ToList(),
-                GoogleCalendarEventId = eventCreated.GoogleCalendarEventId
+                GoogleCalendarEventId = eventCreated.GoogleCalendarEventId,
+                EventStatus = eventCreated.EventStatus,
+                CreatedByUserId = eventCreated.CreatedByUserId,
+                AttendanceCode = eventCreated.AttendanceCode
             };
             await googleCalendarService.UpdateEventAsync(eventToUpdate);
             await eventRepository.UpdateAsync(eventToUpdate);
+        }
+        public async Task SetApprovalAsync(Guid id, EventStatus status, Guid approverId)
+        {
+            if (status != EventStatus.Agendado && status != EventStatus.Reprovado)
+                throw new InvalidOperationException("Use apenas aprovação (Agendado) ou reprovação (Reprovado).");
+
+            var approver = await authService.GetUserInfoAsync(approverId)
+                ?? throw new KeyNotFoundException("Usuário não encontrado.");
+
+            var eventToUpdate = await eventRepository.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException("Evento não encontrado.");
+
+            if (eventToUpdate.EventStatus != EventStatus.Solicitado)
+                throw new InvalidOperationException("Apenas eventos com status 'Solicitado' podem ser aprovados ou reprovados.");
+
+            string? googleEventId = eventToUpdate.GoogleCalendarEventId;
+            if (status == EventStatus.Agendado && string.IsNullOrEmpty(googleEventId))
+            {
+                googleEventId = await googleCalendarService.CreateEventAsync(eventToUpdate);
+            }
+
+            await eventRepository.SetApprovalStatusAsync(eventToUpdate, status, googleEventId);
         }
         public async Task SetActiveAsync(Guid id, bool isActive)
         {
@@ -70,6 +108,12 @@ namespace API_Gestao_Eventos.src.Application.Services
                 throw new InvalidOperationException("Não é possível inativar um evento que já começou.");
             await googleCalendarService.DeactivateEventAsync(eventToUpdate.GoogleCalendarEventId, isActive);
             await eventRepository.SetActiveAsync(eventToUpdate, isActive);
+        }
+        public async Task<PagedResponseDto<EventResponseDto>> GetRequestedEventsPagedAsync(EventFilterDto parameters, Guid userId)
+        {
+            parameters.EventStatus = EventStatus.Solicitado;
+            parameters.FromDate ??= DateTime.UtcNow;
+            return await GetFilteredEventsPagedAsync(parameters, userId);
         }
         public async Task<PagedResponseDto<EventResponseDto>> GetFilteredEventsPagedAsync(EventFilterDto parameters, Guid userId)
         {
@@ -98,6 +142,10 @@ namespace API_Gestao_Eventos.src.Application.Services
                     AvailableSeats = availableSeats,
                     IsFull = availableSeats == 0,
                     EventType = (int)e.EventType,
+                    EventStatus = (int)e.EventStatus,
+                    CreatedByUserId = e.CreatedByUserId,
+                    CreatedByUserName = e.CreatedByUser?.Name,
+                    CreatedByUniqueIdentifier = (e.CreatedByUser as Student)?.UniqueIdentifier,
                     AllowDocuments = e.AllowDocuments,
                     MaxGroupSize = e.MaxGroupSize,
                     HasApprovedDocuments = eventsWithApprovedDocs.Contains(e.Id),
@@ -183,6 +231,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 ?? throw new KeyNotFoundException("Evento inválido para inscrição.");
             if (!evt.IsActive)
                 throw new InvalidOperationException("Não é possível se inscrever em um evento inativo.");
+            if (evt.EventStatus != EventStatus.Agendado)
+                throw new InvalidOperationException("Não é possível se inscrever em um evento que não está agendado.");
             var confirmedRegistrations = evt.EventStudents.Count(s => s.Status == RegistrationStatus.Confirmed);
             var existingRegistration = evt.EventStudents.FirstOrDefault(f => f.StudentId == userId);
             if (existingRegistration is null && confirmedRegistrations >= evt.Capacity)
