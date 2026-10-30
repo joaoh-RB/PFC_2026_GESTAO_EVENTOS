@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/API_Gestao_Eventos.Tests/API_Gestao_Eventos.Tests.csproj" />
+  </Folder>
   <Project Path="../Frontend/frontend.esproj">
     <Build />
     <Deploy />

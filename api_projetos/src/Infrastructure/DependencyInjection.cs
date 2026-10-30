@@ -1,8 +1,9 @@
-﻿using API_Gestao_Eventos.src.Infrastructure.Data.Context;
+using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 using API_Gestao_Eventos.src.Infrastructure.Services.Email;
 using API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar;
 using API_Gestao_Eventos.src.Infrastructure.Services.Security;
+using API_Gestao_Eventos.src.Infrastructure.Services.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -17,23 +18,31 @@ namespace API_Gestao_Eventos.src.Infrastructure
         this IServiceCollection services,
         IConfiguration configuration)
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-            services.AddDbContext<AppDbContext>(options =>
-                options.UseNpgsql(connectionString));
+            if (configuration["DatabaseProvider"] != "None")
+            {
+                var connectionString = configuration.GetConnectionString("DefaultConnection");
+                services.AddDbContext<AppDbContext>(options =>
+                    options.UseNpgsql(connectionString));
+            }
             services.AddHttpContextAccessor();
 
             services.AddScoped<IHasher, Hasher>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IGoogleAuthService, GoogleAuth>();
-            services.AddScoped<UserRepository>();
-            services.AddScoped<InstitutionRepository>();
-            services.AddScoped<CourseRepository>();
-            services.AddScoped<EventRepository>();
-            services.AddScoped<LegalDocumentRepository>();
-            services.AddScoped<TermAcceptanceRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IDocumentRepository, DocumentRepository>();
+            services.AddScoped<IGroupRepository, GroupRepository>();
+            services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+            services.AddScoped<IEventFeedbackRepository, EventFeedbackRepository>();
+            services.AddScoped<IInstitutionRepository, InstitutionRepository>();
+            services.AddScoped<ICourseRepository, CourseRepository>();
+            services.AddScoped<IEventRepository, EventRepository>();
+            services.AddScoped<ILegalDocumentRepository, LegalDocumentRepository>();
+            services.AddScoped<ITermAcceptanceRepository, TermAcceptanceRepository>();
             services.AddScoped<EmailTemplateRenderer>();
-            services.AddScoped<GoogleCalendarService>();
-            services.AddHttpClient<EmailService>();
+            services.AddScoped<IGoogleCalendarService, GoogleCalendarService>();
+            services.AddHttpClient<IEmailService, EmailService>();
+            services.AddHttpClient<IStorageService, SupabaseStorageService>();
             var jwtSettings = configuration.GetSection("JwtSettings");
             var secretKey = jwtSettings["Secret"] ?? "abc";
 

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
 {
-    public class LegalDocumentRepository(AppDbContext _context)
+    public class LegalDocumentRepository(AppDbContext _context) : ILegalDocumentRepository
     {
         public async Task<LegalDocument?> GetActiveByTypeAsync(LegalDocumentType type)
         {
@@ -24,5 +24,11 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         {
             return await _context.LegalDocuments.FindAsync(id);
         }
+    }
+    public interface ILegalDocumentRepository
+    {
+        Task<LegalDocument?> GetActiveByTypeAsync(LegalDocumentType type);
+        Task<IEnumerable<LegalDocument>> GetAllActiveAsync();
+        Task<LegalDocument?> GetByIdAsync(Guid id);
     }
 }

@@ -1,7 +1,8 @@
-﻿using API_Gestao_Eventos.src.Application.Services;
+using API_Gestao_Eventos.src.Application.Services;
 using API_Gestao_Eventos.src.Application.Validators.Auth;
 using API_Gestao_Eventos.src.Application.Validators.Course;
 using API_Gestao_Eventos.src.Application.Validators.Event;
+using API_Gestao_Eventos.src.Application.Validators.Group;
 using API_Gestao_Eventos.src.Application.Validators.Institution;
 using API_Gestao_Eventos.src.Application.Validators.User;
 using FluentValidation;
@@ -12,12 +13,16 @@ namespace API_Gestao_Eventos.src.Application
     {
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
-            services.AddScoped<AuthService>();
+            services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<CourseService>();
             services.AddScoped<InstitutionService>();
             services.AddScoped<EventService>();
             services.AddScoped<UserService>();
             services.AddScoped<LegalDocumentService>();
+            services.AddScoped<EventDocumentsService>();
+            services.AddScoped<GroupService>();
+            services.AddScoped<AttendanceService>();
+            services.AddScoped<EventFeedbackService>();
             services.AddFluentValidationAutoValidation();
             services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
             services.AddValidatorsFromAssemblyContaining<CreateEventValidator>();
@@ -29,6 +34,10 @@ namespace API_Gestao_Eventos.src.Application
             services.AddValidatorsFromAssemblyContaining<UpdateCourseValidator>();
             services.AddValidatorsFromAssemblyContaining<CreateInstitutionValidator>();
             services.AddValidatorsFromAssemblyContaining<UpdateInstitutionValidator>();
+            services.AddValidatorsFromAssemblyContaining<CreateGroupValidator>();
+            services.AddValidatorsFromAssemblyContaining<InviteGroupMembersValidator>();
+            services.AddValidatorsFromAssemblyContaining<ConfirmAttendanceValidator>();
+            services.AddValidatorsFromAssemblyContaining<CreateEventFeedbackValidator>();
             services.AddValidatorsFromAssemblyContaining<ChangeInitialPasswordValidator>();
             services.AddValidatorsFromAssemblyContaining<ResetPasswordValidator>();
             return services;

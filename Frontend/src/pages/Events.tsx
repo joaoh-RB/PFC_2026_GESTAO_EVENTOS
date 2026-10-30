@@ -1,61 +1,51 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { api } from "../services/api";
-import { AlertCircle, Plus, ListFilter } from "lucide-react";
+import {
+  AlertCircle,
+  Plus,
+  ListFilter,
+  ClipboardList,
+} from "lucide-react";
 import { CreateEventForm } from "@/components/events/CreateEventForm";
 import {
   EventsList,
   type EventItem,
-  type EventFilterState,
 } from "@/components/events/EventList";
+import { RequestedEventsPanel } from "@/components/events/RequestedEventsPanel";
 import { Button } from "@/components/ui/button";
 import { type CreateEventFormData } from "../schemas/eventSchema";
 import { useAuth } from "../hooks/useAuth";
 import type { OptionItem } from "@/types/optionItem";
 import { formatForDatetimeLocal } from "@/utils/format";
-import { type PagedResult } from "@/types/utils";
 import { InitialLoading } from "@/components/InitialLoading";
 import { PageHeader } from "@/components/PageHeader";
 
 export const Events: React.FC = () => {
-  const pageSize = 6;
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
   const [courses, setCourses] = useState<OptionItem[]>([]);
   const [eventTypes, setEventTypes] = useState<OptionItem[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
   const [editing, setIsEditing] = useState(false);
+  const [viewingRequested, setViewingRequested] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const [eventsData, setEventsData] = useState<PagedResult<EventItem>>({
-    items: [],
-    totalItems: 0,
-    pageNumber: 1,
-    pageSize: pageSize,
-    totalPages: 1,
-    hasPreviousPage: false,
-    hasNextPage: false,
-  });
-
   const [currentEventBeingUpdated, setEventBeingUpdated] = useState<
     (CreateEventFormData & { id: string; isActive: boolean }) | null
   >(null);
-
-  const [isEventsLoading, setIsEventsLoading] = useState(false);
-  const [filters, setFilters] = useState<EventFilterState>({
-    fromDate: new Date().toISOString().split("T")[0],
-  });
-  const [currentPage, setCurrentPage] = useState(1);
 
   const { user } = useAuth();
   const userInstitutionId = user?.institutionId || null;
 
   const fetchCourses = async (institutionId: string | null) => {
-    await api.get<OptionItem[]>("/courses", { params: { institutionId } }).then((res) => {
-      setCourses(res.data);
-    })
+    await api
+      .get<OptionItem[]>("/courses", { params: { institutionId } })
+      .then((res) => {
+        setCourses(res.data);
+      });
   };
 
   useEffect(() => {
@@ -83,58 +73,12 @@ export const Events: React.FC = () => {
     return () => {
       controller.abort();
     };
-  }, []);
-
-
-  const fetchEvents = useCallback(
-    async (appliedFilters = filters) => {
-      setIsEventsLoading(true);
-      try {
-        const params: Record<string, string | number | boolean> = {
-          pageNumber: currentPage,
-          pageSize: pageSize,
-        };
-        if (appliedFilters.fromDate) {
-          params.fromDate = new Date(
-            `${appliedFilters.fromDate}T00:00:00-03:00`,
-          ).toISOString();
-        }
-        if (appliedFilters.institutionId) {
-          params.institutionId = appliedFilters.institutionId;
-        }
-        if (appliedFilters.isActive !== undefined) {
-          params.isActive = appliedFilters.isActive;
-        }
-        const res = await api.get<PagedResult<EventItem>>("/events", {
-          params,
-        });
-        setEventsData(res.data);
-      } catch (err) {
-        console.error("Erro ao buscar eventos", err);
-      } finally {
-        setIsEventsLoading(false);
-      }
-    },
-    [filters, currentPage],
-  );
-
-  useEffect(() => {
-    if (!editing) {
-      fetchEvents(filters);
-    }
-  }, [editing, currentPage, fetchEvents, filters]);
-
-  const handleFilterChange = (newFilters: EventFilterState) => {
-    setCurrentPage(1);
-    setFilters(newFilters);
-  };
+  }, [userInstitutionId]);
 
   const handleInstitutionChange = (institutionId: string) => {
     fetchCourses(institutionId);
   };
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+
   const handleStartEdition = (eventItem: EventItem) => {
     fetchCourses(eventItem.institutionId);
     setEventBeingUpdated({
@@ -150,6 +94,7 @@ export const Events: React.FC = () => {
       allowedCourses: eventItem.allowedCourseIds,
       isActive: eventItem.isActive,
     });
+    setViewingRequested(false);
     setIsEditing(true);
   };
 
@@ -180,14 +125,6 @@ export const Events: React.FC = () => {
     }
   };
 
-  const handleToggleActive = async (eventItem: EventItem) => {
-    await api.patch(`/events/${eventItem.id}/active`, {
-      isActive: !eventItem.isActive,
-    });
-    setCurrentPage(1);
-    fetchEvents();
-  };
-
   if (isInitialLoading) {
     return <InitialLoading></InitialLoading>;
   }
@@ -211,71 +148,93 @@ export const Events: React.FC = () => {
 
   return (
     <div className="app-page">
-        <PageHeader
-          title={
-            editing
-              ? currentEventBeingUpdated
-                ? currentEventBeingUpdated.isActive
-                  ? "Atualizar evento"
-                  : "Reativar evento"
-                : "Novo evento"
+      <PageHeader
+        title={
+          editing
+            ? currentEventBeingUpdated
+              ? currentEventBeingUpdated.isActive
+                ? "Atualizar evento"
+                : "Reativar evento"
+              : "Novo evento"
+            : viewingRequested
+              ? "Eventos Solicitados"
               : "Eventos"
-          }
-          description={
-            editing
-              ? "Preencha os dados para salvar o evento."
+        }
+        description={
+          editing
+            ? "Preencha os dados para salvar o evento."
+            : viewingRequested
+              ? "Avalie e aprove ou reprove os eventos solicitados pelos alunos."
               : "Consulte, filtre e gerencie os eventos acadêmicos."
-          }
-          action={
-          <Button
-            onClick={() => {
-              setIsEditing(!editing);
-              setSubmitError(null);
-              setEventBeingUpdated(null);
-            }}
-            variant={editing ? "outline" : "default"}
-            className={editing ? "secondary-action" : "primary-action"}>
-            {editing ? (
-              <>
+        }
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            {editing || viewingRequested ? (
+              <Button
+                onClick={() => {
+                  setIsEditing(false);
+                  setViewingRequested(false);
+                  setSubmitError(null);
+                  setEventBeingUpdated(null);
+                }}
+                variant="outline"
+                className="secondary-action cursor-pointer">
                 <ListFilter className="mr-2 h-4 w-4" />
                 Ver Lista de Eventos
-              </>
+              </Button>
             ) : (
               <>
-                <Plus className="mr-2 h-4 w-4" />
-                Criar Evento
+                <Button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setViewingRequested(true);
+                  }}
+                  variant="outline"
+                  className="secondary-action cursor-pointer">
+                  <ClipboardList className="mr-2 h-4 w-4" />
+                  Eventos Solicitados
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    setViewingRequested(false);
+                    setIsEditing(true);
+                    setSubmitError(null);
+                    setEventBeingUpdated(null);
+                  }}
+                  variant="default"
+                  className="primary-action cursor-pointer">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Criar Evento
+                </Button>
               </>
             )}
-          </Button>
-          }
-        />
+          </div>
+        }
+      />
 
-        {editing ? (
-          <CreateEventForm
-            institutions={institutions}
-            courses={courses}
-            eventTypes={eventTypes}
-            userInstitutionId={userInstitutionId}
-            onSubmit={handleCreateEvent}
-            isSubmitting={isSubmitting}
-            isSuccess={isSuccess}
-            apiError={submitError}
-            currentEventData={currentEventBeingUpdated}
-            handleInstitutionChange={handleInstitutionChange}
-          />
-        ) : (
-          <EventsList
-            data={eventsData}
-            institutions={institutions}
-            isLoading={isEventsLoading}
-            currentFilters={filters}
-            userInstitutionId={userInstitutionId}
-            onFilter={handleFilterChange}
-            onPageChange={handlePageChange}
-            handleStartEdition={handleStartEdition}
-            handleToggleActive={handleToggleActive}
-          />
-        )}
+      {editing ? (
+        <CreateEventForm
+          institutions={institutions}
+          courses={courses}
+          eventTypes={eventTypes}
+          userInstitutionId={userInstitutionId}
+          onSubmit={handleCreateEvent}
+          isSubmitting={isSubmitting}
+          isSuccess={isSuccess}
+          apiError={submitError}
+          currentEventData={currentEventBeingUpdated}
+          handleInstitutionChange={handleInstitutionChange}
+        />
+      ) : viewingRequested ? (
+        <RequestedEventsPanel userInstitutionId={userInstitutionId} />
+      ) : (
+        <EventsList
+          institutions={institutions}
+          userInstitutionId={userInstitutionId}
+          handleStartEdition={handleStartEdition}
+        />
+      )}
     </div>
   );
 };

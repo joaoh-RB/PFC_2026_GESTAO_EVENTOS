@@ -16,6 +16,7 @@ const quickLinks: {
   description: string;
   descriptionsByRole?: Partial<Record<UserRole, string>>;
   path: string;
+  pathsByRole?: Partial<Record<UserRole, string>>;
   icon: typeof CalendarDays;
   color: string;
   roles?: UserRole[];
@@ -27,6 +28,9 @@ const quickLinks: {
       Aluno: "Veja a programação e inscreva-se nos eventos disponíveis.",
     },
     path: "/events",
+    pathsByRole: {
+      Aluno: "/event-student",
+    },
     icon: CalendarDays,
     color: "bg-cyan-50 text-cyan-600",
   },
@@ -78,6 +82,7 @@ export function Dashboard() {
     ...item,
     description:
       (user?.role && item.descriptionsByRole?.[user.role]) || item.description,
+    path: (user?.role && item.pathsByRole?.[user.role]) || item.path,
   }));
 
   const accessCardCopy: Record<
