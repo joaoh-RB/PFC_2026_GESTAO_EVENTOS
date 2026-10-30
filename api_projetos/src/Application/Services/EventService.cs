@@ -7,7 +7,7 @@ using System.Net.WebSockets;
 
 namespace API_Gestao_Eventos.src.Application.Services
 {
-    public class EventService(IEventRepository eventRepository, ICourseRepository courseRepository, IGoogleCalendarService googleCalendarService, IAuthService authService)
+    public class EventService(IEventRepository eventRepository, ICourseRepository courseRepository, IGoogleCalendarService googleCalendarService, IAuthService authService, IGroupRepository groupRepository)
     {
         public async Task<Event> AddAsync(CreateEventRequestDto request)
         {
@@ -25,6 +25,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                 EndDate = request.EndDate.UtcDateTime,
                 Capacity = request.Capacity,
                 AllowDocuments = request.AllowDocuments,
+                MaxGroupSize = request.AllowDocuments ? request.MaxGroupSize : null,
                 EventType = request.EventType,
                 AllowedCourses = allowedCourses
             };
@@ -50,6 +51,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 Capacity = request.Capacity,
                 EventType = request.EventType,
                 AllowDocuments = request.AllowDocuments,
+                MaxGroupSize = request.AllowDocuments ? request.MaxGroupSize : null,
+                AttendanceCode = eventCreated.AttendanceCode,
                 InstitutionId = request.InstitutionId,
                 AllowedCourses = (request.AllowedCourses ?? new List<Guid>())
                         .Select(courseId => new Course { Id = courseId })
@@ -96,6 +99,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                     IsFull = availableSeats == 0,
                     EventType = (int)e.EventType,
                     AllowDocuments = e.AllowDocuments,
+                    MaxGroupSize = e.MaxGroupSize,
                     HasApprovedDocuments = eventsWithApprovedDocs.Contains(e.Id),
                     AllowedCourseNames = e.AllowedCourses.Select(c => c.Name.ToString()).ToList(),
                     AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList(),
@@ -222,6 +226,8 @@ namespace API_Gestao_Eventos.src.Application.Services
             var existingRegistration = evt.EventStudents.FirstOrDefault(f => f.StudentId == userId);
             if (existingRegistration == null || existingRegistration.Status != RegistrationStatus.Confirmed)
                 throw new InvalidOperationException("Você não está inscrito neste evento.");
+            if (await groupRepository.HasAcceptedGroupAsync(userId, eventId))
+                throw new InvalidOperationException("Saia do grupo antes de cancelar sua inscrição no evento.");
             existingRegistration.Status = RegistrationStatus.Canceled;
             existingRegistration.CanceledAt = DateTime.UtcNow;
             if (evt.GoogleCalendarEventId != null && user.Email != null)

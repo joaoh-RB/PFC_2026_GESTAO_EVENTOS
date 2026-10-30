@@ -15,6 +15,7 @@ namespace API_Gestao_Eventos.src.Application.DTO.Event
         public bool IsFull { get; set; }
         public int EventType { get; set; }
         public bool AllowDocuments { get; set; }
+        public int? MaxGroupSize { get; set; }
         public bool HasApprovedDocuments { get; set; }
         public List<string> AllowedCourseNames { get; set; } = new();
         public required List<Guid> AllowedCourseIds { get; set; }

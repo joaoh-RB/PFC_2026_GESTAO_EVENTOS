@@ -193,6 +193,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
     reset,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<CreateEventFormData>({
     resolver: zodResolver(createEventSchema) as Resolver<CreateEventFormData>,
     mode: "onBlur",
@@ -205,6 +206,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
       institutionId: userInstitutionId || "",
       eventType: 0,
       allowDocuments: false,
+      maxGroupSize: undefined,
       allowedCourses: [],
     },
   });
@@ -221,6 +223,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
         capacity: currentEventData.capacity,
         eventType: currentEventData.eventType,
         allowDocuments: currentEventData.allowDocuments ?? false,
+        maxGroupSize: currentEventData.maxGroupSize,
         allowedCourses: currentEventData.allowedCourses || [],
       });
     }
@@ -766,6 +769,27 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
                 Permitir envio de documentos para a apresentação de trabalhos
               </Label>
             </div>
+
+            {watch("allowDocuments") && (
+              <div className="space-y-1">
+                <Label htmlFor="maxGroupSize">
+                  Limite de alunos por grupo
+                </Label>
+                <Input
+                  type="number"
+                  id="maxGroupSize"
+                  min="1"
+                  max="10"
+                  placeholder="Sem limite"
+                  {...register("maxGroupSize")}
+                />
+                {errors.maxGroupSize && (
+                  <p className="text-xs text-red-600">
+                    {errors.maxGroupSize.message}
+                  </p>
+                )}
+              </div>
+            )}
 
             <Button
               type="submit"

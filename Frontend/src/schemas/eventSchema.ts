@@ -9,6 +9,10 @@ export const createEventSchema = z.object({
   endDate: z.string().min(1, 'Data de término é obrigatória'),
   capacity: z.coerce.number().min(1, 'A capacidade deve ser de pelo menos 1 pessoa'),
   allowDocuments: z.boolean().default(false),
+  maxGroupSize: z.preprocess(
+    (value) => (value === "" || value === null || Number.isNaN(value) ? undefined : value),
+    z.coerce.number().int().min(1, 'O limite deve ser de pelo menos 1 aluno').max(10, 'O limite máximo é de 10 alunos').optional(),
+  ),
   eventType: z.coerce.number().min(0, 'Selecione o tipo do evento'),
   allowedCourses: z.array(z.uuid()).min(1, 'Selecione pelo menos um curso permitido'),
 }).refine((data) => new Date(data.startDate) > new Date(), {

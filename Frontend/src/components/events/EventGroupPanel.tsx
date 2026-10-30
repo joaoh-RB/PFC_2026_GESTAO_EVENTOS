@@ -12,11 +12,11 @@ import {
   ComboboxValue,
   useComboboxAnchor,
 } from "@/components/ui/combobox";
-import { AlertCircle, Loader2, LogOut, UserPlus, Users, X} from "lucide-react";
+import { AlertCircle, Check, Loader2, LogOut, UserPlus, Users, X } from "lucide-react";
 import api from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import type { OptionItem } from "@/types/optionItem";
-import { GroupMemberStatus, type GroupItem } from "@/types/group";
+import { GroupMemberStatus, type GroupItem, type OpenGroupItem } from "@/types/group";
 
 const getErrorMessage = (err: unknown, fallback: string): string => {
   const errorObj = err as {
@@ -30,12 +30,14 @@ const statusLabel: Record<number, string> = {
   [GroupMemberStatus.Invited]: "Convidado",
   [GroupMemberStatus.Accepted]: "Aceito",
   [GroupMemberStatus.Declined]: "Recusou",
+  [GroupMemberStatus.Requested]: "Pedido enviado",
 };
 
 const statusStyle: Record<number, string> = {
   [GroupMemberStatus.Invited]: "bg-amber-50 text-amber-700",
   [GroupMemberStatus.Accepted]: "bg-emerald-50 text-emerald-700",
   [GroupMemberStatus.Declined]: "bg-slate-100 text-slate-500",
+  [GroupMemberStatus.Requested]: "bg-sky-50 text-sky-700",
 };
 
 interface StudentPickerProps {
@@ -82,16 +84,19 @@ const StudentPicker: React.FC<StudentPickerProps> = ({
 
 interface EventGroupPanelProps {
   eventId: string;
+  startDate: string;
   onGroupChange: (hasGroup: boolean) => void;
 }
 
 export const EventGroupPanel: React.FC<EventGroupPanelProps> = ({
   eventId,
+  startDate,
   onGroupChange,
 }) => {
   const { user } = useAuth();
   const [group, setGroup] = useState<GroupItem | null>(null);
   const [invites, setInvites] = useState<GroupItem[]>([]);
+  const [openGroups, setOpenGroups] = useState<OpenGroupItem[]>([]);
   const [students, setStudents] = useState<OptionItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -116,9 +121,14 @@ export const EventGroupPanel: React.FC<EventGroupPanelProps> = ({
 
       if (myGroup) {
         setInvites([]);
+        setOpenGroups([]);
       } else {
         const invitesRes = await api.get<GroupItem[]>("/groups/invites");
         setInvites(invitesRes.data.filter((g) => g.eventId === eventId));
+        const openRes = await api.get<OpenGroupItem[]>(
+          `/groups/event/${eventId}/open`,
+        );
+        setOpenGroups(openRes.data);
       }
 
       if (!myGroup || myGroup.leaderId === user?.id) {
@@ -132,7 +142,7 @@ export const EventGroupPanel: React.FC<EventGroupPanelProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [eventId, user?.id, onGroupChange]);
+  }, [eventId, user, onGroupChange]);
 
   useEffect(() => {
     loadData();
@@ -156,6 +166,8 @@ export const EventGroupPanel: React.FC<EventGroupPanelProps> = ({
   };
 
   const isLeader = !!group && group.leaderId === user?.id;
+  const canEdit = new Date(startDate) > new Date();
+  const requests = group?.members.filter((m) => m.status === GroupMemberStatus.Requested) ?? [];
   const invitable = students.filter(
     (s) =>
       !group?.members.some(
@@ -197,7 +209,9 @@ export const EventGroupPanel: React.FC<EventGroupPanelProps> = ({
           </div>
 
           <ul className="space-y-1.5">
-            {group.members.map((member) => (
+            {group.members
+              .filter((member) => member.status !== GroupMemberStatus.Requested)
+              .map((member) => (
               <li
                 key={member.studentId}
                 className="flex items-center justify-between gap-2 text-sm text-slate-700">
@@ -233,6 +247,60 @@ export const EventGroupPanel: React.FC<EventGroupPanelProps> = ({
             ))}
           </ul>
 
+          {isLeader && canEdit && requests.length > 0 && (
+            <div className="space-y-2 border-t border-slate-100 pt-3">
+              <Label className="text-xs text-slate-600">
+                Pedidos de entrada
+              </Label>
+              <ul className="space-y-1.5">
+                {requests.map((request) => (
+                  <li
+                    key={request.studentId}
+                    className="flex items-center justify-between gap-2 text-sm text-slate-700">
+                    <span className="truncate">{request.name}</span>
+                    <span className="flex items-center gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="gap-1 primary-action cursor-pointer"
+                        disabled={isWorking}
+                        onClick={() =>
+                          runAction(
+                            () =>
+                              api.post(
+                                `/groups/${group.id}/requests/${request.studentId}/approve`,
+                              ),
+                            "Erro ao aprovar o pedido.",
+                          )
+                        }>
+                        <Check className="h-4 w-4" />
+                        Aprovar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 cursor-pointer text-red-600 hover:text-red-700"
+                        disabled={isWorking}
+                        onClick={() =>
+                          runAction(
+                            () =>
+                              api.delete(
+                                `/groups/${group.id}/requests/${request.studentId}`,
+                              ),
+                            "Erro ao recusar o pedido.",
+                          )
+                        }>
+                        <X className="h-4 w-4" />
+                        Recusar
+                      </Button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {isLeader && (
             <div className="space-y-2 border-t border-slate-100 pt-3">
               <Label className="text-xs text-slate-600">Convidar alunos</Label>
@@ -262,12 +330,7 @@ export const EventGroupPanel: React.FC<EventGroupPanelProps> = ({
             </div>
           )}
 
-          {(!isLeader ||
-            !group.members.some(
-              (m) =>
-                m.studentId !== group.leaderId &&
-                m.status === GroupMemberStatus.Accepted,
-            )) && (
+          {canEdit && (
             <div className="border-t border-slate-100 pt-3">
               <Button
                 type="button"
@@ -332,6 +395,62 @@ export const EventGroupPanel: React.FC<EventGroupPanelProps> = ({
               </div>
             </div>
           ))}
+
+          {openGroups.length > 0 && (
+            <div className="border rounded-xl bg-slate-50/50 p-3 space-y-2">
+              <Label className="text-xs text-slate-600">Grupos com vagas</Label>
+              <ul className="space-y-2">
+                {openGroups.map((openGroup) => (
+                  <li
+                    key={openGroup.id}
+                    className="flex items-center justify-between gap-3 text-sm text-slate-700">
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">
+                        Grupo de {openGroup.leaderName}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {openGroup.maxSize
+                          ? `${openGroup.membersCount}/${openGroup.maxSize} alunos · ${openGroup.availableSlots} ${openGroup.availableSlots === 1 ? "vaga" : "vagas"}`
+                          : `${openGroup.membersCount} ${openGroup.membersCount === 1 ? "aluno" : "alunos"}`}
+                      </p>
+                    </div>
+                    {openGroup.hasPendingRequest ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="cursor-pointer shrink-0"
+                        disabled={isWorking}
+                        onClick={() =>
+                          runAction(
+                            () => api.delete(`/groups/${openGroup.id}/requests`),
+                            "Erro ao cancelar o pedido.",
+                          )
+                        }>
+                        Cancelar pedido
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-2 cursor-pointer shrink-0"
+                        disabled={isWorking}
+                        onClick={() =>
+                          runAction(
+                            () => api.post(`/groups/${openGroup.id}/requests`),
+                            "Erro ao pedir entrada no grupo.",
+                          )
+                        }>
+                        <UserPlus className="h-4 w-4 text-[#109bc6]" />
+                        Pedir entrada
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="border border-dashed rounded-xl bg-slate-50/40 p-3 space-y-2">
             <p className="text-xs text-slate-500">

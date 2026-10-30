@@ -35,9 +35,23 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
             if (currentEvent == null)
                 throw new KeyNotFoundException("Evento não encontrado.");
             if (eventEntity.EventStudents != null)
-                currentEvent.EventStudents = eventEntity.EventStudents;
+            {
+                foreach (var registration in eventEntity.EventStudents)
+                {
+                    var current = currentEvent.EventStudents
+                        .FirstOrDefault(s => s.StudentId == registration.StudentId);
+                    if (current == null)
+                    {
+                        registration.Student = null!;
+                        currentEvent.EventStudents.Add(registration);
+                    }
+                    else
+                    {
+                        _context.Entry(current).CurrentValues.SetValues(registration);
+                    }
+                }
+            }
             _context.Entry(currentEvent).CurrentValues.SetValues(eventEntity);
-
 
             var targetCourseIds = eventEntity.AllowedCourses.Select(c => c.Id).ToHashSet();
 

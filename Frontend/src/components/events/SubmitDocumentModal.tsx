@@ -402,7 +402,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
       <DialogContent className="w-[calc(100vw-1rem)] sm:w-full sm:max-w-[760px] max-h-[92vh] flex flex-col p-0 overflow-hidden gap-0">
         <DialogHeader className="px-6 pt-6 pb-4 pr-12 min-w-0 shrink-0 border-b border-slate-100">
           <DialogTitle className="truncate text-lg font-semibold text-slate-800">
-            Documentos do Evento
+            Grupo
           </DialogTitle>
           <DialogDescription className="break-words text-sm text-slate-500">
             {event
@@ -428,6 +428,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
               <EventGroupPanel
                 key={event.id}
                 eventId={event.id}
+                startDate={event.startDate}
                 onGroupChange={setHasGroup}
               />
             )}

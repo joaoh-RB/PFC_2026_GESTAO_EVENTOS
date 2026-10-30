@@ -82,6 +82,7 @@ export const Events: React.FC = () => {
       capacity: eventItem.capacity,
       eventType: eventItem.eventType,
       allowDocuments: eventItem.allowDocuments,
+      maxGroupSize: eventItem.maxGroupSize ?? undefined,
       allowedCourses: eventItem.allowedCourseIds,
       isActive: eventItem.isActive,
     });

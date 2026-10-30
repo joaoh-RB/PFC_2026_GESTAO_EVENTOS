@@ -24,6 +24,10 @@ namespace API_Gestao_Eventos.src.Application.Validators.Event
             RuleFor(x => x.Capacity)
                 .GreaterThan(0)
                 .WithMessage("A capacidade do evento deve ser maior que zero.");
+            RuleFor(x => x.MaxGroupSize)
+                .InclusiveBetween(1, 10)
+                .When(x => x.MaxGroupSize.HasValue)
+                .WithMessage("O limite de alunos por grupo deve estar entre 1 e 10.");
             RuleFor(x => x.EventType)
                 .IsInEnum()
                 .WithMessage("O tipo de evento é obrigatório.");

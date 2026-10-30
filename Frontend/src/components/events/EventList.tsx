@@ -111,6 +111,7 @@ export interface EventItem {
   isFull: boolean;
   eventType: number;
   allowDocuments: boolean;
+  maxGroupSize?: number | null;
   hasApprovedDocuments?: boolean;
   allowedCourseNames: string[];
   allowedCourseIds: string[];
@@ -648,7 +649,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                                     handleOpenDocumentModal(event)
                                   }>
                                   <FileUp className="h-4 w-4 text-[#109bc6]" />
-                                  Gerenciar documentos
+                                  Grupo
                                 </Button>
                               )}
 

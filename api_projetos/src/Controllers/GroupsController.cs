@@ -125,5 +125,67 @@ namespace API_Gestao_Eventos.src.Controllers
             catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
             catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         }
+
+        [HttpGet("event/{eventId:guid}/open")]
+        [Authorize(Roles = nameof(UserRole.Aluno))]
+        public async Task<IActionResult> GetOpenGroups([FromRoute] Guid eventId)
+        {
+            try
+            {
+                return Ok(await groupService.GetOpenGroupsAsync(eventId, UserId));
+            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        }
+
+        [HttpPost("{id:guid}/requests")]
+        [Authorize(Roles = nameof(UserRole.Aluno))]
+        public async Task<IActionResult> RequestToJoin([FromRoute] Guid id)
+        {
+            try
+            {
+                await groupService.RequestToJoinAsync(id, UserId);
+                return Ok(new { message = "Pedido enviado ao líder do grupo." });
+            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
+        [HttpDelete("{id:guid}/requests")]
+        [Authorize(Roles = nameof(UserRole.Aluno))]
+        public async Task<IActionResult> CancelRequest([FromRoute] Guid id)
+        {
+            try
+            {
+                await groupService.CancelRequestAsync(id, UserId);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        }
+
+        [HttpPost("{id:guid}/requests/{studentId:guid}/approve")]
+        [Authorize(Roles = nameof(UserRole.Aluno))]
+        public async Task<IActionResult> ApproveRequest([FromRoute] Guid id, [FromRoute] Guid studentId)
+        {
+            try
+            {
+                await groupService.ApproveRequestAsync(id, UserId, studentId);
+                return Ok(new { message = "Pedido aprovado." });
+            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
+        [HttpDelete("{id:guid}/requests/{studentId:guid}")]
+        [Authorize(Roles = nameof(UserRole.Aluno))]
+        public async Task<IActionResult> RejectRequest([FromRoute] Guid id, [FromRoute] Guid studentId)
+        {
+            try
+            {
+                await groupService.RejectRequestAsync(id, UserId, studentId);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        }
     }
 }

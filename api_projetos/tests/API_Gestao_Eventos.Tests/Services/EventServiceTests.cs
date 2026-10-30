@@ -18,6 +18,7 @@ namespace API_Gestao_Eventos.Tests.Services
         private readonly Mock<ICourseRepository> _courseRepositoryMock;
         private readonly Mock<IGoogleCalendarService> _googleCalendarServiceMock;
         private readonly Mock<IAuthService> _authServiceMock;
+        private readonly Mock<IGroupRepository> _groupRepositoryMock;
 
         public EventServiceTests()
         {
@@ -25,7 +26,8 @@ namespace API_Gestao_Eventos.Tests.Services
             _courseRepositoryMock = new Mock<ICourseRepository>();
             _googleCalendarServiceMock = new Mock<IGoogleCalendarService>();
             _authServiceMock = new Mock<IAuthService>();
-            _eventService = new EventService(_eventRepositoryMock.Object, _courseRepositoryMock.Object, _googleCalendarServiceMock.Object, _authServiceMock.Object);
+            _groupRepositoryMock = new Mock<IGroupRepository>();
+            _eventService = new EventService(_eventRepositoryMock.Object, _courseRepositoryMock.Object, _googleCalendarServiceMock.Object, _authServiceMock.Object, _groupRepositoryMock.Object);
         }
         //Cenário 7: Caminho feliz com verificação de interação mockada (Times.Once)
         [Fact]
