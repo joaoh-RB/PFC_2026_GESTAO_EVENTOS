@@ -3,6 +3,7 @@ using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 using API_Gestao_Eventos.src.Infrastructure.Services.Email;
 using API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar;
 using API_Gestao_Eventos.src.Infrastructure.Services.Security;
+using API_Gestao_Eventos.src.Infrastructure.Services.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -29,6 +30,10 @@ namespace API_Gestao_Eventos.src.Infrastructure
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IGoogleAuthService, GoogleAuth>();
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IDocumentRepository, DocumentRepository>();
+            services.AddScoped<IGroupRepository, GroupRepository>();
+            services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+            services.AddScoped<IEventFeedbackRepository, EventFeedbackRepository>();
             services.AddScoped<IInstitutionRepository, InstitutionRepository>();
             services.AddScoped<ICourseRepository, CourseRepository>();
             services.AddScoped<IEventRepository, EventRepository>();
@@ -37,6 +42,7 @@ namespace API_Gestao_Eventos.src.Infrastructure
             services.AddScoped<EmailTemplateRenderer>();
             services.AddScoped<IGoogleCalendarService, GoogleCalendarService>();
             services.AddHttpClient<IEmailService, EmailService>();
+            services.AddHttpClient<IStorageService, SupabaseStorageService>();
             var jwtSettings = configuration.GetSection("JwtSettings");
             var secretKey = jwtSettings["Secret"] ?? "abc";
 

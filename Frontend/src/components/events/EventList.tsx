@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { isAxiosError } from "axios";
 import {
   Card,
   CardContent,
@@ -26,14 +27,75 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Calendar, Clock, MapPin, Users, Loader2 } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  Loader2,
+  FileUp,
+  LogIn,
+  LogOut,
+  ClipboardCheck,
+  MessageSquare,
+  Download,
+  AlertCircle,
+} from "lucide-react";
 import { type PagedResult } from "@/types/utils";
 import { formatDateForShort } from "@/utils/format";
 import type { OptionItem } from "@/types/optionItem";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 import { useAuth } from "@/hooks/useAuth";
+import { api } from "@/services/api";
 import { AddToCalendarButton } from "./AddToCalendarButton";
 import { RemoveFromCalendarButton } from "./RemoveFromCalendarButton";
+import { SubmitDocumentModal } from "./SubmitDocumentModal";
+import { AttendanceConfirm } from "./AttendanceConfirm";
+import { AttendanceModal } from "./AttendanceModal";
+import { EventFeedbackModal } from "./EventFeedbackModal";
+
+export interface FetchEventsParams {
+  pageNumber?: number;
+  pageSize?: number;
+  fromDate?: string;
+  institutionId?: string;
+  isActive?: boolean;
+}
+
+const fetchEvents = async (
+  appliedFilters: EventFilterState | FetchEventsParams = {},
+  pageNumber: number = 1,
+  pageSize: number = 6,
+): Promise<PagedResult<EventItem>> => {
+  const params: Record<string, string | number | boolean> = {
+    pageNumber: (appliedFilters as FetchEventsParams)?.pageNumber ?? pageNumber,
+    pageSize: (appliedFilters as FetchEventsParams)?.pageSize ?? pageSize,
+  };
+  if (appliedFilters.fromDate) {
+    params.fromDate = new Date(
+      `${appliedFilters.fromDate}T00:00:00-03:00`,
+    ).toISOString();
+  }
+  if (appliedFilters.institutionId) {
+    params.institutionId = appliedFilters.institutionId;
+  }
+  if (appliedFilters.isActive !== undefined) {
+    params.isActive = appliedFilters.isActive;
+  }
+  const res = await api.get<PagedResult<EventItem>>("/events", {
+    params,
+  });
+  return res.data;
+};
+
+const toggleEventActive = async (
+  eventId: string,
+  isActive: boolean,
+): Promise<void> => {
+  await api.patch(`/events/${eventId}/active`, {
+    isActive,
+  });
+};
 
 export interface EventItem {
   id: string;
@@ -45,13 +107,22 @@ export interface EventItem {
   endDate: string;
   capacity: number;
   confirmedRegistrations: number;
+  availableSeats: number;
+  isFull: boolean;
   eventType: number;
+  eventStatus?: number;
+  createdByUserId?: string | null;
+  createdByUserName?: string | null;
+  createdByUniqueIdentifier?: string | null;
   allowDocuments: boolean;
+  hasApprovedDocuments?: boolean;
   allowedCourseNames: string[];
   allowedCourseIds: string[];
   isActive: boolean;
   isAddedToCalendar: boolean;
   allowsAddToCalendar: boolean;
+  isUserRegistered?: boolean;
+  isUserAttended?: boolean;
 }
 
 export interface EventFilterState {
@@ -62,47 +133,231 @@ export interface EventFilterState {
 
 type StatusFilterValue = "all" | "active" | "inactive";
 
-interface EventsListProps {
-  data: PagedResult<EventItem>;
+export interface EventsListProps {
+  data?: PagedResult<EventItem>;
   institutions: OptionItem[];
-  isLoading: boolean;
   currentFilters?: EventFilterState;
   userInstitutionId: string | null;
-  onFilter: (filters: EventFilterState) => void;
-  onPageChange: (page: number) => void;
-  handleStartEdition: (eventData: EventItem) => void;
-  handleToggleActive: (eventData: EventItem) => void;
+  onFilter?: (filters: EventFilterState) => void;
+  onPageChange?: (page: number) => void;
+  handleStartEdition?: (eventData: EventItem) => void;
+  handleToggleActive?: (eventData: EventItem) => void;
+  studentMode?: boolean;
+  onJoinEvent?: (eventId: string) => Promise<void>;
+  onLeaveEvent?: (eventId: string) => Promise<void>;
+  pageSize?: number;
 }
 
 export const EventsList: React.FC<EventsListProps> = ({
-  data,
   institutions,
-  isLoading,
   currentFilters,
   userInstitutionId,
   onFilter,
   onPageChange,
   handleStartEdition,
-  handleToggleActive,
+  handleToggleActive: externalHandleToggleActive,
+  studentMode = false,
+  onJoinEvent,
+  onLeaveEvent,
+  pageSize = 6,
 }) => {
   const { user } = useAuth();
   const allInstitutionsName = "Todas as instituições";
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filters, setFilters] = useState<EventFilterState>(
+    currentFilters ?? {
+      fromDate: new Date().toISOString().split("T")[0],
+    },
+  );
+
+  const [data, setData] = useState<PagedResult<EventItem>>({
+    items: [],
+    totalItems: 0,
+    pageNumber: 1,
+    pageSize,
+    totalPages: 1,
+    hasPreviousPage: false,
+    hasNextPage: false,
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [fromDate, setFromDate] = useState<string>(
-    currentFilters?.fromDate || new Date().toISOString().split("T")[0],
+    filters.fromDate || new Date().toISOString().split("T")[0],
   );
   const [institutionId, setInstitutionId] = useState<string>(
-    userInstitutionId || currentFilters?.institutionId || allInstitutionsName,
+    userInstitutionId || filters.institutionId || allInstitutionsName,
   );
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(
-    currentFilters?.isActive === undefined
+    filters.isActive === undefined
       ? "all"
-      : currentFilters.isActive
+      : filters.isActive
         ? "active"
         : "inactive",
   );
   const [calendarOverrides, setCalendarOverrides] = useState<
     Record<string, boolean>
   >({});
+  const [registrationOverrides, setRegistrationOverrides] = useState<
+    Record<string, boolean>
+  >({});
+  const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+  const [downloadingZipEventId, setDownloadingZipEventId] = useState<
+    string | null
+  >(null);
+  const [zipDownloadError, setZipDownloadError] = useState<string | null>(null);
+  const [documentModalEvent, setDocumentModalEvent] =
+    useState<EventItem | null>(null);
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const [attendanceModalEvent, setAttendanceModalEvent] =
+    useState<EventItem | null>(null);
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [feedbackModalEvent, setFeedbackModalEvent] =
+    useState<EventItem | null>(null);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+
+  const loadEvents = useCallback(
+    async (appliedFilters = filters, page = currentPage) => {
+      setIsLoading(true);
+      try {
+        const res = await fetchEvents(appliedFilters, page, pageSize);
+        setData(res);
+      } catch (err) {
+        console.error("Erro ao buscar eventos", err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [filters, currentPage, pageSize],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    void fetchEvents(filters, currentPage, pageSize)
+      .then((res) => {
+        if (isMounted) {
+          setData(res);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.error("Erro ao buscar eventos", err);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [filters, currentPage, pageSize]);
+
+  const handleFilterChange = (newFilters: EventFilterState) => {
+    setIsLoading(true);
+    setCurrentPage(1);
+    setFilters(newFilters);
+    onFilter?.(newFilters);
+  };
+
+  const handlePageChange = (page: number) => {
+    setIsLoading(true);
+    setCurrentPage(page);
+    onPageChange?.(page);
+  };
+
+  const handleToggleActive = async (eventItem: EventItem) => {
+    if (externalHandleToggleActive) {
+      externalHandleToggleActive(eventItem);
+      return;
+    }
+    try {
+      await toggleEventActive(eventItem.id, !eventItem.isActive);
+      setCurrentPage(1);
+      await loadEvents(filters, 1);
+    } catch (err) {
+      console.error("Erro ao alterar status do evento", err);
+    }
+  };
+
+  const handleJoin = async (eventId: string) => {
+    setLoadingActionId(eventId);
+    try {
+      if (!onJoinEvent) return;
+      await onJoinEvent(eventId);
+      setRegistrationOverrides((current) => ({
+        ...current,
+        [eventId]: true,
+      }));
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
+  const handleLeave = async (eventId: string) => {
+    setLoadingActionId(eventId);
+    try {
+      if (!onLeaveEvent) return;
+      await onLeaveEvent(eventId);
+      setRegistrationOverrides((current) => ({
+        ...current,
+        [eventId]: false,
+      }));
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
+  const handleOpenDocumentModal = (eventItem: EventItem) => {
+    setDocumentModalEvent(eventItem);
+    setIsDocumentModalOpen(true);
+  };
+
+  const handleOpenAttendanceModal = (eventItem: EventItem) => {
+    setAttendanceModalEvent(eventItem);
+    setIsAttendanceModalOpen(true);
+  };
+
+  const handleOpenFeedbackModal = (eventItem: EventItem) => {
+    setFeedbackModalEvent(eventItem);
+    setIsFeedbackModalOpen(true);
+  };
+
+  const handleDownloadCompiledZip = async (eventItem: EventItem) => {
+    setDownloadingZipEventId(eventItem.id);
+    setZipDownloadError(null);
+    try {
+      const response = await api.get(
+        `/eventdocuments/${eventItem.id}/compiled-zip`,
+        {
+          responseType: "blob",
+        },
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `documentos-aprovados-${eventItem.name.replaceAll(" ", "-")}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: unknown) {
+      let message = "Não foi possível baixar o compilado de documentos.";
+      if (isAxiosError(error) && error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const parsed = JSON.parse(text) as { message?: string };
+          if (parsed?.message) message = parsed.message;
+        } catch {
+          // Mantém mensagem padrão
+        }
+      }
+      setZipDownloadError(message);
+    } finally {
+      setDownloadingZipEventId(null);
+    }
+  };
 
   const statusOptions: OptionItem[] = [
     { value: "all", label: "Todos" },
@@ -111,7 +366,7 @@ export const EventsList: React.FC<EventsListProps> = ({
   ];
 
   const handleApplyFilter = () => {
-    onFilter({
+    handleFilterChange({
       fromDate: fromDate || undefined,
       institutionId:
         institutionId !== allInstitutionsName
@@ -123,6 +378,13 @@ export const EventsList: React.FC<EventsListProps> = ({
 
   return (
     <div className="space-y-6">
+      {zipDownloadError && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{zipDownloadError}</span>
+        </div>
+      )}
+
       <Card className="surface-card bg-white shadow-none">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-8 gap-2 items-end">
@@ -222,12 +484,16 @@ export const EventsList: React.FC<EventsListProps> = ({
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {data.items.map((event) => {
-              const availableSeats =
-                event.capacity - event.confirmedRegistrations;
-              const isFull = availableSeats <= 0;
+              const availableSeats = event.availableSeats;
+              const isFull = event.isFull;
               const isUpcoming = event.startDate > new Date().toISOString();
+              const isEnded = event.endDate <= new Date().toISOString();
+              const isOngoing =
+                !isUpcoming && event.endDate > new Date().toISOString();
               const isAddedToCalendar =
                 calendarOverrides[event.id] ?? event.isAddedToCalendar;
+              const isRegistered =
+                registrationOverrides[event.id] ?? event.isUserRegistered ?? false;
 
               return (
                 <Card
@@ -309,60 +575,224 @@ export const EventsList: React.FC<EventsListProps> = ({
                       </div>
                     )}
                     {event.isActive ? (
-                      isUpcoming && (
-                        <div className="flex justify-between items-center gap-2 pt-4 flex-wrap">
-                          {event.allowsAddToCalendar &&
-                            (isAddedToCalendar ? (
-                              <RemoveFromCalendarButton
-                                eventId={event.id}
-                                onRemoved={() =>
-                                  setCalendarOverrides((current) => ({
-                                    ...current,
-                                    [event.id]: false,
-                                  }))
-                                }
-                              />
-                            ) : (
-                              <AddToCalendarButton
-                                eventId={event.id}
-                                onAdded={() =>
-                                  setCalendarOverrides((current) => ({
-                                    ...current,
-                                    [event.id]: true,
-                                  }))
-                                }
-                              />
-                            ))}
-                          <Button
-                            className={"secondary-action cursor-pointer"}
-                            onClick={() => handleStartEdition(event)}>
-                            Editar
-                          </Button>
+                      studentMode ? (
+                        <div className="pt-4 space-y-3">
+                          {isRegistered && event.allowsAddToCalendar && (
+                            <div className="flex justify-end">
+                              {isAddedToCalendar ? (
+                                <RemoveFromCalendarButton
+                                  eventId={event.id}
+                                  onRemoved={() =>
+                                    setCalendarOverrides((current) => ({
+                                      ...current,
+                                      [event.id]: false,
+                                    }))
+                                  }
+                                />
+                              ) : (
+                                <AddToCalendarButton
+                                  eventId={event.id}
+                                  onAdded={() =>
+                                    setCalendarOverrides((current) => ({
+                                      ...current,
+                                      [event.id]: true,
+                                    }))
+                                  }
+                                />
+                              )}
+                            </div>
+                          )}
 
-                          <DeleteConfirmation
-                            children={
+                          {isRegistered &&
+                            (isOngoing || event.isUserAttended) && (
+                              <AttendanceConfirm
+                                eventId={event.id}
+                                attended={event.isUserAttended ?? false}
+                              />
+                            )}
+
+                          <div className="flex flex-wrap items-start justify-end gap-2">
+                            {isEnded && event.allowDocuments && event.hasApprovedDocuments && (
                               <Button
-                                className={
-                                  "bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
+                                variant="outline"
+                                size="sm"
+                                disabled={downloadingZipEventId === event.id}
+                                className="gap-2 cursor-pointer"
+                                onClick={() =>
+                                  void handleDownloadCompiledZip(event)
                                 }>
-                                Inativar
+                                {downloadingZipEventId === event.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-[#109bc6]" />
+                                ) : (
+                                  <Download className="h-4 w-4 text-[#109bc6]" />
+                                )}
+                                Baixar documentos (.zip)
                               </Button>
-                            }
-                            onDelete={() => handleToggleActive(event)}
-                            descriptionText={
-                              "Tem certeza que deseja inativar este evento?"
-                            }
-                            confirmationText={"Inativar"}></DeleteConfirmation>
+                            )}
+
+                            {isEnded && event.isUserAttended && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-2 cursor-pointer"
+                                onClick={() => handleOpenFeedbackModal(event)}>
+                                <MessageSquare className="h-4 w-4 text-[#109bc6]" />
+                                Feedback
+                              </Button>
+                            )}
+
+                            {event.allowDocuments &&
+                              isUpcoming &&
+                              isRegistered && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2 cursor-pointer"
+                                  onClick={() =>
+                                    handleOpenDocumentModal(event)
+                                  }>
+                                  <FileUp className="h-4 w-4 text-[#109bc6]" />
+                                  Gerenciar documentos
+                                </Button>
+                              )}
+
+                            {isRegistered ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={loadingActionId === event.id}
+                                className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-200 cursor-pointer"
+                                onClick={() => handleLeave(event.id)}>
+                                {loadingActionId === event.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <LogOut className="h-4 w-4 mr-1" />
+                                )}
+                                Sair do evento
+                              </Button>
+                            ) : (
+                              <div className="flex flex-col items-end gap-1">
+                                <Button
+                                  size="sm"
+                                  disabled={
+                                    isFull ||
+                                    !isUpcoming ||
+                                    loadingActionId === event.id
+                                  }
+                                  className="primary-action cursor-pointer"
+                                  onClick={() => handleJoin(event.id)}>
+                                  {loadingActionId === event.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                  ) : (
+                                    <LogIn className="h-4 w-4 mr-1" />
+                                  )}
+                                  {isFull ? "Esgotado" : "Entrar no evento"}
+                                </Button>
+                                {isFull && (
+                                  <p className="text-right text-xs text-red-600">
+                                    Inscritos máximos atingidos.
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
+                      ) : (
+                        isUpcoming ? (
+                          <div className="flex justify-end items-center gap-2 pt-4 flex-wrap">
+                            {event.allowsAddToCalendar &&
+                              (isAddedToCalendar ? (
+                                <RemoveFromCalendarButton
+                                  eventId={event.id}
+                                  onRemoved={() =>
+                                    setCalendarOverrides((current) => ({
+                                      ...current,
+                                      [event.id]: false,
+                                    }))
+                                  }
+                                />
+                              ) : (
+                                <AddToCalendarButton
+                                  eventId={event.id}
+                                  onAdded={() =>
+                                    setCalendarOverrides((current) => ({
+                                      ...current,
+                                      [event.id]: true,
+                                    }))
+                                  }
+                                />
+                              ))}
+
+                            <Button
+                              className={"secondary-action cursor-pointer"}
+                              onClick={() => handleStartEdition?.(event)}>
+                              Detalhes do evento
+                            </Button>
+
+                            <DeleteConfirmation
+                              children={
+                                <Button
+                                  className={
+                                    "bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
+                                  }>
+                                  Inativar
+                                </Button>
+                              }
+                              onDelete={() => handleToggleActive(event)}
+                              descriptionText={
+                                "Tem certeza que deseja inativar este evento?"
+                              }
+                              confirmationText={
+                                "Inativar"
+                              }></DeleteConfirmation>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end items-center gap-2 pt-4 flex-wrap">
+                            {isEnded && event.allowDocuments && event.hasApprovedDocuments && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={downloadingZipEventId === event.id}
+                                className="gap-2 cursor-pointer"
+                                onClick={() =>
+                                  void handleDownloadCompiledZip(event)
+                                }>
+                                {downloadingZipEventId === event.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-[#109bc6]" />
+                                ) : (
+                                  <Download className="h-4 w-4 text-[#109bc6]" />
+                                )}
+                                Baixar documentos (.zip)
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2 cursor-pointer"
+                              onClick={() => handleOpenAttendanceModal(event)}>
+                              <ClipboardCheck className="h-4 w-4 text-[#109bc6]" />
+                              Presença
+                            </Button>
+                            <Button
+                              size="sm"
+                              className={"secondary-action cursor-pointer"}
+                              onClick={() => handleStartEdition?.(event)}>
+                              Detalhes do evento
+                            </Button>
+                          </div>
+                        )
                       )
                     ) : (
-                      <div className="flex justify-end pt-4">
-                        <Button
-                          className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-                          onClick={() => handleStartEdition(event)}>
-                          Reativar
-                        </Button>
-                      </div>
+                      /* Quando !event.isActive: botão Reativar não aparece se for studentMode */
+                      !studentMode && (
+                        <div className="flex justify-end pt-4">
+                          <Button
+                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                            onClick={() => handleStartEdition?.(event)}>
+                            Reativar
+                          </Button>
+                        </div>
+                      )
                     )}
                   </CardContent>
                 </Card>
@@ -376,7 +806,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
-                      onClick={() => onPageChange(data.pageNumber - 1)}
+                      onClick={() => handlePageChange(data.pageNumber - 1)}
                       className={
                         !data.hasPreviousPage
                           ? "pointer-events-none opacity-50"
@@ -391,7 +821,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                       <PaginationItem key={pageNum}>
                         <PaginationLink
                           isActive={pageNum === data.pageNumber}
-                          onClick={() => onPageChange(pageNum)}
+                          onClick={() => handlePageChange(pageNum)}
                           className="cursor-pointer">
                           {pageNum}
                         </PaginationLink>
@@ -401,7 +831,7 @@ export const EventsList: React.FC<EventsListProps> = ({
 
                   <PaginationItem>
                     <PaginationNext
-                      onClick={() => onPageChange(data.pageNumber + 1)}
+                      onClick={() => handlePageChange(data.pageNumber + 1)}
                       className={
                         !data.hasNextPage
                           ? "pointer-events-none opacity-50"
@@ -415,6 +845,26 @@ export const EventsList: React.FC<EventsListProps> = ({
           )}
         </>
       )}
+
+      <SubmitDocumentModal
+        isOpen={isDocumentModalOpen}
+        onOpenChange={setIsDocumentModalOpen}
+        event={documentModalEvent}
+      />
+
+      <AttendanceModal
+        isOpen={isAttendanceModalOpen}
+        onOpenChange={setIsAttendanceModalOpen}
+        event={attendanceModalEvent}
+      />
+
+      <EventFeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onOpenChange={setIsFeedbackModalOpen}
+        event={feedbackModalEvent}
+      />
     </div>
   );
 };
+
+export { EventsList as EventList };
