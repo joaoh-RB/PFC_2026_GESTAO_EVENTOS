@@ -21,7 +21,7 @@ namespace API_Gestao_Eventos.src.Controllers
             {
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
                 var createdEvent = await eventService.AddAsync(request, userId);
-                return StatusCode(StatusCodes.Status201Created);
+                return Created($"/api/events/{createdEvent.Id}", new { id = createdEvent.Id });
             }
             catch (Exception ex)
             {
@@ -291,7 +291,7 @@ namespace API_Gestao_Eventos.src.Controllers
             {
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
                 var feedback = await eventFeedbackService.CreateFeedbackAsync(id, userId, request);
-                return StatusCode(StatusCodes.Status201Created, feedback);
+                return Created($"/api/events/{id}/feedback/mine", feedback);
             }
             catch (KeyNotFoundException ex)
             {

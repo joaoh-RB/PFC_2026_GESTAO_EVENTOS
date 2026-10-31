@@ -159,7 +159,7 @@ namespace API_Gestao_Eventos.Tests.Integration
                 approvalStatus: UserApprovalStatus.Aprovado);
 
             using var request = new HttpRequestMessage(HttpMethod.Get, $"{BasePath}/me");
-            request.Headers.Add("X-Test-User-Id", student.Id.ToString());
+            request.Headers.Add("X-Test-UserId", student.Id.ToString());
             request.Headers.Add("X-Test-User-Role", "Aluno");
 
             var response = await _client.SendAsync(request);
@@ -184,7 +184,7 @@ namespace API_Gestao_Eventos.Tests.Integration
                 approvalStatus: UserApprovalStatus.Aprovado);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, $"{BasePath}/2fa/setup");
-            request.Headers.Add("X-Test-User-Id", student.Id.ToString());
+            request.Headers.Add("X-Test-UserId", student.Id.ToString());
             request.Headers.Add("X-Test-User-Role", "Aluno");
 
             var response = await _client.SendAsync(request);
@@ -209,7 +209,7 @@ namespace API_Gestao_Eventos.Tests.Integration
                 approvalStatus: UserApprovalStatus.Aprovado);
 
             using var setupRequest = new HttpRequestMessage(HttpMethod.Post, $"{BasePath}/2fa/setup");
-            setupRequest.Headers.Add("X-Test-User-Id", student.Id.ToString());
+            setupRequest.Headers.Add("X-Test-UserId", student.Id.ToString());
             var setupResponse = await _client.SendAsync(setupRequest);
             setupResponse.EnsureSuccessStatusCode();
             var setup = await setupResponse.Content.ReadFromJsonAsync<TwoFactorCreateResponseDto>(_jsonOptions);
@@ -221,7 +221,7 @@ namespace API_Gestao_Eventos.Tests.Integration
             {
                 Content = JsonContent.Create(new TwoFactorEnableRequestDto { Code = code })
             };
-            enableRequest.Headers.Add("X-Test-User-Id", student.Id.ToString());
+            enableRequest.Headers.Add("X-Test-UserId", student.Id.ToString());
 
             var response = await _client.SendAsync(enableRequest);
 

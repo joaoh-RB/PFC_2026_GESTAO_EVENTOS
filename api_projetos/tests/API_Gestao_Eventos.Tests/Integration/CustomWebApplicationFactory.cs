@@ -1,5 +1,7 @@
+using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using API_Gestao_Eventos.src.Infrastructure.Services.Email;
+using API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -40,6 +42,7 @@ namespace API_Gestao_Eventos.Tests.Integration
                     services.Remove(descriptor);
 
                 services.AddSingleton<IEmailService, FakeEmailService>();
+                services.AddScoped<IGoogleCalendarService, FakeGoogleCalendarService>();
 
                 services.AddAuthentication("TestScheme")
                     .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("TestScheme", _ => { });
@@ -64,6 +67,24 @@ namespace API_Gestao_Eventos.Tests.Integration
         }
     }
 
+    public class FakeGoogleCalendarService : IGoogleCalendarService
+    {
+        public Task<string> CreateEventAsync(Event eventEntity)
+            => Task.FromResult($"google-cal-{eventEntity.Id}");
+
+        public Task UpdateEventAsync(Event eventEntity)
+            => Task.CompletedTask;
+
+        public Task AddAttendeeAsync(string googleEventId, string attendeeEmail)
+            => Task.CompletedTask;
+
+        public Task RemoveAttendeeAsync(string googleEventId, string attendeeEmail)
+            => Task.CompletedTask;
+
+        public Task DeactivateEventAsync(string googleEventId, bool isActive)
+            => Task.CompletedTask;
+    }
+
     public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
         public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -77,24 +98,22 @@ namespace API_Gestao_Eventos.Tests.Integration
                 return Task.FromResult(AuthenticateResult.NoResult());
             }
 
-            var userId = Guid.NewGuid().ToString();
-            if (Request.Headers.TryGetValue("X-Test-User-Id", out var userIdHeader)
-                && !string.IsNullOrWhiteSpace(userIdHeader))
-            {
-                userId = userIdHeader.ToString();
-            }
+            var userId = Request.Headers.TryGetValue("X-Test-UserId", out var userIdValues) && !string.IsNullOrWhiteSpace(userIdValues.FirstOrDefault())
+                ? userIdValues.First()!
+                : Guid.NewGuid().ToString();
 
-            var role = "Administrador";
-            if (Request.Headers.TryGetValue("X-Test-User-Role", out var roleHeader)
-                && !string.IsNullOrWhiteSpace(roleHeader))
-            {
-                role = roleHeader.ToString();
-            }
+            var role = Request.Headers.TryGetValue("X-Test-Role", out var roleValues) && !string.IsNullOrWhiteSpace(roleValues.FirstOrDefault())
+                ? roleValues.First()!
+                : "Administrador";
+
+            var userName = Request.Headers.TryGetValue("X-Test-Name", out var nameValues) && !string.IsNullOrWhiteSpace(nameValues.FirstOrDefault())
+                ? nameValues.First()!
+                : "Admin Tester";
 
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, userId),
-                new Claim(ClaimTypes.Name, "Admin Tester"),
+                new Claim(ClaimTypes.Name, userName),
                 new Claim(ClaimTypes.Role, role)
             };
             var identity = new ClaimsIdentity(claims, "Test");

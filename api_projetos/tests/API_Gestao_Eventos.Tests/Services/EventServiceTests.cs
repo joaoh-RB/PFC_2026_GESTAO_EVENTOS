@@ -1,4 +1,4 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.Auth;
+using API_Gestao_Eventos.src.Application.DTO.Auth;
 using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Application.Services;
 using API_Gestao_Eventos.src.Domain.Entities;
@@ -30,8 +30,8 @@ namespace API_Gestao_Eventos.Tests.Services
         [Fact]
         public async Task CreateEventAsync_QuandoDadosForemValidos_DeveCadastrarEventoComSucessoEChamarAddAsync()
         {
-            var courseId = Guid.NewGuid();
             var userId = Guid.NewGuid();
+            var courseId = Guid.NewGuid();
             var course = new Course()
             {
                 Id = courseId,
@@ -88,8 +88,8 @@ namespace API_Gestao_Eventos.Tests.Services
         public async Task CreateEventAsync_QuandoCursoNaoPertencerAInstituicao_DeveLancarInvalidOperationExceptionENaoChamarAddAsync()
         {
             // Arrange
-            var courseId = Guid.NewGuid();
             var userId = Guid.NewGuid();
+            var courseId = Guid.NewGuid();
             var dto = new CreateEventRequestDto
             {
                 Name = "Evento de Teste",
