@@ -13,11 +13,18 @@ export const createEventSchema = z.object({
     (value) => (value === "" || value === null || Number.isNaN(value) ? undefined : value),
     z.coerce.number().int().min(1, 'O limite deve ser de pelo menos 1 aluno').max(10, 'O limite máximo é de 10 alunos').optional(),
   ),
+  submissionDeadline: z.preprocess(
+    (value) => (value === "" || value === null ? undefined : value),
+    z.string().optional(),
+  ),
   eventType: z.coerce.number().min(0, 'Selecione o tipo do evento'),
   allowedCourses: z.array(z.uuid()).min(1, 'Selecione pelo menos um curso permitido'),
 }).refine((data) => new Date(data.startDate) > new Date(), {
   message: "A data de início deve ser no futuro",
   path: ["startDate"],
+}).refine((data) => !data.allowDocuments || !data.submissionDeadline || new Date(data.submissionDeadline) > new Date(data.startDate), {
+  message: "O prazo deve ser depois da data de início do evento",
+  path: ["submissionDeadline"],
 }).refine((data) => new Date(data.endDate) > new Date(data.startDate), {
 
   message: "A data de término deve ser maior que a data de início",

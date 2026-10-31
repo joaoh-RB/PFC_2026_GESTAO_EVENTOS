@@ -28,6 +28,10 @@ namespace API_Gestao_Eventos.src.Application.Validators.Event
                 .InclusiveBetween(1, 10)
                 .When(x => x.MaxGroupSize.HasValue)
                 .WithMessage("O limite de alunos por grupo deve estar entre 1 e 10.");
+            RuleFor(x => x.SubmissionDeadline)
+                .GreaterThan(x => x.StartDate)
+                .When(x => x.AllowDocuments && x.SubmissionDeadline.HasValue)
+                .WithMessage("O prazo de entrega deve ser posterior ao início do evento.");
             RuleFor(x => x.EventType)
                 .IsInEnum()
                 .WithMessage("O tipo de evento é obrigatório.");

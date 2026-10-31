@@ -7,6 +7,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { CreateEventForm } from "@/components/events/CreateEventForm";
+import { EventDetails } from "@/components/events/EventDetails";
 import {
   EventsList,
   type EventItem,
@@ -28,6 +29,7 @@ export const Events: React.FC = () => {
   const [pageError, setPageError] = useState<string | null>(null);
   const [editing, setIsEditing] = useState(false);
   const [viewingRequested, setViewingRequested] = useState(false);
+  const [viewingEvent, setViewingEvent] = useState<EventItem | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -92,11 +94,19 @@ export const Events: React.FC = () => {
       eventType: eventItem.eventType,
       allowDocuments: eventItem.allowDocuments,
       maxGroupSize: eventItem.maxGroupSize ?? undefined,
+      submissionDeadline: eventItem.submissionDeadline
+        ? formatForDatetimeLocal(eventItem.submissionDeadline)
+        : undefined,
       allowedCourses: eventItem.allowedCourseIds,
       isActive: eventItem.isActive,
     });
     setViewingRequested(false);
     setIsEditing(true);
+  };
+
+  const handleViewDetails = (eventItem: EventItem) => {
+    setViewingRequested(false);
+    setViewingEvent(eventItem);
   };
 
   const handleCreateEvent = async (data: CreateEventFormData) => {
@@ -157,24 +167,29 @@ export const Events: React.FC = () => {
                 ? "Atualizar evento"
                 : "Reativar evento"
               : "Novo evento"
-            : viewingRequested
-              ? "Eventos Solicitados"
-              : "Eventos"
+            : viewingEvent
+              ? "Detalhes do evento"
+              : viewingRequested
+                ? "Eventos Solicitados"
+                : "Eventos"
         }
         description={
           editing
             ? "Preencha os dados para salvar o evento."
-            : viewingRequested
-              ? "Avalie e aprove ou reprove os eventos solicitados pelos alunos."
-              : "Consulte, filtre e gerencie os eventos acadêmicos."
+            : viewingEvent
+              ? "Consulte os inscritos e os grupos deste evento."
+              : viewingRequested
+                ? "Avalie e aprove ou reprove os eventos solicitados pelos alunos."
+                : "Consulte, filtre e gerencie os eventos acadêmicos."
         }
         action={
           <div className="flex flex-wrap items-center gap-2">
-            {editing || viewingRequested ? (
+            {editing || viewingRequested || viewingEvent ? (
               <Button
                 onClick={() => {
                   setIsEditing(false);
                   setViewingRequested(false);
+                  setViewingEvent(null);
                   setSubmitError(null);
                   setEventBeingUpdated(null);
                 }}
@@ -227,6 +242,8 @@ export const Events: React.FC = () => {
           currentEventData={currentEventBeingUpdated}
           handleInstitutionChange={handleInstitutionChange}
         />
+      ) : viewingEvent ? (
+        <EventDetails key={viewingEvent.id} event={viewingEvent} />
       ) : viewingRequested ? (
         <RequestedEventsPanel userInstitutionId={userInstitutionId} />
       ) : (
@@ -234,6 +251,7 @@ export const Events: React.FC = () => {
           institutions={institutions}
           userInstitutionId={userInstitutionId}
           handleStartEdition={handleStartEdition}
+          handleViewDetails={handleViewDetails}
         />
       )}
     </div>

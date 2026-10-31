@@ -16,6 +16,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 throw new InvalidOperationException("Não é possível criar grupo em um evento inativo.");
             if (!evt.AllowDocuments)
                 throw new InvalidOperationException("Este evento não permite envio de documentos.");
+            if (DateTime.UtcNow >= evt.SubmissionCutoff)
+                throw new InvalidOperationException("O prazo para montar grupos já terminou.");
             if (!await groupRepository.IsStudentRegisteredAsync(leaderId, evt.Id))
                 throw new InvalidOperationException("Você precisa estar inscrito no evento para criar um grupo.");
             if (await groupRepository.HasAcceptedGroupAsync(leaderId, evt.Id))
@@ -43,8 +45,7 @@ namespace API_Gestao_Eventos.src.Application.Services
             var group = await GetGroupForLeaderAsync(groupId, userId);
             var studentIds = request.StudentIds.Where(id => id != group.LeaderId).Distinct().ToList();
             await ValidateInvitedAsync(group.EventId, studentIds);
-            var evt = await eventRepository.GetByIdAsync(group.EventId)
-                ?? throw new KeyNotFoundException("Evento não encontrado.");
+            var evt = await GetOpenEventAsync(group.EventId);
             if (evt.MaxGroupSize.HasValue)
             {
                 var reserved = group.Members.Count(m => m.Status == GroupMemberStatus.Accepted || m.Status == GroupMemberStatus.Invited);
@@ -64,6 +65,7 @@ namespace API_Gestao_Eventos.src.Application.Services
         public async Task RemoveMemberAsync(Guid groupId, Guid userId, Guid studentId)
         {
             var group = await GetGroupForLeaderAsync(groupId, userId);
+            await GetOpenEventAsync(group.EventId);
             if (studentId == group.LeaderId)
                 throw new InvalidOperationException("O líder não pode ser removido do grupo.");
             var member = group.Members.FirstOrDefault(m => m.StudentId == studentId)
@@ -82,8 +84,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                 throw new InvalidOperationException("Você precisa estar inscrito no evento para aceitar o convite.");
             if (await groupRepository.HasAcceptedGroupAsync(studentId, group.EventId))
                 throw new InvalidOperationException("Você já participa de um grupo neste evento.");
-            var evt = await eventRepository.GetByIdAsync(group.EventId)
-                ?? throw new KeyNotFoundException("Evento não encontrado.");
+            var evt = await GetOpenEventAsync(group.EventId);
             if (!HasVacancy(group, evt))
                 throw new InvalidOperationException("Este grupo já está cheio.");
             await groupRepository.SetMemberStatusAsync(invite, GroupMemberStatus.Accepted);
@@ -107,8 +108,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 ?? throw new KeyNotFoundException("Você não participa deste grupo.");
             var evt = await eventRepository.GetByIdAsync(group.EventId)
                 ?? throw new KeyNotFoundException("Evento não encontrado.");
-            if (DateTime.UtcNow >= evt.StartDate)
-                throw new InvalidOperationException("Não é possível sair do grupo depois que o evento começou.");
+            if (DateTime.UtcNow >= evt.SubmissionCutoff)
+                throw new InvalidOperationException("Não é possível sair do grupo depois do prazo.");
             if (group.LeaderId == studentId)
             {
                 var nextLeader = group.Members
@@ -129,7 +130,7 @@ namespace API_Gestao_Eventos.src.Application.Services
         {
             var evt = await eventRepository.GetByIdAsync(eventId)
                 ?? throw new KeyNotFoundException("Evento não encontrado.");
-            if (!evt.IsActive || !evt.AllowDocuments || DateTime.UtcNow >= evt.StartDate)
+            if (!evt.IsActive || !evt.AllowDocuments || DateTime.UtcNow >= evt.SubmissionCutoff)
                 return new List<OpenGroupDto>();
             if (!await groupRepository.IsStudentRegisteredAsync(studentId, eventId)
                 || await groupRepository.HasAcceptedGroupAsync(studentId, eventId))
@@ -258,8 +259,8 @@ namespace API_Gestao_Eventos.src.Application.Services
         {
             var evt = await eventRepository.GetByIdAsync(eventId)
                 ?? throw new KeyNotFoundException("Evento não encontrado.");
-            if (DateTime.UtcNow >= evt.StartDate)
-                throw new InvalidOperationException("Os grupos não podem mais ser alterados, pois o evento já começou.");
+            if (DateTime.UtcNow >= evt.SubmissionCutoff)
+                throw new InvalidOperationException("O prazo para alterar os grupos já terminou.");
             return evt;
         }
         private static bool HasVacancy(Domain.Entities.Group group, Event evt)

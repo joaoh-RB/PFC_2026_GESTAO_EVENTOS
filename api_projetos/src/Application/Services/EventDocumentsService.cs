@@ -99,6 +99,8 @@ namespace API_Gestao_Eventos.src.Application.Services
                 ?? throw new InvalidOperationException("Você não faz parte de nenhum grupo neste evento.");
             if (!group.Event!.AllowDocuments)
                 throw new InvalidOperationException("Este evento não permite envio de documentos.");
+            if (DateTime.UtcNow >= group.Event.SubmissionCutoff)
+                throw new InvalidOperationException("O prazo para envio de documentos já terminou.");
             if (file == null || file.Length == 0)
                 throw new ArgumentException("Nenhum arquivo enviado.");
 
@@ -213,6 +215,8 @@ namespace API_Gestao_Eventos.src.Application.Services
             var document = await documentRepository.GetByIdAsync(documentId) ?? throw new KeyNotFoundException("Documento não encontrado.");
             if (document.SenderId != userId && document.Group!.LeaderId != userId)
                 throw new UnauthorizedAccessException("Somente quem enviou o documento ou o líder do grupo pode excluí-lo.");
+            if (DateTime.UtcNow >= document.Group!.Event!.SubmissionCutoff)
+                throw new InvalidOperationException("O prazo para envio de documentos já terminou. Não é possível excluir.");
             await storageService.DeleteFileAsync(document.StorageKey);
             await documentRepository.DeleteAsync(document);
 

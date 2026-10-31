@@ -84,13 +84,13 @@ const StudentPicker: React.FC<StudentPickerProps> = ({
 
 interface EventGroupPanelProps {
   eventId: string;
-  startDate: string;
+  deadline: string;
   onGroupChange: (hasGroup: boolean) => void;
 }
 
 export const EventGroupPanel: React.FC<EventGroupPanelProps> = ({
   eventId,
-  startDate,
+  deadline,
   onGroupChange,
 }) => {
   const { user } = useAuth();
@@ -166,7 +166,7 @@ export const EventGroupPanel: React.FC<EventGroupPanelProps> = ({
   };
 
   const isLeader = !!group && group.leaderId === user?.id;
-  const canEdit = new Date(startDate) > new Date();
+  const canEdit = new Date(deadline) > new Date();
   const requests = group?.members.filter((m) => m.status === GroupMemberStatus.Requested) ?? [];
   const invitable = students.filter(
     (s) =>

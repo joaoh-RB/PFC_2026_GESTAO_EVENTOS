@@ -63,8 +63,12 @@ namespace API_Gestao_Eventos.Tests.Services
             _eventRepositoryMock
                 .Setup(r => r.AddAsync(It.IsAny<Event>()))
                 .ReturnsAsync(savedEvent);
+            var userId = Guid.NewGuid();
+            _authServiceMock
+                .Setup(a => a.GetUserInfoAsync(userId))
+                .ReturnsAsync(new UserResponseDto { Id = userId, Role = "Professor" });
             // Act
-            var result = await _eventService.AddAsync(dto);
+            var result = await _eventService.AddAsync(dto, userId);
             // Assert
 
             Assert.Equal(savedEvent, result);
@@ -100,9 +104,13 @@ namespace API_Gestao_Eventos.Tests.Services
             _courseRepositoryMock
                 .Setup(r => r.GetByInstitutionAsync(dto.InstitutionId))
                 .ReturnsAsync(new List<Course>());
+            var userId = Guid.NewGuid();
+            _authServiceMock
+                .Setup(a => a.GetUserInfoAsync(userId))
+                .ReturnsAsync(new UserResponseDto { Id = userId, Role = "Professor" });
             // Act & Assert
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                _eventService.AddAsync(dto));
+                _eventService.AddAsync(dto, userId));
             Assert.Equal("Nem todos os cursos cadastrados são permitidos.", exception.Message);
             _eventRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Event>()), Times.Never);
         }

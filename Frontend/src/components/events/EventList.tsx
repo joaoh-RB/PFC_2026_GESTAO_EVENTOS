@@ -40,6 +40,7 @@ import {
   MessageSquare,
   Download,
   AlertCircle,
+  Pencil,
 } from "lucide-react";
 import { type PagedResult } from "@/types/utils";
 import { formatDateForShort } from "@/utils/format";
@@ -116,6 +117,7 @@ export interface EventItem {
   createdByUniqueIdentifier?: string | null;
   allowDocuments: boolean;
   maxGroupSize?: number | null;
+  submissionDeadline?: string | null;
   hasApprovedDocuments?: boolean;
   allowedCourseNames: string[];
   allowedCourseIds: string[];
@@ -142,6 +144,7 @@ export interface EventsListProps {
   onFilter?: (filters: EventFilterState) => void;
   onPageChange?: (page: number) => void;
   handleStartEdition?: (eventData: EventItem) => void;
+  handleViewDetails?: (eventData: EventItem) => void;
   handleToggleActive?: (eventData: EventItem) => void;
   studentMode?: boolean;
   onJoinEvent?: (eventId: string) => Promise<void>;
@@ -156,6 +159,7 @@ export const EventsList: React.FC<EventsListProps> = ({
   onFilter,
   onPageChange,
   handleStartEdition,
+  handleViewDetails,
   handleToggleActive: externalHandleToggleActive,
   studentMode = false,
   onJoinEvent,
@@ -488,6 +492,8 @@ export const EventsList: React.FC<EventsListProps> = ({
               const availableSeats = event.availableSeats;
               const isFull = event.isFull;
               const isUpcoming = event.startDate > new Date().toISOString();
+              const isBeforeSubmissionCutoff =
+                new Date(event.submissionDeadline ?? event.startDate) > new Date();
               const isEnded = event.endDate <= new Date().toISOString();
               const isOngoing =
                 !isUpcoming && event.endDate > new Date().toISOString();
@@ -501,25 +507,39 @@ export const EventsList: React.FC<EventsListProps> = ({
                   key={event.id}
                   className="flex flex-col border-[#e1e4ea] shadow-none transition hover:-translate-y-0.5 hover:shadow-md">
                   <CardHeader>
-                    <div className="flex justify-between items-start gap-2 mb-2 flex-wrap">
-                      <Badge variant={isFull ? "destructive" : "secondary"}>
-                        {isFull
-                          ? "Esgotado"
-                          : `${availableSeats} vagas restantes`}
-                      </Badge>
-                      {event.allowDocuments && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs bg-green-100 text-green-800">
-                          Permite envio de documentos
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={isFull ? "destructive" : "secondary"}>
+                          {isFull
+                            ? "Esgotado"
+                            : `${availableSeats} vagas restantes`}
                         </Badge>
-                      )}
-                      {!event.isActive && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs bg-slate-100 text-slate-600">
-                          Inativo
-                        </Badge>
+                        {event.allowDocuments && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-green-100 text-green-800">
+                            Permite envio de documentos
+                          </Badge>
+                        )}
+                        {!event.isActive && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-slate-100 text-slate-600">
+                            Inativo
+                          </Badge>
+                        )}
+                      </div>
+                      {!studentMode && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          title="Editar evento"
+                          aria-label="Editar evento"
+                          className="shrink-0 cursor-pointer"
+                          onClick={() => handleStartEdition?.(event)}>
+                          <Pencil className="h-4 w-4 text-[#109bc6]" />
+                        </Button>
                       )}
                     </div>
                     <CardTitle className="text-xl line-clamp-1">
@@ -545,6 +565,16 @@ export const EventsList: React.FC<EventsListProps> = ({
                       <Clock className="h-4 w-4 text-[#12a7d4] shrink-0" />
                       <span>Término: {formatDateForShort(event.endDate)}</span>
                     </div>
+
+                    {event.allowDocuments && event.submissionDeadline && (
+                      <div className="flex items-center gap-2">
+                        <FileUp className="h-4 w-4 text-[#12a7d4] shrink-0" />
+                        <span>
+                          Prazo de grupos e documentos:{" "}
+                          {formatDateForShort(event.submissionDeadline)}
+                        </span>
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-[#12a7d4] shrink-0" />
@@ -643,7 +673,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                             )}
 
                             {event.allowDocuments &&
-                              isUpcoming &&
+                              isBeforeSubmissionCutoff &&
                               isRegistered && (
                                 <Button
                                   variant="outline"
@@ -726,7 +756,7 @@ export const EventsList: React.FC<EventsListProps> = ({
 
                             <Button
                               className={"secondary-action cursor-pointer"}
-                              onClick={() => handleStartEdition?.(event)}>
+                              onClick={() => handleViewDetails?.(event)}>
                               Detalhes do evento
                             </Button>
 
@@ -777,7 +807,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                             <Button
                               size="sm"
                               className={"secondary-action cursor-pointer"}
-                              onClick={() => handleStartEdition?.(event)}>
+                              onClick={() => handleViewDetails?.(event)}>
                               Detalhes do evento
                             </Button>
                           </div>

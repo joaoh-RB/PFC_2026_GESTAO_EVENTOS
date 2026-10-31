@@ -12,6 +12,7 @@ namespace API_Gestao_Eventos.src.Application.DTO.Event
         public required int Capacity { get; set; }
         public required bool AllowDocuments { get; set; }
         public int? MaxGroupSize { get; set; }
+        public DateTimeOffset? SubmissionDeadline { get; set; }
         public required EventType EventType { get; set; }
         public required ICollection<Guid> AllowedCourses { get; set; } = new List<Guid>();
     }

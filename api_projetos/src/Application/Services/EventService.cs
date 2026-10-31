@@ -32,6 +32,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                 Capacity = request.Capacity,
                 AllowDocuments = request.AllowDocuments,
                 MaxGroupSize = request.AllowDocuments ? request.MaxGroupSize : null,
+                SubmissionDeadline = request.AllowDocuments ? request.SubmissionDeadline?.UtcDateTime : null,
                 EventType = request.EventType,
                 AllowedCourses = allowedCourses,
                 EventStatus = eventStatus,
@@ -65,7 +66,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                 EventType = request.EventType,
                 AllowDocuments = request.AllowDocuments,
                 MaxGroupSize = request.AllowDocuments ? request.MaxGroupSize : null,
-                AttendanceCode = eventCreated.AttendanceCode,
+                SubmissionDeadline = request.AllowDocuments ? request.SubmissionDeadline?.UtcDateTime : null,
                 InstitutionId = request.InstitutionId,
                 AllowedCourses = (request.AllowedCourses ?? new List<Guid>())
                         .Select(courseId => new Course { Id = courseId })
@@ -148,6 +149,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                     CreatedByUniqueIdentifier = (e.CreatedByUser as Student)?.UniqueIdentifier,
                     AllowDocuments = e.AllowDocuments,
                     MaxGroupSize = e.MaxGroupSize,
+                    SubmissionDeadline = e.SubmissionDeadline,
                     HasApprovedDocuments = eventsWithApprovedDocs.Contains(e.Id),
                     AllowedCourseNames = e.AllowedCourses.Select(c => c.Name.ToString()).ToList(),
                     AllowedCourseIds = e.AllowedCourses.Select(c => c.Id).ToList(),

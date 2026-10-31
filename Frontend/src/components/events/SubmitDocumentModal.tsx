@@ -117,6 +117,8 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [hasGroup, setHasGroup] = useState(false);
+  const isPastDeadline =
+    !!event && new Date(event.submissionDeadline ?? event.startDate) <= new Date();
 
   const previewUrl = useMemo(() => {
     if (!file || !file.type.startsWith("image/")) return null;
@@ -428,7 +430,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
               <EventGroupPanel
                 key={event.id}
                 eventId={event.id}
-                startDate={event.startDate}
+                deadline={event.submissionDeadline ?? event.startDate}
                 onGroupChange={setHasGroup}
               />
             )}
@@ -566,7 +568,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
                                   title="Excluir documento"
                                   className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
                                   disabled={
-                                    isDeletingId === docId || isSubmitting
+                                    isDeletingId === docId || isSubmitting || isPastDeadline
                                   }>
                                   {isDeletingId === docId ? (
                                     <Loader2 className="h-4 w-4 animate-spin text-red-500" />
@@ -584,6 +586,11 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
                 </div>
 
                 <div className="space-y-2 w-full min-w-0 border-t border-slate-100 pt-4">
+                  {isPastDeadline && (
+                    <p className="text-xs font-medium text-amber-700">
+                      O prazo para envio de documentos já terminou.
+                    </p>
+                  )}
                   {error && (
                     <div className="flex items-start gap-2 p-3 text-sm text-red-700 bg-red-50 rounded-lg border border-red-200">
                       <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
@@ -698,7 +705,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
             <Button
               type="submit"
               className="w-full sm:w-auto primary-action cursor-pointer"
-              disabled={!file || isSubmitting || !hasGroup}>
+              disabled={!file || isSubmitting || !hasGroup || isPastDeadline}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
