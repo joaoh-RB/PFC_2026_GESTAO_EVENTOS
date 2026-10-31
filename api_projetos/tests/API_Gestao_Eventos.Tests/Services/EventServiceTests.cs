@@ -31,6 +31,7 @@ namespace API_Gestao_Eventos.Tests.Services
         public async Task CreateEventAsync_QuandoDadosForemValidos_DeveCadastrarEventoComSucessoEChamarAddAsync()
         {
             var courseId = Guid.NewGuid();
+            var userId = Guid.NewGuid();
             var course = new Course()
             {
                 Id = courseId,
@@ -48,6 +49,14 @@ namespace API_Gestao_Eventos.Tests.Services
                 StartDate = DateTime.UtcNow.AddDays(1),
                 EndDate = DateTime.UtcNow.AddDays(2)
             };
+            _authServiceMock
+                .Setup(a => a.GetUserInfoAsync(userId))
+                .ReturnsAsync(new UserResponseDto
+                {
+                    Id = userId,
+                    Role = "Professor",
+                    Email = "professor@teste.com"
+                });
             _courseRepositoryMock
                 .Setup(r => r.GetByInstitutionAsync(dto.InstitutionId))
                 .ReturnsAsync(new List<Course> { course });
@@ -60,7 +69,7 @@ namespace API_Gestao_Eventos.Tests.Services
                 .Setup(r => r.AddAsync(It.IsAny<Event>()))
                 .ReturnsAsync(savedEvent);
             // Act
-            var result = await _eventService.AddAsync(dto);
+            var result = await _eventService.AddAsync(dto, userId);
             // Assert
 
             Assert.Equal(savedEvent, result);
@@ -80,6 +89,7 @@ namespace API_Gestao_Eventos.Tests.Services
         {
             // Arrange
             var courseId = Guid.NewGuid();
+            var userId = Guid.NewGuid();
             var dto = new CreateEventRequestDto
             {
                 Name = "Evento de Teste",
@@ -92,12 +102,20 @@ namespace API_Gestao_Eventos.Tests.Services
                 StartDate = DateTime.UtcNow.AddDays(1),
                 EndDate = DateTime.UtcNow.AddDays(2)
             };
+            _authServiceMock
+                .Setup(a => a.GetUserInfoAsync(userId))
+                .ReturnsAsync(new UserResponseDto
+                {
+                    Id = userId,
+                    Role = "Professor",
+                    Email = "professor@teste.com"
+                });
             _courseRepositoryMock
                 .Setup(r => r.GetByInstitutionAsync(dto.InstitutionId))
                 .ReturnsAsync(new List<Course>());
             // Act & Assert
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                _eventService.AddAsync(dto));
+                _eventService.AddAsync(dto, userId));
             Assert.Equal("Nem todos os cursos cadastrados são permitidos.", exception.Message);
             _eventRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Event>()), Times.Never);
         }
