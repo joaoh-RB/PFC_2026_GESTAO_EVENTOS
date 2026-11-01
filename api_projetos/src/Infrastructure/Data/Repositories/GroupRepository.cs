@@ -53,6 +53,16 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
                 .OrderBy(g => g.Number)
                 .ToListAsync();
         }
+        public async Task<IEnumerable<Group>> GetActiveByEventAsync(Guid eventId)
+        {
+            return await context.Groups
+                .AsNoTracking()
+                .Where(g => g.EventId == eventId && g.IsActive)
+                .Include(g => g.Members)
+                .ThenInclude(m => m.Student)
+                .OrderBy(g => g.Number)
+                .ToListAsync();
+        }
         public async Task<IEnumerable<Group>> GetInvitesForStudentAsync(Guid studentId)
         {
             return await context.Groups
@@ -83,11 +93,17 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         }
         public async Task DeclinePendingInvitesAsync(Guid studentId, Guid eventId, Guid exceptGroupId)
         {
-            var invites = await context.GroupMembers
-                .Where(m => m.StudentId == studentId && m.EventId == eventId && m.GroupId != exceptGroupId && m.Status == GroupMemberStatus.Invited)
+            var pending = await context.GroupMembers
+                .Where(m => m.StudentId == studentId && m.EventId == eventId && m.GroupId != exceptGroupId
+                    && (m.Status == GroupMemberStatus.Invited || m.Status == GroupMemberStatus.Requested))
                 .ToListAsync();
-            foreach (var invite in invites)
-                invite.Status = GroupMemberStatus.Declined;
+            foreach (var item in pending)
+            {
+                if (item.Status == GroupMemberStatus.Requested)
+                    context.GroupMembers.Remove(item);
+                else
+                    item.Status = GroupMemberStatus.Declined;
+            }
             await context.SaveChangesAsync();
         }
         public async Task<bool> IsStudentRegisteredAsync(Guid studentId, Guid eventId)
@@ -136,6 +152,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
         Task<Group> AddAsync(Group group);
         Task<int> GetNextNumberAsync(Guid eventId);
         Task<IEnumerable<Group>> GetByEventAsync(Guid eventId);
+        Task<IEnumerable<Group>> GetActiveByEventAsync(Guid eventId);
         Task<IEnumerable<Group>> GetInvitesForStudentAsync(Guid studentId);
         Task AddMemberAsync(GroupMember member);
         Task RemoveMemberAsync(GroupMember member);
