@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { OptionItem } from "@/types/optionItem";
+import { formatWithBrazilTimezone } from "@/utils/format";
 
 interface CreateEventFormProps {
   institutions: OptionItem[];
@@ -110,6 +111,18 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
     }
   }, [currentEventData, reset, userInstitutionId]);
 
+
+  const handleFormSubmit = (data: CreateEventFormData) => {
+    onSubmit({
+      ...data,
+      startDate: formatWithBrazilTimezone(data.startDate),
+      endDate: formatWithBrazilTimezone(data.endDate),
+      submissionDeadline: data.submissionDeadline
+        ? formatWithBrazilTimezone(data.submissionDeadline)
+        : data.submissionDeadline,
+    });
+  };
+
   return (
     <Card className="surface-card max-w-4xl mx-auto shadow-none">
       <CardHeader className="text-center pb-8 pt-6">
@@ -145,7 +158,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-1">
               <Label htmlFor="name" required>
