@@ -19,6 +19,8 @@ namespace API_Gestao_Eventos.src.Application.DTO.Event
         public string? CreatedByUserName { get; set; }
         public string? CreatedByUniqueIdentifier { get; set; }
         public bool AllowDocuments { get; set; }
+        public int? MaxGroupSize { get; set; }
+        public DateTime? SubmissionDeadline { get; set; }
         public bool HasApprovedDocuments { get; set; }
         public List<string> AllowedCourseNames { get; set; } = new();
         public required List<Guid> AllowedCourseIds { get; set; }
