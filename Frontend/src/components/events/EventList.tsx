@@ -43,7 +43,11 @@ import {
   Pencil,
 } from "lucide-react";
 import { type PagedResult } from "@/types/utils";
-import { formatDateForShort } from "@/utils/format";
+import {
+  formatDateForShort,
+  formatWithBrazilTimezone,
+  getBrazilDateString,
+} from "@/utils/format";
 import type { OptionItem } from "@/types/optionItem";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 import { useAuth } from "@/hooks/useAuth";
@@ -73,9 +77,9 @@ const fetchEvents = async (
     pageSize: (appliedFilters as FetchEventsParams)?.pageSize ?? pageSize,
   };
   if (appliedFilters.fromDate) {
-    params.fromDate = new Date(
-      `${appliedFilters.fromDate}T00:00:00-03:00`,
-    ).toISOString();
+    params.fromDate = formatWithBrazilTimezone(
+      `${appliedFilters.fromDate}T00:00:00`,
+    );
   }
   if (appliedFilters.institutionId) {
     params.institutionId = appliedFilters.institutionId;
@@ -172,7 +176,7 @@ export const EventsList: React.FC<EventsListProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<EventFilterState>(
     currentFilters ?? {
-      fromDate: new Date().toISOString().split("T")[0],
+      fromDate: getBrazilDateString(),
     },
   );
 
@@ -187,7 +191,7 @@ export const EventsList: React.FC<EventsListProps> = ({
   });
   const [isLoading, setIsLoading] = useState(true);
   const [fromDate, setFromDate] = useState<string>(
-    filters.fromDate || new Date().toISOString().split("T")[0],
+    filters.fromDate || getBrazilDateString(),
   );
   const [institutionId, setInstitutionId] = useState<string>(
     userInstitutionId || filters.institutionId || allInstitutionsName,
