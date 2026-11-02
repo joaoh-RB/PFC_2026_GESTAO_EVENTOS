@@ -23,6 +23,7 @@ namespace API_Gestao_Eventos.src.Application
             services.AddScoped<GroupService>();
             services.AddScoped<AttendanceService>();
             services.AddScoped<EventFeedbackService>();
+            services.AddScoped<DashboardService>();
             services.AddFluentValidationAutoValidation();
             services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
             services.AddValidatorsFromAssemblyContaining<CreateEventValidator>();
