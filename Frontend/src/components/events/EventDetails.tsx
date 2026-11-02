@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { isAxiosError } from "axios";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -29,13 +29,23 @@ import { formatDateForShort } from "@/utils/format";
 import type { EventFeedbackDto } from "./EventFeedbackModal";
 import type { EventItem } from "./EventList";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
+import { ExportExcelButton } from "@/components/ui/export-excel-button";
+import { exportToExcel, fetchAllPages } from "@/utils/exportExcel";
 
 interface EventRegistrationItem {
   studentId: string;
   studentName: string;
   courseName: string;
   registeredAt: string;
+  attended: boolean;
+  attendedAt?: string | null;
+  method?: number | null;
 }
+
+const attendanceMethodLabel: Record<number, string> = {
+  1: "pelo código",
+  2: "manual",
+};
 
 interface GroupMemberItem {
   studentId: string;
@@ -98,6 +108,9 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
   const [registrationsError, setRegistrationsError] = useState<string | null>(
     null,
   );
+  const [togglingAttendanceId, setTogglingAttendanceId] = useState<
+    string | null
+  >(null);
   const [registrationsData, setRegistrationsData] = useState<
     PagedResult<EventRegistrationItem>
   >({
@@ -134,6 +147,9 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
   const [isFeedbacksLoading, setIsFeedbacksLoading] = useState(false);
   const [feedbacksError, setFeedbacksError] = useState<string | null>(null);
   const [feedbacks, setFeedbacks] = useState<EventFeedbackDto[]>([]);
+
+  const hasEventDatePassed = new Date(event.startDate).getTime() <= Date.now();
+  const isEventEnded = new Date(event.endDate).getTime() <= Date.now();
 
   const loadRegistrations = useCallback(
     async (page: number = 1) => {
@@ -362,6 +378,87 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
     await loadRegistrations(page);
   };
 
+  const handleToggleAttendance = async (
+    registration: EventRegistrationItem,
+  ) => {
+    if (!hasEventDatePassed) return;
+
+    setTogglingAttendanceId(registration.studentId);
+    setRegistrationsError(null);
+
+    try {
+      const url = `/events/${event.id}/attendance/${registration.studentId}`;
+      if (registration.attended) {
+        await api.delete(url);
+      } else {
+        await api.post(url);
+      }
+
+      const response = await api.get<PagedResult<EventRegistrationItem>>(
+        `/events/${event.id}/registrations`,
+        {
+          params: {
+            pageNumber: registrationsData.pageNumber,
+            pageSize: REGISTRATIONS_PAGE_SIZE,
+          },
+        },
+      );
+      setRegistrationsData(response.data);
+    } catch (error: unknown) {
+      setRegistrationsError(
+        getApiMessage(error, "Erro ao atualizar a presença do aluno."),
+      );
+    } finally {
+      setTogglingAttendanceId(null);
+    }
+  };
+
+  const handleExportRegistrationsExcel = async () => {
+    const items =
+      registrationsData.totalPages <= 1
+        ? registrationsData.items
+        : await fetchAllPages<EventRegistrationItem>(
+            async (pageNumber, pageSize) => {
+              const response = await api.get<
+                PagedResult<EventRegistrationItem>
+              >(`/events/${event.id}/registrations`, {
+                params: { pageNumber, pageSize },
+              });
+              return response.data;
+            },
+            50,
+          );
+
+    exportToExcel(
+      items.map((item) => ({
+        Aluno: item.studentName,
+        Curso: item.courseName,
+        "Data e hora da inscrição": formatDateForShort(item.registeredAt),
+        Status: item.attended
+          ? "Presente"
+          : hasEventDatePassed
+            ? "Ausente"
+            : "Aguardando evento",
+      })),
+      `inscritos-${event.name.replaceAll(" ", "-")}.xlsx`,
+      "Inscritos",
+    );
+  };
+
+  const handleExportFeedbacksExcel = () => {
+    exportToExcel(
+      feedbacks.map((item) => ({
+        Aluno: item.studentName,
+        Curso: item.courseName,
+        Nota: `${item.rating} / 10`,
+        Comentário: item.feedbackText || "Sem comentário",
+        Data: formatDateForShort(item.createdAt),
+      })),
+      `feedbacks-${event.name.replaceAll(" ", "-")}.xlsx`,
+      "Feedbacks",
+    );
+  };
+
   const averageRating =
     feedbacks.length > 0
       ? (
@@ -369,8 +466,6 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
           feedbacks.length
         ).toFixed(1)
       : null;
-
-  const isEventEnded = new Date(event.endDate).getTime() <= Date.now();
 
   return (
     <Card className="surface-card max-w-4xl mx-auto shadow-none">
@@ -415,22 +510,33 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
         {activeTab === "registrations" || !event.allowDocuments ? (
           <div className="space-y-8">
             <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Inscritos no evento
-                </h3>
-                <p className="text-sm text-slate-500">
-                  {event.name}
-                </p>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Inscritos no evento
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    {event.name}
+                  </p>
+                </div>
+                <ExportExcelButton
+                  onExport={handleExportRegistrationsExcel}
+                  disabled={
+                    isRegistrationsLoading ||
+                    registrationsData.totalItems === 0
+                  }
+                />
               </div>
+
+              {registrationsError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {registrationsError}
+                </div>
+              )}
 
               {isRegistrationsLoading ? (
                 <div className="py-8 text-center text-slate-500">
                   Carregando inscritos...
-                </div>
-              ) : registrationsError ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                  {registrationsError}
                 </div>
               ) : registrationsData.items.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">
@@ -445,20 +551,86 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                           <TableHead>Aluno</TableHead>
                           <TableHead>Curso</TableHead>
                           <TableHead>Data e hora da inscrição</TableHead>
+                          <TableHead>Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {registrationsData.items.map((item) => (
-                          <TableRow key={item.studentId}>
-                            <TableCell className="font-medium text-slate-900">
-                              {item.studentName}
-                            </TableCell>
-                            <TableCell>{item.courseName}</TableCell>
-                            <TableCell>
-                              {formatDateForShort(item.registeredAt)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {registrationsData.items.map((item) => {
+                          const isToggling =
+                            togglingAttendanceId === item.studentId;
+
+                          return (
+                            <TableRow key={item.studentId}>
+                              <TableCell className="font-medium text-slate-900">
+                                {item.studentName}
+                              </TableCell>
+                              <TableCell>{item.courseName}</TableCell>
+                              <TableCell>
+                                {formatDateForShort(item.registeredAt)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="min-w-0">
+                                    {item.attended ? (
+                                      <div className="space-y-0.5">
+                                        <Badge
+                                          variant="outline"
+                                          className="gap-1 border-emerald-200 bg-emerald-100 text-emerald-800">
+                                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
+                                          Presente
+                                        </Badge>
+                                        {item.attendedAt && (
+                                          <p className="text-[11px] text-slate-500">
+                                            {formatDateForShort(item.attendedAt)}
+                                            {item.method
+                                              ? ` (${attendanceMethodLabel[item.method]})`
+                                              : ""}
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : hasEventDatePassed ? (
+                                      <Badge
+                                        variant="outline"
+                                        className="gap-1 border-red-200 bg-red-100 text-red-700">
+                                        <XCircle className="h-3.5 w-3.5 text-red-600" />
+                                        Ausente
+                                      </Badge>
+                                    ) : (
+                                      <Badge
+                                        variant="outline"
+                                        className="gap-1 border-amber-200 bg-amber-100 text-amber-800">
+                                        <Clock className="h-3.5 w-3.5 text-amber-700" />
+                                        Aguardando evento
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {hasEventDatePassed && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className={`shrink-0 cursor-pointer ${
+                                        item.attended
+                                          ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
+                                          : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                                      }`}
+                                      disabled={isToggling}
+                                      onClick={() =>
+                                        void handleToggleAttendance(item)
+                                      }>
+                                      {isToggling && (
+                                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                      )}
+                                      {item.attended
+                                        ? "Desmarcar"
+                                        : "Marcar presença"}
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
@@ -535,11 +707,19 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                     Avaliações enviadas pelos alunos que participaram do evento.
                   </p>
                 </div>
-                {averageRating && (
-                  <Badge variant="secondary" className="text-sm font-semibold">
-                    Média: {averageRating} / 10 ({feedbacks.length})
-                  </Badge>
-                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {averageRating && (
+                    <Badge
+                      variant="outline"
+                      className="border-cyan-200 bg-cyan-100 text-cyan-800 text-sm font-semibold">
+                      Média: {averageRating} / 10 ({feedbacks.length})
+                    </Badge>
+                  )}
+                  <ExportExcelButton
+                    onExport={handleExportFeedbacksExcel}
+                    disabled={isFeedbacksLoading || feedbacks.length === 0}
+                  />
+                </div>
               </div>
 
               {isFeedbacksLoading ? (
@@ -574,7 +754,15 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                           </TableCell>
                           <TableCell>{item.courseName}</TableCell>
                           <TableCell>
-                            <Badge variant="secondary">
+                            <Badge
+                              variant="outline"
+                              className={
+                                item.rating >= 7
+                                  ? "border-emerald-200 bg-emerald-100 text-emerald-800"
+                                  : item.rating >= 5
+                                    ? "border-amber-200 bg-amber-100 text-amber-800"
+                                    : "border-red-200 bg-red-100 text-red-700"
+                              }>
                               {item.rating} / 10
                             </Badge>
                           </TableCell>
@@ -676,7 +864,12 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                             Grupo {group.number}
                           </p>
                           <Badge
-                            variant={missingCount === 0 ? "destructive" : "secondary"}>
+                            variant="outline"
+                            className={
+                              missingCount === 0
+                                ? "border-emerald-200 bg-emerald-100 text-emerald-800"
+                                : "border-amber-200 bg-amber-100 text-amber-800"
+                            }>
                             {vacancyLabel}
                           </Badge>
                         </div>

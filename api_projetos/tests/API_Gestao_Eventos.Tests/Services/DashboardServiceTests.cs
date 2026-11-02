@@ -86,7 +86,7 @@ namespace API_Gestao_Eventos.Tests.Services
 
             Assert.Equal("Sua secretaria ainda não está vinculada a uma instituição.", result.ScopeDescription);
             Assert.False(result.CanFilterByTeacher);
-            Assert.Equal(5, result.Feedback.Distribution.Count);
+            Assert.Equal(11, result.Feedback.Distribution.Count);
             _dashboardRepositoryMock.Verify(r => r.GetAsync(It.IsAny<DashboardQuery>()), Times.Never);
         }
 

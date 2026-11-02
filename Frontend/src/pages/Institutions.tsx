@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { DeleteConfirmation } from "../components/ui/deleteConfirm";
@@ -23,6 +23,8 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ExportExcelButton } from "@/components/ui/export-excel-button";
+import { exportToExcel } from "@/utils/exportExcel";
 
 interface InstitutionDetail {
   id: string;
@@ -178,6 +180,17 @@ const AllInstitutionsManager: React.FC = () => {
     [institutions, search],
   );
 
+  const handleExportExcel = () => {
+    exportToExcel(
+      filteredInstitutions.map((item) => ({
+        Nome: item.name,
+        Acesso: item.isActive ? "Ativo" : "Inativo",
+      })),
+      "instituicoes.xlsx",
+      "Instituições",
+    );
+  };
+
   const openCreate = () => {
     setCurrentInstitutionBeingUpdated(null);
     setSubmitError(null);
@@ -314,8 +327,8 @@ const AllInstitutionsManager: React.FC = () => {
         />
       ) : (
         <>
-          <div className="filter-bar">
-            <div className="relative block">
+          <div className="filter-bar justify-between">
+            <div className="relative flex-1 max-w-md">
               <InputGroup>
                 <InputGroupInput
                   value={search}
@@ -327,6 +340,10 @@ const AllInstitutionsManager: React.FC = () => {
                 </InputGroupAddon>
               </InputGroup>
             </div>
+            <ExportExcelButton
+              onExport={handleExportExcel}
+              disabled={!filteredInstitutions.length}
+            />
           </div>
 
           <div className="surface-card overflow-x-auto">

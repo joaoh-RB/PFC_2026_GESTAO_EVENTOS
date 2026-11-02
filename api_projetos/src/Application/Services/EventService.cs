@@ -306,7 +306,10 @@ namespace API_Gestao_Eventos.src.Application.Services
                     StudentId = s.StudentId,
                     StudentName = s.Student.Name,
                     CourseName = s.Student.Course.Name,
-                    RegisteredAt = s.RegisteredAt
+                    RegisteredAt = s.RegisteredAt,
+                    Attended = s.AttendedAt != null || s.Status == RegistrationStatus.Attended,
+                    AttendedAt = s.AttendedAt,
+                    Method = s.AttendanceMethod
                 });
 
             var totalItems = registrations.Count();

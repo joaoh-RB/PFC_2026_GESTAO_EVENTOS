@@ -31,6 +31,9 @@ import {
   TableRow,
 } from "../ui/table";
 import { useAuth } from "@/hooks/useAuth";
+import { api } from "@/services/api";
+import { ExportExcelButton } from "@/components/ui/export-excel-button";
+import { exportToExcel, fetchAllPages } from "@/utils/exportExcel";
 
 export interface InstitutionMemberItem {
   id: string;
@@ -94,6 +97,48 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
         roleVal !== "Todos os cargos" ? parseInt(roleVal as string) : undefined,
       institutionId: instVal !== allInstitutionsName ? instVal : undefined,
     });
+  };
+
+  const handleExportExcel = async () => {
+    const items =
+      data.totalPages <= 1
+        ? data.items
+        : await fetchAllPages<InstitutionMemberItem>(
+            async (pageNumber, pageSize) => {
+              const params: Record<string, string | number | undefined> = {
+                pageNumber,
+                pageSize,
+              };
+              if (currentFilters?.userRoleId) {
+                params.userRole = currentFilters.userRoleId;
+              }
+              if (currentFilters?.institutionId || userInstitutionId) {
+                params.institutionId =
+                  userInstitutionId ?? currentFilters?.institutionId;
+              }
+              const res = await api.get<PagedResult<InstitutionMemberItem>>(
+                "/users/institution-members",
+                { params },
+              );
+              return res.data;
+            },
+            30,
+          );
+
+    exportToExcel(
+      items.map((member) => ({
+        Nome: member.name,
+        Cargo: member.userRole,
+        Instituição: member.institutionName,
+        Cursos:
+          member.coursesNames && member.coursesNames.length > 0
+            ? member.coursesNames.join(", ")
+            : "Não se aplica",
+        Ativo: member.isActive ? "Sim" : "Não",
+      })),
+      "membros.xlsx",
+      "Membros",
+    );
   };
 
   return (
@@ -163,6 +208,15 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                 </Select>
               </div>
             )}
+            <div
+              className={`flex justify-end ${
+                userInstitutionId ? "sm:col-span-4" : "sm:col-span-2"
+              }`}>
+              <ExportExcelButton
+                onExport={handleExportExcel}
+                disabled={isLoading || data.totalItems === 0}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -260,7 +314,7 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                 {data.totalPages > 1 && (
                   <TableFooter>
                     <TableRow className={"w-100"}>
-                      <TableCell colSpan={5} className={"w-100"}>
+                      <TableCell colSpan={6} className={"w-100"}>
                         <div className="flex justify-center pt-4">
                           <Pagination>
                             <PaginationContent>

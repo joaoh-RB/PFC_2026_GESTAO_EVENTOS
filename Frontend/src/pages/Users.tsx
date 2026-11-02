@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { ExportExcelButton } from "@/components/ui/export-excel-button";
+import { exportToExcel } from "@/utils/exportExcel";
 
 type ApprovalStatus = 1 | 2 | 3;
 
@@ -169,6 +171,22 @@ export const Users: React.FC = () => {
       }),
     [users, search, status, user?.role, userInstitutionId],
   );
+
+  const handleExportExcel = () => {
+    exportToExcel(
+      filteredUsers.map((managedUser) => ({
+        Usuário: managedUser.name,
+        "E-mail": managedUser.email,
+        Matrícula: managedUser.uniqueIdentifier,
+        Aprovação: statusLabel[managedUser.approvalStatus],
+        "Aprovado por": managedUser.approvedByUserName || "—",
+        "Data de aprovação": formatDate(managedUser.approvedDate),
+        Acesso: managedUser.isActive ? "Ativo" : "Inativo",
+      })),
+      "alunos.xlsx",
+      "Alunos",
+    );
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -327,6 +345,10 @@ export const Users: React.FC = () => {
             </SelectGroup>
           </SelectContent>
         </Select>
+        <ExportExcelButton
+          onExport={handleExportExcel}
+          disabled={!filteredUsers.length}
+        />
       </div>
 
       <div className="surface-card overflow-x-auto">
