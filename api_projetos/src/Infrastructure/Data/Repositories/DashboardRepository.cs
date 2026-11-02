@@ -68,7 +68,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
                 .GroupBy(f => f.Rating)
                 .Select(g => new { Rating = g.Key, Count = g.Count() })
                 .ToListAsync();
-            var distribution = Enumerable.Range(1, 5)
+            var distribution = Enumerable.Range(0, 11)
                 .Select(rating => new DashboardRatingPointDto
                 {
                     Rating = rating,

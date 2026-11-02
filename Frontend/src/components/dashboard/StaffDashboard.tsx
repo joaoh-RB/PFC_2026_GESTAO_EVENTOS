@@ -22,7 +22,6 @@ import {
   GraduationCap,
   Loader2,
   Search,
-  Star,
   UserCheck,
   UserX,
 } from "lucide-react";
@@ -507,13 +506,13 @@ export function StaffDashboard() {
 
             <ChartCard
               title="Feedback"
-              description="Distribuição das notas dadas pelos alunos depois dos eventos.">
+              description="Distribuição das notas de 0 a 10 dadas pelos alunos depois dos eventos.">
               <div className="mb-4 flex items-end justify-between gap-4">
                 <div>
                   <p className="text-xs font-medium text-slate-400">Média</p>
-                  <p className="mt-1 flex items-center gap-2 text-3xl font-semibold tracking-tight text-[#191638]">
-                    <Star className="size-5 fill-amber-400 text-amber-400" />
+                  <p className="mt-1 text-3xl font-semibold tracking-tight text-[#191638]">
                     {data.feedback.averageRating ?? "—"}
+                    <span className="ml-1 text-base font-medium text-slate-400">/ 10</span>
                   </p>
                 </div>
                 <p className="text-sm text-slate-500">
@@ -528,7 +527,7 @@ export function StaffDashboard() {
                       <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 12 }} axisLine={false} tickLine={false} />
                       <YAxis allowDecimals={false} tick={{ fill: "#94a3b8", fontSize: 12 }} axisLine={false} tickLine={false} />
                       <Tooltip cursor={{ fill: "#f8fafc" }} />
-                      <Bar dataKey="quantidade" name="Avaliações" fill="#12a7d4" radius={[8, 8, 0, 0]} maxBarSize={42} />
+                      <Bar dataKey="quantidade" name="Avaliações" fill="#12a7d4" radius={[6, 6, 0, 0]} maxBarSize={28} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

@@ -76,7 +76,7 @@ namespace API_Gestao_Eventos.src.Application.Services
                 CanFilterByTeacher = canFilterByTeacher,
                 Feedback = new DashboardFeedbackDto
                 {
-                    Distribution = Enumerable.Range(1, 5)
+                    Distribution = Enumerable.Range(0, 11)
                         .Select(rating => new DashboardRatingPointDto { Rating = rating })
                         .ToList()
                 }
