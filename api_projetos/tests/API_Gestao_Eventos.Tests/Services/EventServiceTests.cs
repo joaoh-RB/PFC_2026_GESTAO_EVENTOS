@@ -45,8 +45,8 @@ namespace API_Gestao_Eventos.Tests.Services
             Capacity = 100,
             EventType = EventType.Palestra,
             InstitutionId = institutionId ?? Guid.NewGuid(),
-            StartDate = DateTimeOffset.UtcNow.AddDays(1),
-            EndDate = DateTimeOffset.UtcNow.AddDays(2)
+            StartDate = DateTimeOffset.UtcNow.AddDays(4),
+            EndDate = DateTimeOffset.UtcNow.AddDays(5)
         };
 
         private static Event SeedEvent(
