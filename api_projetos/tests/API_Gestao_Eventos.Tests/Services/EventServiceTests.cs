@@ -89,6 +89,7 @@ namespace API_Gestao_Eventos.Tests.Services
         [Fact]
         public async Task AddAsync_QuandoDadosValidosPorProfessor_DeveCadastrarComoAgendadoECriarNoGoogleCalendar()
         {
+            var userId = Guid.NewGuid();
             var courseId = Guid.NewGuid();
             var dto = SeedCreateRequest(courseId: courseId);
             var user = SeedAuthUser(role: "Professor");
@@ -108,7 +109,6 @@ namespace API_Gestao_Eventos.Tests.Services
                 e.EventStatus == EventStatus.Agendado &&
                 e.GoogleCalendarEventId == "google-event-id")), Times.Once);
         }
-
         [Fact]
         public async Task AddAsync_QuandoCriadoPorAluno_DeveCadastrarComoSolicitadoSemGoogleCalendar()
         {
