@@ -1,4 +1,4 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.Auth;
+using API_Gestao_Eventos.src.Application.DTO.Auth;
 using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Application.Services;
 using API_Gestao_Eventos.src.Domain.Entities;
@@ -33,6 +33,7 @@ namespace API_Gestao_Eventos.Tests.Services
         [Fact]
         public async Task CreateEventAsync_QuandoDadosForemValidos_DeveCadastrarEventoComSucessoEChamarAddAsync()
         {
+            var userId = Guid.NewGuid();
             var courseId = Guid.NewGuid();
             var course = new Course()
             {
@@ -51,6 +52,14 @@ namespace API_Gestao_Eventos.Tests.Services
                 StartDate = DateTime.UtcNow.AddDays(1),
                 EndDate = DateTime.UtcNow.AddDays(2)
             };
+            _authServiceMock
+                .Setup(a => a.GetUserInfoAsync(userId))
+                .ReturnsAsync(new UserResponseDto
+                {
+                    Id = userId,
+                    Role = "Professor",
+                    Email = "professor@teste.com"
+                });
             _courseRepositoryMock
                 .Setup(r => r.GetByInstitutionAsync(dto.InstitutionId))
                 .ReturnsAsync(new List<Course> { course });
@@ -86,6 +95,7 @@ namespace API_Gestao_Eventos.Tests.Services
         public async Task CreateEventAsync_QuandoCursoNaoPertencerAInstituicao_DeveLancarInvalidOperationExceptionENaoChamarAddAsync()
         {
             // Arrange
+            var userId = Guid.NewGuid();
             var courseId = Guid.NewGuid();
             var dto = new CreateEventRequestDto
             {
@@ -99,6 +109,14 @@ namespace API_Gestao_Eventos.Tests.Services
                 StartDate = DateTime.UtcNow.AddDays(1),
                 EndDate = DateTime.UtcNow.AddDays(2)
             };
+            _authServiceMock
+                .Setup(a => a.GetUserInfoAsync(userId))
+                .ReturnsAsync(new UserResponseDto
+                {
+                    Id = userId,
+                    Role = "Professor",
+                    Email = "professor@teste.com"
+                });
             _courseRepositoryMock
                 .Setup(r => r.GetByInstitutionAsync(dto.InstitutionId))
                 .ReturnsAsync(new List<Course>());
