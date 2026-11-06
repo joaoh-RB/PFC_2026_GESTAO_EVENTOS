@@ -5,7 +5,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Services.Email
 {
     public class EmailTemplateRenderer(IHostEnvironment hostEnvironment)
     {
-        private const string TemplatesRelativePath = "../Frontend/public/email-templates";
+        private const string TemplatesRelativePath = "public/Templates";
 
         public async Task<string> RenderAsync(string templateFileName, IDictionary<string, string> placeholders)
         {
