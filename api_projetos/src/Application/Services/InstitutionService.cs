@@ -4,9 +4,9 @@ using API_Gestao_Eventos.src.Application.DTO.Institution;
 
 namespace API_Gestao_Eventos.src.Application.Services
 {
-    public class InstitutionService(InstitutionRepository institutionRepository)
+    public class InstitutionService(IInstitutionRepository institutionRepository)
     {
-        private readonly InstitutionRepository _institutionRepository = institutionRepository;
+        private readonly IInstitutionRepository _institutionRepository = institutionRepository;
 
         public async Task<IEnumerable<SelectItemDto>> GetInstituctionsForSelectAsync()
         {

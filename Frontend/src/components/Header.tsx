@@ -62,6 +62,7 @@ const navItems: NavItem[] = [
     roles: ["Administrador", "Secretaria"],
   },
   { label: "Segurança", path: "/settings", icon: ShieldCheck },
+  { label: "Eventos", path: "/event-student", icon: CalendarDays, roles: ["Aluno"] },
 ];
 
 const pageNames: Record<string, string> = {

@@ -2,7 +2,7 @@ using API_Gestao_Eventos.src.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace API_Gestao_Eventos.src.Infrastructure.Data.Configuration
+namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
 {
     public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
     {

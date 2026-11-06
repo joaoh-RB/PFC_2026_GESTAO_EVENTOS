@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+          <CodeCoverage>
+		  <ModulePaths>
+    <Exclude>
+      <ModulePath>.*\\fluentvalidation\.dll</ModulePath>
+      <ModulePath>.*\\fluentvalidation\.aspnetcore\.dll</ModulePath>
+      <ModulePath>.*\\fluentvalidation\.dependencyinjectionextensions\.dll</ModulePath>
+      <ModulePath>.*\.tests\.dll</ModulePath>
+    </Exclude>
+  </ModulePaths>
+            <!-- Exclui namespaces/classes da cobertura -->
+            <Functions>
+              <Exclude>
+
+                <!-- Migrations -->
+                <Function>^API_Gestao_Eventos\.src\.Infrastructure\.Data\.Migrations\..*</Function>
+                <Function>^API_Gestao_Eventos\.src\.Infrastructure\.Data\.Context\..*</Function>
+
+                <!-- Repositories -->
+                <Function>^API_Gestao_Eventos\.src\.Infrastructure\.Data\.Repositories\..*</Function>
+
+                <!-- Serviços externos -->
+                <Function>^API_Gestao_Eventos\.src\.Infrastructure\.Services\.GoogleCalendar\..*</Function>
+                <Function>^API_Gestao_Eventos\.src\.Infrastructure\.Services\.Storage\..*</Function>
+                <Function>^API_Gestao_Eventos\.src\.Infrastructure\.Services\.Email\..*</Function>
+                <Function>^API_Gestao_Eventos\.src\.Infrastructure\.Services\.Security\..*</Function>
+
+                <!-- Program (caso apareça) -->
+                <Function>^API_Gestao_Eventos\.Program\..*</Function>
+
+              </Exclude>
+            </Functions>
+
+            <!-- Exclui arquivos gerados automaticamente -->
+            <Sources>
+              <Exclude>
+                <Source>.*\\Migrations\\.*</Source>
+                <Source>.*\\obj\\.*</Source>
+                <Source>.*\\bin\\.*</Source>
+                <Source>.*\\.*\.g\.cs</Source>
+                <Source>.*\\AssemblyInfo\.cs</Source>
+                <Source>.*\\GlobalUsings\.g\.cs</Source>
+              </Exclude>
+            </Sources>
+
+          </CodeCoverage>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

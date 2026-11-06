@@ -1,4 +1,4 @@
-﻿using API_Gestao_Eventos.src.Domain.Entities;
+using API_Gestao_Eventos.src.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -26,9 +26,14 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Configurations
                    .HasForeignKey(i => i.InstitutionId)
                    .OnDelete(DeleteBehavior.Restrict);
 
-            //builder.Property(e => e.EventStatus)
-            //       .HasDefaultValue(EventStatus.Agendado)
-            //       .IsRequired(true);
+            builder.Property(e => e.EventStatus)
+                   .HasDefaultValue(EventStatus.Agendado)
+                   .IsRequired(true);
+
+            builder.HasOne(e => e.CreatedByUser)
+                   .WithMany()
+                   .HasForeignKey(e => e.CreatedByUserId)
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.Property(e => e.GoogleCalendarEventId);
 

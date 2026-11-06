@@ -5,7 +5,12 @@ import {
   createEventSchema,
   type CreateEventFormData,
 } from "@/schemas/eventSchema";
-import { Loader2, AlertCircle, CheckCircle2, CalendarPlus } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  CalendarPlus,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,12 +37,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { OptionItem } from "@/types/optionItem";
+import { formatWithBrazilTimezone } from "@/utils/format";
 
 interface CreateEventFormProps {
   institutions: OptionItem[];
   courses: OptionItem[];
   eventTypes: OptionItem[];
-  currentEventData?: CreateEventFormData | null;
+  currentEventData?: (CreateEventFormData & { id: string }) | null;
   userInstitutionId?: string | null;
   onSubmit: (data: CreateEventFormData) => void;
   isSubmitting: boolean;
@@ -67,6 +73,7 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
     reset,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<CreateEventFormData>({
     resolver: zodResolver(createEventSchema) as Resolver<CreateEventFormData>,
     mode: "onBlur",
@@ -79,6 +86,8 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
       institutionId: userInstitutionId || "",
       eventType: 0,
       allowDocuments: false,
+      maxGroupSize: undefined,
+      submissionDeadline: undefined,
       allowedCourses: [],
     },
   });
@@ -95,10 +104,24 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
         capacity: currentEventData.capacity,
         eventType: currentEventData.eventType,
         allowDocuments: currentEventData.allowDocuments ?? false,
+        maxGroupSize: currentEventData.maxGroupSize,
+        submissionDeadline: currentEventData.submissionDeadline,
         allowedCourses: currentEventData.allowedCourses || [],
       });
     }
   }, [currentEventData, reset, userInstitutionId]);
+
+
+  const handleFormSubmit = (data: CreateEventFormData) => {
+    onSubmit({
+      ...data,
+      startDate: formatWithBrazilTimezone(data.startDate),
+      endDate: formatWithBrazilTimezone(data.endDate),
+      submissionDeadline: data.submissionDeadline
+        ? formatWithBrazilTimezone(data.submissionDeadline)
+        : data.submissionDeadline,
+    });
+  };
 
   return (
     <Card className="surface-card max-w-4xl mx-auto shadow-none">
@@ -135,10 +158,12 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-1">
-              <Label htmlFor="name" required>Nome do Evento</Label>
+              <Label htmlFor="name" required>
+                Nome do Evento
+              </Label>
               <Input
                 id="name"
                 {...register("name")}
@@ -150,7 +175,9 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="description" required>Descrição</Label>
+              <Label htmlFor="description" required>
+                Descrição
+              </Label>
               <Textarea
                 id="description"
                 {...register("description")}
@@ -206,7 +233,9 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
             )}
 
             <div className="space-y-1">
-              <Label htmlFor="startDate" required>Data de Início</Label>
+              <Label htmlFor="startDate" required>
+                Data de Início
+              </Label>
               <Input
                 type="datetime-local"
                 id="startDate"
@@ -220,19 +249,25 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="endDate" required>Data de Término</Label>
+              <Label htmlFor="endDate" required>
+                Data de Término
+              </Label>
               <Input
                 type="datetime-local"
                 id="endDate"
                 {...register("endDate")}
               />
               {errors.endDate && (
-                <p className="text-xs text-red-600">{errors.endDate.message}</p>
+                <p className="text-xs text-red-600">
+                  {errors.endDate.message}
+                </p>
               )}
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="capacity" required>Capacidade Máxima</Label>
+              <Label htmlFor="capacity" required>
+                Capacidade Máxima
+              </Label>
               <Input
                 type="number"
                 id="capacity"
@@ -345,6 +380,48 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
               Permitir envio de documentos para a apresentação de trabalhos
             </Label>
           </div>
+
+          {watch("allowDocuments") && (
+            <div className="space-y-1">
+              <Label htmlFor="maxGroupSize">
+                Limite de alunos por grupo
+              </Label>
+              <Input
+                type="number"
+                id="maxGroupSize"
+                min="1"
+                max="10"
+                placeholder="Sem limite"
+                {...register("maxGroupSize")}
+              />
+              {errors.maxGroupSize && (
+                <p className="text-xs text-red-600">
+                  {errors.maxGroupSize.message}
+                </p>
+              )}
+            </div>
+          )}
+
+          {watch("allowDocuments") && (
+            <div className="space-y-1">
+              <Label htmlFor="submissionDeadline">
+                Prazo para montar grupos e enviar documentos
+              </Label>
+              <Input
+                type="datetime-local"
+                id="submissionDeadline"
+                {...register("submissionDeadline")}
+              />
+              <p className="text-xs text-slate-500">
+                Se ficar em branco, vale a data de início do evento.
+              </p>
+              {errors.submissionDeadline && (
+                <p className="text-xs text-red-600">
+                  {errors.submissionDeadline.message}
+                </p>
+              )}
+            </div>
+          )}
 
           <Button
             type="submit"

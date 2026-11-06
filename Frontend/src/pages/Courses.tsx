@@ -38,6 +38,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ExportExcelButton } from "@/components/ui/export-excel-button";
+import { exportToExcel } from "@/utils/exportExcel";
 
 interface CourseDetail {
   id: string;
@@ -139,6 +141,17 @@ export const Courses: React.FC = () => {
       ),
     [courses, search],
   );
+
+  const handleExportExcel = () => {
+    exportToExcel(
+      filteredCourses.map((item) => ({
+        Nome: item.name,
+        Acesso: item.isActive ? "Ativo" : "Inativo",
+      })),
+      "cursos.xlsx",
+      "Cursos",
+    );
+  };
 
   const openCreate = () => {
     setCurrentCourseBeingUpdated(null);
@@ -320,6 +333,10 @@ export const Courses: React.FC = () => {
                 </InputGroupAddon>
               </InputGroup>
             </div>
+            <ExportExcelButton
+              onExport={handleExportExcel}
+              disabled={!filteredCourses.length}
+            />
           </div>
 
           <div className="surface-card overflow-x-auto">

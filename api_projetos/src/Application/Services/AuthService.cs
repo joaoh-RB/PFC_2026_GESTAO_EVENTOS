@@ -15,18 +15,18 @@ namespace API_Gestao_Eventos.src.Application.Services
         IHasher passwordHasher,
         IJwtTokenGenerator jwtTokenGenerator,
         IGoogleAuthService googleAuthService,
-        EmailService emailService,
+        IEmailService emailService,
         EmailTemplateRenderer emailTemplateRenderer,
         IConfiguration configuration,
         AppDbContext appDbContext,
-        UserRepository userRepository)
+        IUserRepository userRepository) : IAuthService
     {
         private readonly IHasher _passwordHasher = passwordHasher;
         private readonly IJwtTokenGenerator _jwtTokenGenerator = jwtTokenGenerator;
         private readonly IGoogleAuthService _googleAuthService = googleAuthService;
-        private readonly EmailService _emailService = emailService;
+        private readonly IEmailService _emailService = emailService;
         private readonly EmailTemplateRenderer _emailTemplateRenderer = emailTemplateRenderer;
-        private readonly UserRepository _userRepository = userRepository;
+        private readonly IUserRepository _userRepository = userRepository;
         private readonly AppDbContext _appDbContext = appDbContext;
         public async Task<AuthResponseDto> RegisterStudentAsync(RegisterRequestDto request)
         {
@@ -60,7 +60,7 @@ namespace API_Gestao_Eventos.src.Application.Services
         {
             var user = await _userRepository.GetByEmailAsync(request.Email);
             if (user == null || !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
-                throw new UnauthorizedAccessException("Credenciais inválidas.");      
+                throw new UnauthorizedAccessException("Credenciais inválidas.");
             if (!user.IsActive)
                 throw new UnauthorizedAccessException("Usuário inativo. Entre em contato com a sua instituição.");
             if (user.ApprovalStatus == UserApprovalStatus.Pendente)
@@ -259,5 +259,16 @@ namespace API_Gestao_Eventos.src.Application.Services
                 InstitutionName = user.Institution?.Name ?? ""
             };
         }
+    }
+    public interface IAuthService
+    {
+        Task<AuthResponseDto> RegisterStudentAsync(RegisterRequestDto request);
+        Task<AuthResponseDto> LoginAsync(LoginRequestDto request);
+        Task<TwoFactorCreateResponseDto> SetupTwoFactorAsync(Guid userId);
+        Task<bool> EnableTwoFactorAsync(Guid userId, string code);
+        Task<AuthResponseDto> ChangeInitialPasswordAsync(ChangeInitialPasswordDto dto);
+        Task RequestPasswordResetAsync(ForgotPasswordRequestDto dto);
+        Task ResetPasswordAsync(ResetPasswordRequestDto dto);
+        Task<UserResponseDto> GetUserInfoAsync(Guid userId);
     }
 }

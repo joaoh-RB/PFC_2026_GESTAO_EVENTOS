@@ -10,9 +10,9 @@ namespace API_Gestao_Eventos.src.Controllers
     [Route("api/[controller]")]
     public class AuthController : Controller
     {
-        private readonly AuthService _authService;
+        private readonly IAuthService _authService;
 
-        public AuthController(AuthService _authService)
+        public AuthController(IAuthService _authService)
         {
             this._authService = _authService;
         }
