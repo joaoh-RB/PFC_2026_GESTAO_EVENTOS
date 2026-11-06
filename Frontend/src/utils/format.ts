@@ -18,3 +18,17 @@ export const formatForDatetimeLocal = (dateString?: string): string => {
 
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
+export const formatWithBrazilTimezone = (dateTimeLocal: string): string => {
+  if (!dateTimeLocal) return dateTimeLocal;
+  if (/(Z|[+-]\d{2}:\d{2})$/i.test(dateTimeLocal)) {
+    return dateTimeLocal;
+  }
+  const normalized =
+    dateTimeLocal.length === 16 ? `${dateTimeLocal}:00` : dateTimeLocal;
+  return `${normalized}-03:00`;
+};
+export const getBrazilDateString = (date: Date = new Date()): string => {
+  return date.toLocaleDateString("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+  });
+};

@@ -18,6 +18,9 @@ namespace API_Gestao_Eventos.src.Domain.Entities
         public ICollection<EventAllowedCourse> EventAllowedCourses { get; set; } = new List<EventAllowedCourse>();
         public bool IsActive { get; set; } = true;
         public bool AllowDocuments { get; set; }
+        public int? MaxGroupSize { get; set; }
+        public DateTime? SubmissionDeadline { get; set; }
+        public DateTime SubmissionCutoff => SubmissionDeadline ?? StartDate;
         public EventType EventType { get; set; }
         public string? GoogleCalendarEventId { get; set; }
         public string? AttendanceCode { get; set; }

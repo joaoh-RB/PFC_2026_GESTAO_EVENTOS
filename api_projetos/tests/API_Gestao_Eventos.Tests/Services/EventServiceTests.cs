@@ -18,13 +18,16 @@ namespace API_Gestao_Eventos.Tests.Services
         private readonly Mock<ICourseRepository> _courseRepositoryMock;
         private readonly Mock<IGoogleCalendarService> _googleCalendarServiceMock;
         private readonly Mock<IAuthService> _authServiceMock;
+        private readonly Mock<IGroupRepository> _groupRepositoryMock;
+
         public EventServiceTests()
         {
             _eventRepositoryMock = new Mock<IEventRepository>();
             _courseRepositoryMock = new Mock<ICourseRepository>();
             _googleCalendarServiceMock = new Mock<IGoogleCalendarService>();
             _authServiceMock = new Mock<IAuthService>();
-            _eventService = new EventService(_eventRepositoryMock.Object, _courseRepositoryMock.Object, _googleCalendarServiceMock.Object, _authServiceMock.Object);
+            _groupRepositoryMock = new Mock<IGroupRepository>();
+            _eventService = new EventService(_eventRepositoryMock.Object, _courseRepositoryMock.Object, _googleCalendarServiceMock.Object, _authServiceMock.Object, _groupRepositoryMock.Object);
         }
         //Cenário 7: Caminho feliz com verificação de interação mockada (Times.Once)
         [Fact]
@@ -68,6 +71,10 @@ namespace API_Gestao_Eventos.Tests.Services
             _eventRepositoryMock
                 .Setup(r => r.AddAsync(It.IsAny<Event>()))
                 .ReturnsAsync(savedEvent);
+            var userId = Guid.NewGuid();
+            _authServiceMock
+                .Setup(a => a.GetUserInfoAsync(userId))
+                .ReturnsAsync(new UserResponseDto { Id = userId, Role = "Professor" });
             // Act
             var result = await _eventService.AddAsync(dto, userId);
             // Assert
@@ -113,6 +120,10 @@ namespace API_Gestao_Eventos.Tests.Services
             _courseRepositoryMock
                 .Setup(r => r.GetByInstitutionAsync(dto.InstitutionId))
                 .ReturnsAsync(new List<Course>());
+            var userId = Guid.NewGuid();
+            _authServiceMock
+                .Setup(a => a.GetUserInfoAsync(userId))
+                .ReturnsAsync(new UserResponseDto { Id = userId, Role = "Professor" });
             // Act & Assert
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 _eventService.AddAsync(dto, userId));
