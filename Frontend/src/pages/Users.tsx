@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 import { useAuth } from "../hooks/useAuth";
+import { useClientPagination } from "../hooks/useClientPagination";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   InputGroup,
   InputGroupAddon,
@@ -171,6 +173,15 @@ export const Users: React.FC = () => {
       }),
     [users, search, status, user?.role, userInstitutionId],
   );
+
+  const {
+    page,
+    setPage,
+    totalPages,
+    pageItems: pagedUsers,
+    totalItems,
+    pageSize,
+  } = useClientPagination(filteredUsers, `${search}|${status}`);
 
   const handleExportExcel = () => {
     exportToExcel(
@@ -364,7 +375,7 @@ export const Users: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.map((user) => (
+            {pagedUsers.map((user) => (
               <TableRow key={user.id} className="hover:bg-slate-50 min-h-14">
                 <TableCell className="w-[32%] px-4 py-4 align-middle">
                   <div className="space-y-0.5 leading-tight">
@@ -495,6 +506,13 @@ export const Users: React.FC = () => {
           </TableBody>
         </Table>
       </div>
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={pageSize}
+        onPageChange={setPage}
+      />
       {showForm && (
         <div className="modal-backdrop">
           <div className="modal-panel max-w-xl">

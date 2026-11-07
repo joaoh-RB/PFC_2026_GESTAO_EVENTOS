@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { useClientPagination } from "../hooks/useClientPagination";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { DeleteConfirmation } from "../components/ui/deleteConfirm";
 import { PageHeader } from "../components/PageHeader";
 import { CreateInstitutionForm } from "../components/institutions/CreateInstitutionForm";
@@ -180,6 +182,15 @@ const AllInstitutionsManager: React.FC = () => {
     [institutions, search],
   );
 
+  const {
+    page,
+    setPage,
+    totalPages,
+    pageItems: pagedInstitutions,
+    totalItems,
+    pageSize,
+  } = useClientPagination(filteredInstitutions, search);
+
   const handleExportExcel = () => {
     exportToExcel(
       filteredInstitutions.map((item) => ({
@@ -356,7 +367,7 @@ const AllInstitutionsManager: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredInstitutions.map((item) => (
+                {pagedInstitutions.map((item) => (
                   <TableRow key={item.id} className="hover:bg-slate-50">
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-2 font-medium text-slate-900">
@@ -424,6 +435,13 @@ const AllInstitutionsManager: React.FC = () => {
               </TableBody>
             </Table>
           </div>
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+          />
         </>
       )}
     </main>

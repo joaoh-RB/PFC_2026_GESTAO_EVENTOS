@@ -31,6 +31,8 @@ import type { EventItem } from "./EventList";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 import { ExportExcelButton } from "@/components/ui/export-excel-button";
 import { exportToExcel, fetchAllPages } from "@/utils/exportExcel";
+import { useClientPagination } from "@/hooks/useClientPagination";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 interface EventRegistrationItem {
   studentId: string;
@@ -80,7 +82,7 @@ interface EventDocumentItem {
 
 type DetailsTab = "registrations" | "groups";
 
-const REGISTRATIONS_PAGE_SIZE = 10;
+const REGISTRATIONS_PAGE_SIZE = 20;
 
 const groupMemberStatusLabel: Record<number, string> = {
   [GroupMemberStatus.Invited]: "Convidado",
@@ -147,6 +149,14 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
   const [isFeedbacksLoading, setIsFeedbacksLoading] = useState(false);
   const [feedbacksError, setFeedbacksError] = useState<string | null>(null);
   const [feedbacks, setFeedbacks] = useState<EventFeedbackDto[]>([]);
+  const {
+    page: feedbackPage,
+    setPage: setFeedbackPage,
+    totalPages: feedbackTotalPages,
+    pageItems: pagedFeedbacks,
+    totalItems: feedbackTotalItems,
+    pageSize: feedbackPageSize,
+  } = useClientPagination(feedbacks, event.id);
 
   const hasEventDatePassed = new Date(event.startDate).getTime() <= Date.now();
   const isEventEnded = new Date(event.endDate).getTime() <= Date.now();
@@ -747,7 +757,7 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {feedbacks.map((item) => (
+                      {pagedFeedbacks.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell className="font-medium text-slate-900">
                             {item.studentName}
@@ -782,6 +792,13 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                   </Table>
                 </div>
               )}
+              <TablePagination
+                page={feedbackPage}
+                totalPages={feedbackTotalPages}
+                totalItems={feedbackTotalItems}
+                pageSize={feedbackPageSize}
+                onPageChange={setFeedbackPage}
+              />
             </div>
           </div>
         ) : (

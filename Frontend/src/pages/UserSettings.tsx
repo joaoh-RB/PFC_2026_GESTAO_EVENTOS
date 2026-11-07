@@ -233,7 +233,7 @@ export const UserSettings: React.FC = () => {
                             className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100"
                         >
                             <Trash2 className="h-4 w-4" />
-                            Excluir / anonimizar meus dados
+                            Anonimizar Meus Dados
                         </button>
                     </div>
                 )}

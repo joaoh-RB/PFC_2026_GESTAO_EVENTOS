@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { useClientPagination } from "../hooks/useClientPagination";
+import { TablePagination } from "@/components/ui/table-pagination";
 import type { OptionItem } from "../types/optionItem";
 import { DeleteConfirmation } from "../components/ui/deleteConfirm";
 import { PageHeader } from "../components/PageHeader";
@@ -140,6 +142,18 @@ export const Courses: React.FC = () => {
         item.name.toLowerCase().includes(search.toLowerCase()),
       ),
     [courses, search],
+  );
+
+  const {
+    page,
+    setPage,
+    totalPages,
+    pageItems: pagedCourses,
+    totalItems,
+    pageSize,
+  } = useClientPagination(
+    filteredCourses,
+    `${search}|${selectedInstitutionId}`,
   );
 
   const handleExportExcel = () => {
@@ -349,7 +363,7 @@ export const Courses: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCourses.map((item) => (
+                {pagedCourses.map((item) => (
                   <TableRow key={item.id} className="hover:bg-slate-50">
                     <TableCell>
                       <div className="flex items-center gap-2 font-medium text-slate-900">
@@ -419,6 +433,13 @@ export const Courses: React.FC = () => {
               </TableBody>
             </Table>
           </div>
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+          />
         </>
       )}
     </main>

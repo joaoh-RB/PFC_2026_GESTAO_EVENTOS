@@ -17,7 +17,7 @@ import { CreateInstitutionMemberForm } from "@/components/users/CreateInstitutio
 import { PageHeader } from "@/components/PageHeader";
 
 export const InstitutionMembers: React.FC = () => {
-  const pageSize = 10;
+  const pageSize = 20;
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
   const [courses, setCourses] = useState<OptionItem[]>([]);
   const [userRoles, setUserRoles] = useState<OptionItem[]>([]);
