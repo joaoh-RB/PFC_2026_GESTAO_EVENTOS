@@ -362,6 +362,91 @@ namespace API_Gestao_Eventos.Tests.Services
             Assert.Equal("nova-hash", user.PasswordHash);
             _userRepositoryMock.Verify(r => r.UpdateAsync(user), Times.Once);
         }
+
+        [Fact]
+        public async Task AnonymizePersonalDataAsync_QuandoAdministrador_DeveLancarUnauthorizedAccessException()
+        {
+            var admin = new Administrator
+            {
+                Id = Guid.NewGuid(),
+                Name = "Admin Teste",
+                Email = "admin@teste.com",
+                PasswordHash = "hash-senha"
+            };
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(admin.Id)).ReturnsAsync(admin);
+
+            var exception = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _authService.AnonymizePersonalDataAsync(admin.Id));
+
+            Assert.Equal("O administrador não pode excluir ou anonimizar dados por esta operação.", exception.Message);
+            Assert.Equal("Admin Teste", admin.Name);
+            Assert.Equal("admin@teste.com", admin.Email);
+        }
+
+        [Fact]
+        public async Task AnonymizePersonalDataAsync_QuandoAluno_DeveAnonimizarContaHistoricoEEmail()
+        {
+            var student = new Student
+            {
+                Id = Guid.NewGuid(),
+                Name = "Aluno Teste",
+                Email = "aluno@teste.com",
+                PasswordHash = "hash-senha",
+                IsActive = true,
+                ApprovalStatus = UserApprovalStatus.Aprovado,
+                UniqueIdentifier = "RGM123456",
+                CourseId = Guid.NewGuid(),
+                InstitutionId = Guid.NewGuid(),
+                TwoFactorEnabled = true,
+                TwoFactorSecretKey = "SECRET123"
+            };
+            _dbContext.Students.Add(student);
+            _dbContext.AuditLogs.Add(new AuditLog
+            {
+                EntityId = student.Id.ToString(),
+                EntityName = "Student",
+                OperationType = AuditOperationType.Update,
+                UserId = Guid.NewGuid(),
+                OldValues = "{\"email\":\"antigo@teste.com\",\"name\":\"Nome Antigo\",\"passwordHash\":\"segredo\"}",
+                NewValues = "{\"email\":\"aluno@teste.com\",\"name\":\"Aluno Teste\"}"
+            });
+            _dbContext.AuditLogs.Add(new AuditLog
+            {
+                EntityId = Guid.NewGuid().ToString(),
+                EntityName = "Event",
+                OperationType = AuditOperationType.Update,
+                UserId = student.Id,
+                OldValues = "{\"name\":\"Semana Academica\"}",
+                NewValues = "{\"name\":\"Semana Academica\"}",
+                Description = "Enviado para aluno@teste.com"
+            });
+            await _dbContext.SaveChangesAsync();
+
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(student.Id)).ReturnsAsync(student);
+            _userRepositoryMock.Setup(r => r.UpdateAsync(student)).Returns(() => _dbContext.SaveChangesAsync());
+            _hasherMock.Setup(h => h.HashPassword(It.IsAny<string>())).Returns("anon-hash");
+
+            await _authService.AnonymizePersonalDataAsync(student.Id);
+
+            Assert.Equal("Usuário anonimizado", student.Name);
+            Assert.StartsWith("anonimizado-", student.Email);
+            Assert.EndsWith("@removido.local", student.Email);
+            Assert.False(student.IsActive);
+            Assert.False(student.TwoFactorEnabled);
+            Assert.Null(student.TwoFactorSecretKey);
+            Assert.Equal(20, student.UniqueIdentifier.Length);
+            Assert.NotEqual("RGM123456", student.UniqueIdentifier);
+
+            var logs = await _dbContext.AuditLogs.ToListAsync();
+            var serialized = string.Join('\n', logs.Select(log => $"{log.OldValues} {log.NewValues} {log.Description}"));
+            Assert.DoesNotContain("Aluno Teste", serialized);
+            Assert.DoesNotContain("Nome Antigo", serialized);
+            Assert.DoesNotContain("aluno@teste.com", serialized);
+            Assert.DoesNotContain("antigo@teste.com", serialized);
+            Assert.DoesNotContain("segredo", serialized);
+            Assert.DoesNotContain("RGM123456", serialized);
+            Assert.Contains("Semana Academica", serialized);
+            Assert.Contains("Usuário anonimizado", serialized);
+        }
     }
 }
 

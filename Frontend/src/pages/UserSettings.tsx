@@ -2,8 +2,16 @@ import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
-import { ShieldCheck, ShieldAlert, KeyRound, Copy, Check, Loader2, AlertCircle } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, KeyRound, Copy, Check, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '../components/ui/dialog';
 
 interface Setup2FAResponse {
     secretKey: string;
@@ -11,7 +19,8 @@ interface Setup2FAResponse {
 }
 
 export const UserSettings: React.FC = () => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
+    const canAnonymize = user?.role !== 'Administrador';
 
     const [is2FAEnabled, setIs2FAEnabled] = useState(user?.twoFactorEnabled ?? false);
     const [setupData, setSetupData] = useState<Setup2FAResponse | null>(null);
@@ -20,6 +29,10 @@ export const UserSettings: React.FC = () => {
     const [isActivating, setIsActivating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [anonymizeOpen, setAnonymizeOpen] = useState(false);
+    const [confirmedPermanent, setConfirmedPermanent] = useState(false);
+    const [isAnonymizing, setIsAnonymizing] = useState(false);
+    const [anonymizeError, setAnonymizeError] = useState<string | null>(null);
 
     const handleStartSetup = async () => {
         setError(null);
@@ -48,6 +61,26 @@ export const UserSettings: React.FC = () => {
             setError(err.response?.data?.message || 'Código inválido. Tente novamente.');
         } finally {
             setIsActivating(false);
+        }
+    };
+
+    const handleOpenAnonymize = () => {
+        setAnonymizeError(null);
+        setConfirmedPermanent(false);
+        setAnonymizeOpen(true);
+    };
+
+    const handleAnonymize = async () => {
+        if (!confirmedPermanent) return;
+        setAnonymizeError(null);
+        setIsAnonymizing(true);
+        try {
+            await api.post('/auth/anonymize');
+            setAnonymizeOpen(false);
+            await logout();
+        } catch (err: any) {
+            setAnonymizeError(err.response?.data?.message || 'Não foi possível anonimizar os dados.');
+            setIsAnonymizing(false);
         }
     };
 
@@ -187,7 +220,101 @@ export const UserSettings: React.FC = () => {
                         </div>
                     </div>
                 )}
+
+                {canAnonymize && (
+                    <div className="mt-8 border-t border-slate-100 pt-8">
+                        <h3 className="text-base font-semibold text-slate-900">Excluir e anonimizar dados</h3>
+                        <p className="mt-1 max-w-2xl text-sm text-slate-600">
+                            Remove sua identificação das tabelas do sistema e anonimiza o histórico de e-mail. A conta deixa de poder ser acessada.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleOpenAnonymize}
+                            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            Excluir / anonimizar meus dados
+                        </button>
+                    </div>
+                )}
             </div>
+
+            {canAnonymize && (
+                <Dialog
+                    open={anonymizeOpen}
+                    onOpenChange={(open) => {
+                        if (!open && !isAnonymizing) setAnonymizeOpen(false);
+                    }}
+                >
+                    <DialogContent
+                        showCloseButton={!isAnonymizing}
+                        className="w-[calc(100vw-1.5rem)] sm:max-w-4xl max-h-[92vh] overflow-y-auto gap-0 p-0"
+                    >
+                        <div className="border-b border-red-100 bg-red-50 px-8 py-8 sm:px-10">
+                            <DialogHeader className="gap-3">
+                                <DialogTitle className="text-2xl font-bold text-slate-900 sm:text-3xl">
+                                    Esta exclusão é permanente
+                                </DialogTitle>
+                                <DialogDescription className="text-base leading-relaxed text-slate-700">
+                                    Se você confirmar, seus dados pessoais serão anonimizados agora e não poderão ser recuperados. O administrador não executa esta ação: ela vale apenas para a sua própria conta.
+                                </DialogDescription>
+                            </DialogHeader>
+                        </div>
+
+                        <div className="space-y-5 px-8 py-8 text-base leading-relaxed text-slate-700 sm:px-10">
+                            <p className="font-medium text-slate-900">
+                                Ao confirmar, o sistema faz o seguinte de forma definitiva:
+                            </p>
+                            <ul className="list-disc space-y-3 pl-5">
+                                <li>O seu nome deixa de aparecer em eventos, grupos, documentos, presenças, avaliações e demais tabelas vinculadas.</li>
+                                <li>O e-mail atual é substituído e o histórico de e-mail também é anonimizado.</li>
+                                <li>A autenticação em dois fatores é removida e a conta é desativada.</li>
+                                <li>Não existe como desfazer, restaurar o nome ou voltar a entrar com este usuário.</li>
+                            </ul>
+
+                            <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <input
+                                    type="checkbox"
+                                    className="mt-1 h-4 w-4"
+                                    checked={confirmedPermanent}
+                                    onChange={(e) => setConfirmedPermanent(e.target.checked)}
+                                    disabled={isAnonymizing}
+                                />
+                                <span className="text-sm font-medium text-slate-800">
+                                    Confirmo que entendo que esta exclusão é permanente e quero anonimizar meus dados.
+                                </span>
+                            </label>
+
+                            {anonymizeError && (
+                                <div className="flex items-center gap-2 rounded-lg bg-red-50 p-4 text-sm text-red-700">
+                                    <AlertCircle className="h-5 w-5 shrink-0" />
+                                    <span>{anonymizeError}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <DialogFooter className="mx-0 mb-0 gap-3 px-8 py-6 sm:px-10">
+                            <button
+                                type="button"
+                                className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                onClick={() => setAnonymizeOpen(false)}
+                                disabled={isAnonymizing}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                                onClick={handleAnonymize}
+                                disabled={!confirmedPermanent || isAnonymizing}
+                            >
+                                {isAnonymizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                Confirmar exclusão permanente
+                            </button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     );
 };
