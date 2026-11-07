@@ -50,6 +50,20 @@ namespace API_Gestao_Eventos.src.Controllers
             catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
             catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         }
+        [HttpPost("{id:guid}/2fa/disable")]
+        [Authorize(Roles = nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
+        public async Task<IActionResult> DisableTwoFactor(Guid id)
+        {
+            try
+            {
+                var actorId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                await userService.DisableTwoFactorAsync(id, actorId);
+                return Ok(new { message = "Autenticação em duas etapas desativada." });
+            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        }
         [HttpPatch("{id:guid}/active")]
         public async Task<IActionResult> SetActive(Guid id, ActiveRequest request)
         {

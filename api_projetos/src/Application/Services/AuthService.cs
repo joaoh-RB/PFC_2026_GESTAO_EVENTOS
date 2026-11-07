@@ -148,6 +148,25 @@ namespace API_Gestao_Eventos.src.Application.Services
             await _userRepository.UpdateAsync(user);
             return true;
         }
+
+        public async Task DisableTwoFactorAsync(Guid userId)
+        {
+            var user = await _userRepository.GetByIdAsync(userId)
+                ?? throw new KeyNotFoundException("Usuário não encontrado.");
+
+            if (!user.TwoFactorEnabled)
+                throw new InvalidOperationException("A autenticação em duas etapas já está desativada.");
+
+            user.TwoFactorEnabled = false;
+            user.TwoFactorSecretKey = null;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+            await _appDbContext.LogAuthEventAsync(
+                AuditOperationType.Update,
+                "Autenticação em duas etapas desativada",
+                user.Id
+            );
+        }
         public async Task<AuthResponseDto> ChangeInitialPasswordAsync(ChangeInitialPasswordDto dto)
         {
             var user = await _userRepository.GetByEmailAsync(dto.Email);
@@ -391,6 +410,7 @@ namespace API_Gestao_Eventos.src.Application.Services
         Task<AuthResponseDto> LoginAsync(LoginRequestDto request);
         Task<TwoFactorCreateResponseDto> SetupTwoFactorAsync(Guid userId);
         Task<bool> EnableTwoFactorAsync(Guid userId, string code);
+        Task DisableTwoFactorAsync(Guid userId);
         Task<AuthResponseDto> ChangeInitialPasswordAsync(ChangeInitialPasswordDto dto);
         Task RequestPasswordResetAsync(ForgotPasswordRequestDto dto);
         Task ResetPasswordAsync(ResetPasswordRequestDto dto);

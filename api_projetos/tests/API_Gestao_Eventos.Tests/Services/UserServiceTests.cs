@@ -278,6 +278,63 @@ namespace API_Gestao_Eventos.Tests.Services
             Assert.False(student.IsActive);
             _userRepositoryMock.Verify(r => r.UpdateAsync(student), Times.Exactly(2));
         }
+
+        [Fact]
+        public async Task DisableTwoFactorAsync_QuandoSecretariaDaMesmaInstituicao_DeveDesativar()
+        {
+            var institutionId = Guid.NewGuid();
+            var secretary = new AcademicDepartment
+            {
+                Id = Guid.NewGuid(),
+                Name = "Secretaria",
+                Email = "secretaria@teste.com",
+                InstitutionId = institutionId
+            };
+            var student = SeedStudent(institutionId: institutionId);
+            student.TwoFactorEnabled = true;
+            student.TwoFactorSecretKey = "SECRET";
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(secretary.Id)).ReturnsAsync(secretary);
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(student.Id)).ReturnsAsync(student);
+
+            await _userService.DisableTwoFactorAsync(student.Id, secretary.Id);
+
+            Assert.False(student.TwoFactorEnabled);
+            Assert.Null(student.TwoFactorSecretKey);
+            _userRepositoryMock.Verify(r => r.UpdateAsync(student), Times.Once);
+        }
+
+        [Fact]
+        public async Task DisableTwoFactorAsync_QuandoSecretariaDeOutraInstituicao_DeveNegar()
+        {
+            var secretary = new AcademicDepartment
+            {
+                Id = Guid.NewGuid(),
+                Name = "Secretaria",
+                Email = "secretaria@teste.com",
+                InstitutionId = Guid.NewGuid()
+            };
+            var student = SeedStudent();
+            student.TwoFactorEnabled = true;
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(secretary.Id)).ReturnsAsync(secretary);
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(student.Id)).ReturnsAsync(student);
+
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                _userService.DisableTwoFactorAsync(student.Id, secretary.Id));
+        }
+
+        [Fact]
+        public async Task DisableTwoFactorAsync_QuandoProfessor_DeveNegar()
+        {
+            var institutionId = Guid.NewGuid();
+            var teacher = SeedTeacher(institutionId, Guid.NewGuid());
+            var student = SeedStudent(institutionId: institutionId);
+            student.TwoFactorEnabled = true;
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(teacher.Id)).ReturnsAsync(teacher);
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(student.Id)).ReturnsAsync(student);
+
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                _userService.DisableTwoFactorAsync(student.Id, teacher.Id));
+        }
     }
 }
 

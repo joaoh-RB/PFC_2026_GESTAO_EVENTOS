@@ -239,6 +239,28 @@ namespace API_Gestao_Eventos.Tests.Services
         }
 
         [Fact]
+        public async Task DisableTwoFactorAsync_QuandoAtivo_DeveLimparChaveEDesativar()
+        {
+            var user = SeedStudent(twoFactorEnabled: true);
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(user.Id)).ReturnsAsync(user);
+
+            await _authService.DisableTwoFactorAsync(user.Id);
+
+            Assert.False(user.TwoFactorEnabled);
+            Assert.Null(user.TwoFactorSecretKey);
+            _userRepositoryMock.Verify(r => r.UpdateAsync(user), Times.Once);
+        }
+
+        [Fact]
+        public async Task DisableTwoFactorAsync_QuandoJaDesativado_DeveLancarInvalidOperationException()
+        {
+            var user = SeedStudent();
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(user.Id)).ReturnsAsync(user);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _authService.DisableTwoFactorAsync(user.Id));
+        }
+
+        [Fact]
         public async Task ChangeInitialPasswordAsync_QuandoDadosValidos_DeveAlterarSenhaEGerarToken()
         {
             var user = SeedStudent(isPasswordChangeRequired: true);

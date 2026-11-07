@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
-import { ShieldCheck, ShieldAlert, KeyRound, Copy, Check, Loader2, AlertCircle, Trash2 } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, ShieldOff, KeyRound, Copy, Check, Loader2, AlertCircle, Trash2 } from 'lucide-react';
+import { DeleteConfirmation } from '../components/ui/deleteConfirm';
 import { PageHeader } from '../components/PageHeader';
 import {
     Dialog,
@@ -19,7 +20,7 @@ interface Setup2FAResponse {
 }
 
 export const UserSettings: React.FC = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, syncAuth } = useAuth();
     const canAnonymize = user?.role !== 'Administrador';
 
     const [is2FAEnabled, setIs2FAEnabled] = useState(user?.twoFactorEnabled ?? false);
@@ -33,6 +34,11 @@ export const UserSettings: React.FC = () => {
     const [confirmedPermanent, setConfirmedPermanent] = useState(false);
     const [isAnonymizing, setIsAnonymizing] = useState(false);
     const [anonymizeError, setAnonymizeError] = useState<string | null>(null);
+    const [isDisabling2FA, setIsDisabling2FA] = useState(false);
+
+    useEffect(() => {
+        setIs2FAEnabled(user?.twoFactorEnabled ?? false);
+    }, [user?.twoFactorEnabled]);
 
     const handleStartSetup = async () => {
         setError(null);
@@ -57,10 +63,27 @@ export const UserSettings: React.FC = () => {
             setIs2FAEnabled(true);
             setSetupData(null);
             setCode('');
+            await syncAuth();
         } catch (err: any) {
             setError(err.response?.data?.message || 'Código inválido. Tente novamente.');
         } finally {
             setIsActivating(false);
+        }
+    };
+
+    const handleDisable2FA = async () => {
+        setError(null);
+        setIsDisabling2FA(true);
+        try {
+            await api.post('/auth/2fa/disable');
+            setIs2FAEnabled(false);
+            setSetupData(null);
+            setCode('');
+            await syncAuth();
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Não foi possível desativar a autenticação em duas etapas.');
+        } finally {
+            setIsDisabling2FA(false);
         }
     };
 
@@ -130,6 +153,20 @@ export const UserSettings: React.FC = () => {
                         <p className="mt-1">
                             Sempre que fizer login, você precisará informar o código gerado pelo aplicativo Google Authenticator ou similar.
                         </p>
+                        <DeleteConfirmation
+                            onDelete={handleDisable2FA}
+                            descriptionText="O login voltará a exigir apenas e-mail e senha. Você poderá ativar a autenticação em duas etapas de novo depois."
+                            confirmationText={isDisabling2FA ? 'Desativando...' : 'Desativar'}
+                        >
+                            <button
+                                type="button"
+                                disabled={isDisabling2FA}
+                                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-white px-4 py-2.5 text-sm font-semibold text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                            >
+                                {isDisabling2FA ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />}
+                                Desativar autenticação em duas etapas
+                            </button>
+                        </DeleteConfirmation>
                     </div>
                 )}
 

@@ -17,7 +17,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Loader2, Pencil, CircleOff, Check } from "lucide-react";
+import { Loader2, Pencil, CircleOff, Check, ShieldOff } from "lucide-react";
 import { type PagedResult } from "@/types/utils";
 import type { OptionItem } from "@/types/optionItem";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
@@ -46,6 +46,7 @@ export interface InstitutionMemberItem {
   coursesNames?: string[];
   coursesIds?: string[];
   isActive: boolean;
+  twoFactorEnabled: boolean;
 }
 
 export interface InstitutionMemberFilterState {
@@ -64,6 +65,7 @@ interface InstitutionMemberListProps {
   onPageChange: (page: number) => void;
   handleStartEdition: (userData: InstitutionMemberItem) => void;
   handleDelete: (userId: string, isActive: boolean) => void;
+  handleDisableMfa: (userId: string) => void;
 }
 
 export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
@@ -77,6 +79,7 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
   onPageChange,
   handleStartEdition,
   handleDelete,
+  handleDisableMfa,
 }) => {
   const allInstitutionsName = "Todas as instituições";
   const [userRoleId, setUserRoleId] = useState<number | string>(
@@ -86,6 +89,8 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
     currentFilters?.institutionId || allInstitutionsName,
   );
   const { user: currentUser } = useAuth();
+  const canDisableMfa =
+    currentUser?.role === "Administrador" || currentUser?.role === "Secretaria";
   const applyFilters = (
     newUserRoleId?: number | string,
     newInstitutionId?: string,
@@ -267,6 +272,20 @@ export const InstitutionMemberList: React.FC<InstitutionMemberListProps> = ({
                             className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
                             <Pencil className="h-4 w-4" />
                           </button>
+                          {canDisableMfa && user.twoFactorEnabled && (
+                            <DeleteConfirmation
+                              children={
+                                <button
+                                  title="Desativar MFA"
+                                  className="rounded p-2 text-amber-700 hover:bg-amber-50">
+                                  <ShieldOff className="h-4 w-4" />
+                                </button>
+                              }
+                              onDelete={() => handleDisableMfa(user.id)}
+                              descriptionText="Tem certeza que deseja desativar a autenticação em duas etapas deste membro?"
+                              confirmationText="Desativar MFA"
+                            />
+                          )}
                           {user.isActive && user.id !== currentUser!.id && (
                             <DeleteConfirmation
                               children={

@@ -109,6 +109,26 @@ namespace API_Gestao_Eventos.src.Controllers
             return Ok(new { message = "Autenticação 2FA ativada com sucesso." });
         }
 
+        [Authorize]
+        [HttpPost("2fa/disable")]
+        public async Task<IActionResult> Disable2FA()
+        {
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            try
+            {
+                await _authService.DisableTwoFactorAsync(userId);
+                return Ok(new { message = "Autenticação em duas etapas desativada." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpPost("change-initial-password")]
         public async Task<IActionResult> ChangeInitialPassword([FromBody] ChangeInitialPasswordDto request)
         {
