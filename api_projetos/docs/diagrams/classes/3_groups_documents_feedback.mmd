@@ -1,17 +1,27 @@
 classDiagram
     direction TB
 
-    class DocumentApprovalStatus {
+    class DocumentStatus {
         <<enumeration>>
-        Pending = 1
-        Approved = 2
-        Rejected = 3
+        Pending
+        Approved
+        Rejected
+    }
+
+    class GroupMemberStatus {
+        <<enumeration>>
+        Invited = 1
+        Accepted = 2
+        Declined = 3
+        Requested = 4
     }
 
     class Event {
         +Guid Id
         +string Name
         +bool AllowDocuments
+        +int MaxGroupSize
+        +DateTime SubmissionDeadline
     }
 
     class Student {
@@ -29,34 +39,41 @@ classDiagram
 
     class Group {
         +Guid Id
-        +string Name
+        +int Number
         +Guid EventId
+        +Guid LeaderId
         +bool IsActive
         +DateTime CreatedAt
     }
 
     class GroupMember {
-        <<aggregation>>
-        +Guid Id
+        <<join entity>>
         +Guid GroupId
         +Guid StudentId
         +Guid EventId
         +DateTime JoinedAt
-        +bool IsActive
+        +GroupMemberStatus Status
     }
 
     class Document {
         +Guid Id
-        +string Title
-        +string Url
-        +Guid EventId
         +Guid GroupId
-        +Guid SubmittedByStudentId
-        +DocumentApprovalStatus ApprovalStatus
-        +Guid ReviewedByUserId
-        +DateTime ReviewedAt
-        +string ReviewNotes
+        +Guid SenderId
+        +string OriginalFileName
+        +string StorageKey
+        +string ContentType
+        +long FileSizeBytes
         +DateTime SubmittedAt
+        +DocumentStatus Status
+    }
+
+    class DocumentApprovalHistory {
+        +Guid Id
+        +Guid DocumentId
+        +Guid ReviewerId
+        +DocumentStatus Status
+        +string Feedback
+        +DateTime ReviewedAt
     }
 
     class EventFeedback {
@@ -70,17 +87,30 @@ classDiagram
 
     %% Relacionamentos de Grupos e Membros
     Event "1" *-- "*" Group : possui
+    Student "1" --> "*" Group : lidera
     Group "1" *-- "1..*" GroupMember : membros
     Student "1" o-- "*" GroupMember : pertence
     Event "1" o-- "*" GroupMember : escopo
+    GroupMember --> GroupMemberStatus : status
 
     %% Relacionamentos de Documentos
-    Event "1" o-- "*" Document : recebe
     Group "1" o-- "*" Document : submete
-    Student "1" o-- "*" Document : envia
-    User "0..1" --> "*" Document : revisa/aprova
-    Document --> DocumentApprovalStatus : status
+    User "1" o-- "*" Document : envia
+    Document "1" *-- "*" DocumentApprovalHistory : histórico
+    User "1" --> "*" DocumentApprovalHistory : revisa/aprova
+    Document --> DocumentStatus : status
 
     %% Relacionamentos de Feedback pós-evento
     Event "1" o-- "*" EventFeedback : avaliações pós-evento
     Student "1" o-- "*" EventFeedback : avalia
+
+    style Event fill:#f0fdfa,stroke:#2dd4bf,stroke-width:2px,color:#333
+    style Student fill:#fff5ec,stroke:#fb923c,stroke-width:2px,color:#333
+    style User fill:#ecfeff,stroke:#22d3ee,stroke-width:2px,color:#333
+    style Group fill:#f0fdf4,stroke:#4ade80,stroke-width:2px,color:#333
+    style GroupMember fill:#f5f3ff,stroke:#a78bfa,stroke-width:2px,color:#333
+    style Document fill:#fff1f2,stroke:#f87171,stroke-width:2px,color:#333
+    style DocumentApprovalHistory fill:#eff6ff,stroke:#60a5fa,stroke-width:2px,color:#333
+    style EventFeedback fill:#fffbeb,stroke:#facc15,stroke-width:2px,color:#333
+    style DocumentStatus fill:#fdf4ff,stroke:#e879f9,stroke-width:2px,color:#333
+    style GroupMemberStatus fill:#fdf2f8,stroke:#f472b6,stroke-width:2px,color:#333

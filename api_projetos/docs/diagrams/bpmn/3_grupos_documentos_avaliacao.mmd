@@ -1,36 +1,43 @@
 flowchart TD
-    %% Processo BPMN 3: Grupos de Trabalho e Submissão/Avaliação de Documentos
-    
+    %% Processo BPMN: Grupos de Trabalho e Submissão/Avaliação de Documentos
+
     subgraph Pool_GruposDocs ["BPMN: Formação de Grupos, Submissão e Avaliação de Documentos"]
-        
-        subgraph Lane_Alunos ["Raia: Alunos (Grupo)"]
-            Start3(["Início: Evento aberto a trabalhos"]) --> Task_CriaGrupo["Criar novo Grupo para o evento"]
-            Task_CriaGrupo --> Task_ConvidaMembros["Adicionar membros (GroupMembers)\nvínculados ao EventId"]
-            Task_ConvidaMembros --> Task_ElaboraTrabalho["Elaborar trabalho/artigo acadêmico"]
-            Task_ElaboraTrabalho --> Task_SubmeteDoc["Submeter Documento com URL\ne identificação do grupo"]
-            Task_AjustaDoc["Corrigir e reenviar trabalho"] --> Task_SubmeteDoc
-            End_Aprovado(["Fim: Documento Homologado"])
+
+        subgraph Lane_Avaliador ["Raia: Membro da Instituição"]
+            Task_AcessaPainel["Acessar fila de documentos pendentes"] --> Task_AbreUrl["Baixar documento e avaliar"]
+            Task_AbreUrl --> Gate_Parecer{"Parecer do Documento?"}
+            Gate_Parecer -- Aprovado --> Task_EmiteAprov["Registrar parecer favorável"]
+            Gate_Parecer -- Rejeitado --> Task_EmiteRej["Inserir correções necessárias"]
         end
 
         subgraph Lane_Sistema3 ["Raia: Sistema (Back-end API)"]
-            Task_SubmeteDoc --> Task_SalvaDocPendente["Persistir Documento no banco\n(ApprovalStatus: Pending)"]
-            Task_SalvaDocPendente --> Task_NotificaAvaliador["Notificar avaliadores da instituição\n(InstitutionMembers)"]
-            
-            Task_GravaAprov["Atualizar status: Approved,\ngravar ReviewedByUserId e ReviewedAt"] --> Task_NotificaGrupoAprov["Notificar grupo sobre aprovação"]
-            Task_NotificaGrupoAprov --> End_Aprovado
-            
-            Task_GravaRej["Atualizar status: Rejected,\ngravar ReviewNotes e ReviewedAt"] --> Task_NotificaGrupoRej["Notificar grupo com apontamentos"]
-            Task_NotificaGrupoRej --> Task_AjustaDoc
+            Gate_Prazo{"Dentro do prazo do evento?"}
+            Gate_Prazo -- Sim --> Task_SalvaDocPendente["Persistir Documento no banco como pendente"]
+            Task_GravaAprov["Atualizar status: Approved, gravar ReviewedByUserId e ReviewedAt"]
+            Task_GravaRej["Atualizar status: Rejected, gravar feedback e ReviewedAt"]
         end
 
-        subgraph Lane_Avaliador ["Raia: Membro da Instituição (InstitutionMember)"]
-            Task_NotificaAvaliador --> Task_AcessaPainel["Acessar fila de documentos pendentes"]
-            Task_AcessaPainel --> Task_AbreUrl["Acessar URL e avaliar o conteúdo técnico"]
-            Task_AbreUrl --> Gate_Parecer{"Parecer do\nDocumento?"}
-            Gate_Parecer -- Aprovado --> Task_EmiteAprov["Registrar parecer favorável"]
-            Task_EmiteAprov --> Task_GravaAprov
-            Gate_Parecer -- Rejeitado --> Task_EmiteRej["Inserir justificativa de reprovação\ne correções necessárias (ReviewNotes)"]
-            Task_EmiteRej --> Task_GravaRej
+        subgraph Lane_Alunos ["Raia: Alunos (Grupo)"]
+            Start3(["Início: Evento aberto a trabalhos"]) --> Task_CriaGrupo["Criar novo Grupo para o evento"]
+            Task_CriaGrupo --> Task_ConvidaMembros["Convidar inscritos ou pedir entrada, dentro do prazo e do limite do grupo"]
+            Task_ConvidaMembros --> Task_ElaboraTrabalho["Elaborar trabalho acadêmico"]
+            Task_ElaboraTrabalho --> Task_SubmeteDoc["Submeter Documento pelo sistema"]
+            Task_AjustaDoc["Corrigir e reenviar trabalho"] --> Task_SubmeteDoc
+            End_Recusado(["Fim: Envio fora do prazo"])
+            End_Aprovado(["Fim: Documento Homologado"])
         end
 
+        Task_SubmeteDoc --> Gate_Prazo
+        Gate_Prazo -- Não --> End_Recusado
+        Task_SalvaDocPendente --> Task_AcessaPainel
+        Task_EmiteAprov --> Task_GravaAprov
+        Task_EmiteRej --> Task_GravaRej
+        Task_GravaAprov --> End_Aprovado
+        Task_GravaRej --> Task_AjustaDoc
     end
+
+    classDef default fill:#ffffff,stroke:#222222,stroke-width:1.5px,color:#111111
+    style Pool_GruposDocs fill:#fdf0fd,stroke:#d9a6e6,color:#222
+    style Lane_Avaliador fill:#e0fbf8,stroke:#5fd3c7,color:#222
+    style Lane_Sistema3 fill:#fff3e6,stroke:#f3b47a,color:#222
+    style Lane_Alunos fill:#eafaf0,stroke:#8fd9a8,color:#222
