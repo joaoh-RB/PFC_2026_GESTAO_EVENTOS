@@ -477,6 +477,8 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
         ).toFixed(1)
       : null;
 
+  const isEventEnded = new Date(event.endDate).getTime() <= Date.now();
+
   return (
     <Card className="surface-card max-w-4xl mx-auto shadow-none">
       <CardHeader className="pb-4 pt-6">
