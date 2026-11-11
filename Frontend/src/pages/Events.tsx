@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../services/api";
 import {
   AlertCircle,
@@ -14,9 +14,17 @@ import {
 } from "@/components/events/EventList";
 import { RequestedEventsPanel } from "@/components/events/RequestedEventsPanel";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { type CreateEventFormData } from "../schemas/eventSchema";
 import { useAuth } from "../hooks/useAuth";
 import type { OptionItem } from "@/types/optionItem";
+import type { PagedResult } from "@/types/utils";
 import { formatForDatetimeLocal } from "@/utils/format";
 import { InitialLoading } from "@/components/InitialLoading";
 import { PageHeader } from "@/components/PageHeader";
@@ -25,6 +33,7 @@ export const Events: React.FC = () => {
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
   const [courses, setCourses] = useState<OptionItem[]>([]);
   const [eventTypes, setEventTypes] = useState<OptionItem[]>([]);
+  const [requestedEventsCount, setRequestedEventsCount] = useState<number>(0);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
   const [editing, setIsEditing] = useState(false);
@@ -50,18 +59,43 @@ export const Events: React.FC = () => {
       });
   };
 
+  const fetchRequestedEventsCount = useCallback(async () => {
+    try {
+      const res = await api.get<PagedResult<EventItem>>("/events/requested", {
+        params: {
+          fromDate: new Date().toISOString(),
+          institutionId: userInstitutionId || undefined,
+          pageNumber: 1,
+          pageSize: 1,
+        },
+      });
+      setRequestedEventsCount(res.data.totalItems);
+    } catch {
+      // Mantém contagem atual caso falhe
+    }
+  }, [userInstitutionId]);
+
   useEffect(() => {
     const controller = new AbortController();
 
     const loadInitialData = async () => {
       try {
-        const [instRes, eventTypesRes] = await Promise.all([
+        const [instRes, eventTypesRes, requestedRes] = await Promise.all([
           api.get<OptionItem[]>("/institutions"),
           api.get<OptionItem[]>("/events/types"),
+          api.get<PagedResult<EventItem>>("/events/requested", {
+            params: {
+              fromDate: new Date().toISOString(),
+              institutionId: userInstitutionId || undefined,
+              pageNumber: 1,
+              pageSize: 1,
+            },
+          }),
         ]);
         setInstitutions(instRes.data);
         fetchCourses(userInstitutionId);
         setEventTypes(eventTypesRes.data);
+        setRequestedEventsCount(requestedRes.data.totalItems);
       } catch {
         if (controller.signal.aborted) return;
         setPageError("Não foi possível carregar as informações do sistema.");
@@ -140,23 +174,6 @@ export const Events: React.FC = () => {
     return <InitialLoading></InitialLoading>;
   }
 
-  if (pageError) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-        <div className="flex max-w-md flex-col items-center gap-4 rounded-xl bg-white p-8 text-center shadow-lg">
-          <AlertCircle className="h-12 w-12 text-red-500" />
-          <p className="text-slate-800 font-medium">{pageError}</p>
-          <Button
-            onClick={() => window.location.reload()}
-            variant="outline"
-            className="mt-2">
-            Tentar novamente
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="app-page">
       <PageHeader
@@ -192,6 +209,7 @@ export const Events: React.FC = () => {
                   setViewingEvent(null);
                   setSubmitError(null);
                   setEventBeingUpdated(null);
+                  void fetchRequestedEventsCount();
                 }}
                 variant="outline"
                 className="secondary-action cursor-pointer">
@@ -208,7 +226,7 @@ export const Events: React.FC = () => {
                   variant="outline"
                   className="secondary-action cursor-pointer">
                   <ClipboardList className="mr-2 h-4 w-4" />
-                  Eventos Solicitados
+                  Eventos Solicitados ({requestedEventsCount})
                 </Button>
 
                 <Button
@@ -245,7 +263,10 @@ export const Events: React.FC = () => {
       ) : viewingEvent ? (
         <EventDetails key={viewingEvent.id} event={viewingEvent} />
       ) : viewingRequested ? (
-        <RequestedEventsPanel userInstitutionId={userInstitutionId} />
+        <RequestedEventsPanel
+          userInstitutionId={userInstitutionId}
+          onApprovalChange={() => void fetchRequestedEventsCount()}
+        />
       ) : (
         <EventsList
           institutions={institutions}
@@ -254,6 +275,37 @@ export const Events: React.FC = () => {
           handleViewDetails={handleViewDetails}
         />
       )}
+
+      <Dialog
+        open={!!pageError}
+        onOpenChange={(open) => {
+          if (!open) setPageError(null);
+        }}>
+        <DialogContent className="sm:max-w-md p-6">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+              <AlertCircle className="h-6 w-6 text-red-500" />
+            </div>
+            <DialogHeader className="items-center text-center">
+              <DialogTitle className="text-lg font-semibold text-slate-900">
+                Atenção
+              </DialogTitle>
+              <DialogDescription className="text-slate-600">
+                {pageError}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex w-full justify-center gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPageError(null)}
+                className="cursor-pointer">
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

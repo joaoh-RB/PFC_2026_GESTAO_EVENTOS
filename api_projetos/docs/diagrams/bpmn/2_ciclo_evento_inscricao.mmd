@@ -6,12 +6,21 @@ flowchart TD
         subgraph Lane_Organizador ["Raia: Organizador (Professor / Secretaria)"]
             Start2(["Início: Demanda de evento"]) --> Task_CriaEvt["Cadastrar dados do evento\n(Título, Vagas, Datas, Cursos Permitidos)"]
             Task_CriaEvt --> Task_EnviaEvt["Submeter criação do evento"]
+            Task_AnalisaSolicitacao["Acessar fila de eventos solicitados\ne avaliar proposta do aluno"] --> Gate_AprovaEvt{"Aprovar\nevento?"}
+            Gate_AprovaEvt -- Sim --> Task_AprovaEvt["Submeter aprovação do evento"]
+            Gate_AprovaEvt -- Não --> Task_ReprovaEvt["Submeter reprovação do evento"]
         end
 
         subgraph Lane_Sistema ["Raia: Sistema (Back-end API)"]
             Task_EnviaEvt --> Task_ValidaEvt["Validar dados (CreateEventValidator)\ne cursos elegíveis"]
-            Task_ValidaEvt --> Task_ChamaGoogle["Chamar GoogleCalendarService\npara criar evento na agenda oficial"]
-            Task_RecebeGoogle["Persistir Evento no banco\ncom GoogleCalendarEventId"] --> Task_PublicaEvt["Publicar evento para os\ncursos autorizados"]
+            Task_EnviaSolicitacaoEvt --> Task_ValidaEvt
+            Task_ValidaEvt --> Gate_PerfilCriador{"Criado por\nAluno?"}
+            Gate_PerfilCriador -- Sim --> Task_SalvaSolicitado["Persistir Evento no banco\n(EventStatus: Solicitado)"]
+            Task_SalvaSolicitado --> Task_AnalisaSolicitacao
+            Task_ReprovaEvt --> Task_AtualizaEvtReprovado["Atualizar status do evento\n(EventStatus: Reprovado)"]
+            Gate_PerfilCriador -- Não --> Task_ChamaGoogle["Chamar GoogleCalendarService\npara criar evento na agenda oficial"]
+            Task_AprovaEvt --> Task_ChamaGoogle
+            Task_RecebeGoogle["Persistir/Atualizar Evento (EventStatus: Agendado)\ncom GoogleCalendarEventId"] --> Task_PublicaEvt["Publicar evento para os\ncursos autorizados"]
             
             Task_FiltraEvts["Filtrar eventos ativos\npermitidos para o curso do aluno"] --> Task_ExibeDisponiveis["Exibir eventos no painel"]
             
@@ -35,6 +44,10 @@ flowchart TD
         end
 
         subgraph Lane_Aluno ["Raia: Aluno"]
+            Start_SolicitaEvt(["Início: Proposta de evento pelo aluno"]) --> Task_PreencheSolicitacaoEvt["Cadastrar dados do evento\n(Título, Vagas, Datas, Cursos Permitidos)"]
+            Task_PreencheSolicitacaoEvt --> Task_EnviaSolicitacaoEvt["Submeter solicitação de criação de evento"]
+            Task_AtualizaEvtReprovado --> End_EvtReprovado(["Fim: Solicitação de Evento Reprovada"])
+
             Task_PublicaEvt --> Task_AcessaPortal["Acessar catálogo de eventos"]
             Task_AcessaPortal --> Task_FiltraEvts
             Task_ExibeDisponiveis --> Task_SolicitaInscr["Selecionar evento e clicar\nem 'Inscrever-se'"]

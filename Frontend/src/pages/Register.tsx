@@ -120,7 +120,7 @@ export const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,#17104f_0%,#20166b_35%,#f6f7fb_35%,#f6f7fb_100%)] p-4 py-10">
+    <div className="page-enter min-h-screen bg-[linear-gradient(135deg,#17104f_0%,#20166b_35%,#f6f7fb_35%,#f6f7fb_100%)] p-4 py-10">
       <div className="mx-auto mb-7 w-full max-w-2xl">
         <Brand inverse />
       </div>

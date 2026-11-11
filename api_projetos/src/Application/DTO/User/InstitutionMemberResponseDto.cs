@@ -12,6 +12,7 @@ namespace API_Gestao_Eventos.src.Application.DTO.User
         public required Guid InstitutionId { get; set; }
         public required string InstitutionName { get; set; }
         public required bool IsActive { get; set; }
+        public bool TwoFactorEnabled { get; set; }
         public IEnumerable<Guid>? CoursesIds { get; set; }
         public IEnumerable<string>? CoursesNames { get; set; }
     }

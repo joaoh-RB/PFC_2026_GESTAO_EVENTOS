@@ -299,6 +299,8 @@ export const EventsList: React.FC<EventsListProps> = ({
         ...current,
         [eventId]: true,
       }));
+    } catch {
+      // Erro tratado pelo componente pai
     } finally {
       setLoadingActionId(null);
     }
@@ -313,6 +315,8 @@ export const EventsList: React.FC<EventsListProps> = ({
         ...current,
         [eventId]: false,
       }));
+    } catch {
+      // Erro tratado pelo componente pai
     } finally {
       setLoadingActionId(null);
     }
@@ -759,7 +763,8 @@ export const EventsList: React.FC<EventsListProps> = ({
                               ))}
 
                             <Button
-                              className={"secondary-action cursor-pointer"}
+                              size="sm"
+                              className="secondary-action cursor-pointer"
                               onClick={() => handleViewDetails?.(event)}>
                               Detalhes do evento
                             </Button>
@@ -767,8 +772,9 @@ export const EventsList: React.FC<EventsListProps> = ({
                             <DeleteConfirmation
                               children={
                                 <Button
+                                  size="sm"
                                   className={
-                                    "bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
+                                    "bg-red-50 text-red-600 hover:bg-red-100 border-red-200 cursor-pointer"
                                   }>
                                   Inativar
                                 </Button>
@@ -810,7 +816,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                             </Button>
                             <Button
                               size="sm"
-                              className={"secondary-action cursor-pointer"}
+                              className="cursor-pointer"
                               onClick={() => handleViewDetails?.(event)}>
                               Detalhes do evento
                             </Button>
@@ -822,6 +828,7 @@ export const EventsList: React.FC<EventsListProps> = ({
                       !studentMode && (
                         <div className="flex justify-end pt-4">
                           <Button
+                            size="sm"
                             className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
                             onClick={() => handleStartEdition?.(event)}>
                             Reativar

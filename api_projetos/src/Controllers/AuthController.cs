@@ -109,6 +109,26 @@ namespace API_Gestao_Eventos.src.Controllers
             return Ok(new { message = "Autenticação 2FA ativada com sucesso." });
         }
 
+        [Authorize]
+        [HttpPost("2fa/disable")]
+        public async Task<IActionResult> Disable2FA()
+        {
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            try
+            {
+                await _authService.DisableTwoFactorAsync(userId);
+                return Ok(new { message = "Autenticação em duas etapas desativada." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpPost("change-initial-password")]
         public async Task<IActionResult> ChangeInitialPassword([FromBody] ChangeInitialPasswordDto request)
         {
@@ -153,6 +173,37 @@ namespace API_Gestao_Eventos.src.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        [Authorize]
+        [HttpPost("anonymize")]
+        public async Task<IActionResult> AnonymizePersonalData()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
+
+            try
+            {
+                await _authService.AnonymizePersonalDataAsync(Guid.Parse(userIdClaim));
+
+                Response.Cookies.Delete("jwt_access_token", new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None
+                });
+
+                return Ok(new { message = "Seus dados pessoais foram anonimizados de forma permanente." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpPost("reset-password")]
         public async Task<IActionResult> PasswordReset([FromBody] ResetPasswordRequestDto request)
         {

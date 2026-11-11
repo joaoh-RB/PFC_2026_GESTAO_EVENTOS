@@ -19,6 +19,10 @@ namespace API_Gestao_Eventos.src.Application.Services
             {
                 throw new InvalidOperationException("Nem todos os cursos cadastrados são permitidos.");
             }
+            if (request.AllowDocuments && request.SubmissionDeadline != null && request.SubmissionDeadline.Value.UtcDateTime > request.StartDate.UtcDateTime)
+            {
+                throw new InvalidOperationException("O prazo máximo de submissão deve ser anterior ao início do evento.");
+            }
 
             var eventStatus = user.Role == UserRole.Aluno.ToString() ? EventStatus.Solicitado : EventStatus.Agendado;
 
@@ -306,7 +310,10 @@ namespace API_Gestao_Eventos.src.Application.Services
                     StudentId = s.StudentId,
                     StudentName = s.Student.Name,
                     CourseName = s.Student.Course.Name,
-                    RegisteredAt = s.RegisteredAt
+                    RegisteredAt = s.RegisteredAt,
+                    Attended = s.AttendedAt != null || s.Status == RegistrationStatus.Attended,
+                    AttendedAt = s.AttendedAt,
+                    Method = s.AttendanceMethod
                 });
 
             var totalItems = registrations.Count();

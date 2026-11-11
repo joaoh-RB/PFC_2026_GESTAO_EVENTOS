@@ -8,11 +8,24 @@ classDiagram
         Congresso
     }
 
+    class EventStatus {
+        <<enumeration>>
+        Agendado = 1
+        Reprovado = 2
+        Solicitado = 3
+    }
+
     class RegistrationStatus {
         <<enumeration>>
         Confirmed = 1
         Canceled = 2
         Attended = 3
+    }
+
+    class AttendanceMethod {
+        <<enumeration>>
+        Code = 1
+        Manual = 2
     }
 
     class Event {
@@ -25,7 +38,12 @@ classDiagram
         +int Capacity
         +bool IsActive
         +bool AllowDocuments
+        +int MaxGroupSize
+        +DateTime SubmissionDeadline
         +EventType EventType
+        +EventStatus EventStatus
+        +string AttendanceCode
+        +Guid CreatedByUserId
         +string GoogleCalendarEventId
     }
 
@@ -36,6 +54,8 @@ classDiagram
         +RegistrationStatus Status
         +DateTime RegisteredAt
         +DateTime CanceledAt
+        +DateTime AttendedAt
+        +AttendanceMethod AttendanceMethod
         +bool IsActive
     }
 
@@ -78,13 +98,29 @@ classDiagram
     %% Relacionamentos
     Institution "1" --> "*" Event : sedia
     Event --> EventType : tipo
+    Event --> EventStatus : status
+    User "1" --> "*" Event : criou
 
     Event "1" --> "*" EventStudent : inscrições
     Student "1" --> "*" EventStudent : participa
     EventStudent --> RegistrationStatus : status
+    EventStudent --> AttendanceMethod : método de presença
 
     Event "1" --> "*" EventAllowedCourse : restringe
     Course "1" --> "*" EventAllowedCourse : autorizado
 
     Event "1" --> "*" EventAddedToCalendar : sincronizações
     User "1" --> "*" EventAddedToCalendar : calendários
+
+    style Institution fill:#fff1f2,stroke:#f87171,stroke-width:2px,color:#333
+    style Event fill:#fff5ec,stroke:#fb923c,stroke-width:2px,color:#333
+    style Course fill:#fffbeb,stroke:#facc15,stroke-width:2px,color:#333
+    style User fill:#f7fee7,stroke:#84cc16,stroke-width:2px,color:#333
+    style Student fill:#eef2ff,stroke:#818cf8,stroke-width:2px,color:#333
+    style EventAllowedCourse fill:#f0fdf4,stroke:#4ade80,stroke-width:2px,color:#333
+    style EventAddedToCalendar fill:#f5f3ff,stroke:#a78bfa,stroke-width:2px,color:#333
+    style EventType fill:#fdf4ff,stroke:#e879f9,stroke-width:2px,color:#333
+    style EventStudent fill:#ecfeff,stroke:#22d3ee,stroke-width:2px,color:#333
+    style RegistrationStatus fill:#f0fdfa,stroke:#2dd4bf,stroke-width:2px,color:#333
+    style EventStatus fill:#fdf2f8,stroke:#f472b6,stroke-width:2px,color:#333
+    style AttendanceMethod fill:#eff6ff,stroke:#60a5fa,stroke-width:2px,color:#333

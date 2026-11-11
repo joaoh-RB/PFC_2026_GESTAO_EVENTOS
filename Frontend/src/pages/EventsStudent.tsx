@@ -1,5 +1,12 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { AlertCircle, ListFilter, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
@@ -66,6 +73,7 @@ export const EventsStudent: React.FC = () => {
       setPageError(
         errorObj.response?.data?.message || "Erro ao entrar no evento.",
       );
+      throw err;
     }
   };
 
@@ -76,6 +84,7 @@ export const EventsStudent: React.FC = () => {
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } } };
       setPageError(errorObj.response?.data?.message || "Erro ao sair do evento.");
+      throw err;
     }
   };
 
@@ -109,22 +118,7 @@ export const EventsStudent: React.FC = () => {
   if (isInitialLoading) {
     return <InitialLoading></InitialLoading>;
   }
-  if (pageError) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-        <div className="flex max-w-md flex-col items-center gap-4 rounded-xl bg-white p-8 text-center shadow-lg">
-          <AlertCircle className="h-12 w-12 text-red-500" />
-          <p className="text-slate-800 font-medium">{pageError}</p>
-          <Button
-            onClick={() => window.location.reload()}
-            variant="outline"
-            className="mt-2">
-            Tentar novamente
-          </Button>
-        </div>
-      </div>
-    );
-  }
+
   return (
     <div className={"app-page"}>
       <PageHeader
@@ -176,6 +170,37 @@ export const EventsStudent: React.FC = () => {
           onJoinEvent={handleJoinEvent}
           onLeaveEvent={handleLeaveEvent}></EventsList>
       )}
+
+      <Dialog
+        open={!!pageError}
+        onOpenChange={(open) => {
+          if (!open) setPageError(null);
+        }}>
+        <DialogContent className="sm:max-w-md p-6">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+              <AlertCircle className="h-6 w-6 text-red-500" />
+            </div>
+            <DialogHeader className="items-center text-center">
+              <DialogTitle className="text-lg font-semibold text-slate-900">
+                Atenção
+              </DialogTitle>
+              <DialogDescription className="text-slate-600">
+                {pageError}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex w-full justify-center gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPageError(null)}
+                className="cursor-pointer">
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

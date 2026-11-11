@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { useClientPagination } from "../hooks/useClientPagination";
+import { TablePagination } from "@/components/ui/table-pagination";
 import type { OptionItem } from "../types/optionItem";
 import { DeleteConfirmation } from "../components/ui/deleteConfirm";
 import { PageHeader } from "../components/PageHeader";
@@ -38,6 +40,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ExportExcelButton } from "@/components/ui/export-excel-button";
+import { exportToExcel } from "@/utils/exportExcel";
 
 interface CourseDetail {
   id: string;
@@ -139,6 +143,29 @@ export const Courses: React.FC = () => {
       ),
     [courses, search],
   );
+
+  const {
+    page,
+    setPage,
+    totalPages,
+    pageItems: pagedCourses,
+    totalItems,
+    pageSize,
+  } = useClientPagination(
+    filteredCourses,
+    `${search}|${selectedInstitutionId}`,
+  );
+
+  const handleExportExcel = () => {
+    exportToExcel(
+      filteredCourses.map((item) => ({
+        Nome: item.name,
+        Acesso: item.isActive ? "Ativo" : "Inativo",
+      })),
+      "cursos.xlsx",
+      "Cursos",
+    );
+  };
 
   const openCreate = () => {
     setCurrentCourseBeingUpdated(null);
@@ -320,6 +347,10 @@ export const Courses: React.FC = () => {
                 </InputGroupAddon>
               </InputGroup>
             </div>
+            <ExportExcelButton
+              onExport={handleExportExcel}
+              disabled={!filteredCourses.length}
+            />
           </div>
 
           <div className="surface-card overflow-x-auto">
@@ -332,7 +363,7 @@ export const Courses: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCourses.map((item) => (
+                {pagedCourses.map((item) => (
                   <TableRow key={item.id} className="hover:bg-slate-50">
                     <TableCell>
                       <div className="flex items-center gap-2 font-medium text-slate-900">
@@ -402,6 +433,13 @@ export const Courses: React.FC = () => {
               </TableBody>
             </Table>
           </div>
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+          />
         </>
       )}
     </main>

@@ -1,6 +1,6 @@
 # Symplosio - Gestão de Palestras e Eventos
 
-Sistema web para centralizar a divulgação, inscrição e gestão de palestras e eventos acadêmicos, permitindo o cadastro de instituições, cursos, usuários e eventos, com controle de presença e aprovações. Projeto de Final de Curso (PFC) do curso de Desenvolvimento de Software Corporativo.
+Sistema web para centralizar a divulgação, inscrição e gestão de palestras e eventos acadêmicos, permitindo o cadastro de instituições, cursos, usuários e eventos, com controle de presença, grupos de trabalho, avaliação de documentos e aprovações. Projeto de Final de Curso (PFC) do curso de Desenvolvimento de Software Corporativo.
 
 ## Equipe
 
@@ -15,8 +15,11 @@ Sistema web para centralizar a divulgação, inscrição e gestão de palestras 
 ### Back-end (`api_projetos`)
 - **.NET 10** com **C#**
 - **Entity Framework Core** + **Npgsql** (PostgreSQL)
+- **FluentValidation** (validação das entradas)
 - **Swashbuckle / Swagger** (documentação da API)
-- Hospedagem: **Render** (API, via Docker) + **Supabase** (PostgreSQL)
+- **SendGrid** (envio de e-mails) e **Google Calendar API** (sincronização de eventos)
+- **xUnit** + **Moq** (testes automatizados)
+- Hospedagem: **Render** (API, via Docker) + **Supabase** (PostgreSQL e armazenamento de arquivos)
 
 ### Front-end (`Frontend`)
 - **React 19** + **TypeScript** + **Vite**
@@ -25,6 +28,8 @@ Sistema web para centralizar a divulgação, inscrição e gestão de palestras 
 - **React Hook Form** + **Zod** (formulários e validação)
 - **Axios** (requisições HTTP)
 - **shadcn/ui**, **lucide-react** (componentes e ícones)
+- **xlsx** (exportação de dados em planilha)
+- Hospedagem: **Vercel**
 
 ## Arquitetura (back-end)
 
@@ -39,17 +44,26 @@ Usuários (`Student`, `Teacher`, `Administrator`) são modelados por herança (e
 
 ## Perfis de acesso
 
-- **Administrador** — acesso irrestrito a todas as instituições (cadastro de instituições, e demais operações em qualquer escopo).
-- **Professor (Teacher)** — vinculado a uma instituição.
-- **Aluno (Student)** — vinculado a um curso/instituição; inscreve-se e participa de eventos.
+- **Administrador** — acesso irrestrito a todas as instituições, cursos, eventos e usuários; único perfil que cadastra instituições.
+- **Secretaria** — vinculada a uma instituição; gerencia cursos, professores, alunos e eventos dessa instituição e aprova cadastros de alunos.
+- **Professor (Teacher)** — vinculado a uma instituição; cria e aprova eventos, avalia documentos dos grupos, gerencia presença e acompanha o dashboard.
+- **Aluno (Student)** — vinculado a um curso/instituição; inscreve-se em eventos, solicita eventos, forma grupos, envia documentos, confirma presença e envia feedback.
 
 ## Funcionalidades implementadas
 
-- Autenticação (registro de aluno, login, logout, JWT em cookie HttpOnly, 2FA)
-- Cadastro de Instituição e Curso (criação, consulta, edição e exclusão), com validação de CNPJ (incluindo formato alfanumérico vigente desde jul/2026) e regras de unicidade
-- Cadastro e gestão de Eventos
+- Autenticação (registro de aluno, login, logout, JWT em cookie HttpOnly, 2FA, recuperação de senha)
+- Fluxo de aprovação de cadastro de alunos
+- Cadastro de Instituição e Curso (criação, consulta, edição, inativação e reativação), com validação de CNPJ (incluindo formato alfanumérico vigente desde jul/2026) e regras de unicidade
+- Gestão de Eventos, com tipo, vagas, cursos permitidos, prazo e limite de integrantes por grupo
+- Solicitação de eventos pelo aluno, com aprovação ou reprovação por Professor ou Secretaria
+- Inscrição em eventos e controle de presença por código ou de forma manual
+- Grupos de trabalho, com convite, pedido de entrada aprovado pelo líder, limite por evento e prazo
+- Envio e avaliação de documentos dos grupos, com histórico de aprovação e download compilado em ZIP
+- Feedback do evento (nota de 0 a 10 e comentário)
+- Dashboard por perfil, com indicadores, gráficos e filtros
+- Exportação de listas em planilha XLSX
 - Integração com Google Calendar (criação/edição/cancelamento no calendário da aplicação e inclusão do usuário como convidado — ver [Docs/integracao-google-calendar.md](Docs/integracao-google-calendar.md))
-- Fluxo de aprovação de usuários
+- Termos de Uso e Política de Privacidade com aceite versionado (LGPD) e trilha de auditoria
 
 ## Como rodar o projeto
 
@@ -78,6 +92,19 @@ cd Frontend
 npm install
 npm run dev
 ```
+
+## Testes
+
+Os testes automatizados da API ficam em `api_projetos/tests/API_Gestao_Eventos.Tests` e cobrem services, validadores e testes de integração dos endpoints, com banco SQLite temporário.
+
+```bash
+cd api_projetos/tests/API_Gestao_Eventos.Tests
+dotnet test
+```
+
+## Diagramas
+
+Os diagramas BPMN e de classes usados na monografia estão em formato Mermaid em `api_projetos/docs/diagrams`.
 
 ## Migrations
 

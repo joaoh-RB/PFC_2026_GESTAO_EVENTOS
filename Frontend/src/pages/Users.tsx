@@ -10,6 +10,7 @@ import {
   Pencil,
   Plus,
   Search,
+  ShieldOff,
   UserCheck,
   UserX,
   X,
@@ -17,6 +18,8 @@ import {
 } from "lucide-react";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 import { useAuth } from "../hooks/useAuth";
+import { useClientPagination } from "../hooks/useClientPagination";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   InputGroup,
   InputGroupAddon,
@@ -40,6 +43,8 @@ import {
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { ExportExcelButton } from "@/components/ui/export-excel-button";
+import { exportToExcel } from "@/utils/exportExcel";
 
 type ApprovalStatus = 1 | 2 | 3;
 
@@ -51,6 +56,7 @@ interface ManagedUser {
   institutionId: string;
   courseId: string;
   isActive: boolean;
+  twoFactorEnabled: boolean;
   approvalStatus: ApprovalStatus;
   approvedByUserName?: string | null;
   approvedDate?: string | null;
@@ -84,8 +90,10 @@ const formatDate = (value?: string | null) => {
 };
 
 export const Users: React.FC = () => {
-  const { user } = useAuth();
+  const { user, syncAuth } = useAuth();
   const userInstitutionId = user?.institutionId ?? "";
+  const canDisableMfa =
+    user?.role === "Administrador" || user?.role === "Secretaria";
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
   const [courses, setCourses] = useState<OptionItem[]>([]);
@@ -170,6 +178,31 @@ export const Users: React.FC = () => {
     [users, search, status, user?.role, userInstitutionId],
   );
 
+  const {
+    page,
+    setPage,
+    totalPages,
+    pageItems: pagedUsers,
+    totalItems,
+    pageSize,
+  } = useClientPagination(filteredUsers, `${search}|${status}`);
+
+  const handleExportExcel = () => {
+    exportToExcel(
+      filteredUsers.map((managedUser) => ({
+        Usuário: managedUser.name,
+        "E-mail": managedUser.email,
+        Matrícula: managedUser.uniqueIdentifier,
+        Aprovação: statusLabel[managedUser.approvalStatus],
+        "Aprovado por": managedUser.approvedByUserName || "—",
+        "Data de aprovação": formatDate(managedUser.approvedDate),
+        Acesso: managedUser.isActive ? "Ativo" : "Inativo",
+      })),
+      "alunos.xlsx",
+      "Alunos",
+    );
+  };
+
   const openCreate = () => {
     setEditing(null);
     setForm(getInitialForm(userInstitutionId));
@@ -231,6 +264,22 @@ export const Users: React.FC = () => {
     } catch (err: any) {
       setError(
         err.response?.data?.message || "Não foi possível alterar a aprovação.",
+      );
+    }
+  };
+
+  const disableMfa = async (managedUser: ManagedUser) => {
+    setError(null);
+    try {
+      await api.post(`/users/${managedUser.id}/2fa/disable`);
+      if (managedUser.id === user?.id) await syncAuth();
+      await loadUsers();
+      setSuccessMessage("Autenticação em duas etapas desativada.");
+      setTimeout(() => setSuccessMessage(null), 1400);
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+          "Não foi possível desativar a autenticação em duas etapas.",
       );
     }
   };
@@ -327,6 +376,10 @@ export const Users: React.FC = () => {
             </SelectGroup>
           </SelectContent>
         </Select>
+        <ExportExcelButton
+          onExport={handleExportExcel}
+          disabled={!filteredUsers.length}
+        />
       </div>
 
       <div className="surface-card overflow-x-auto">
@@ -338,11 +391,11 @@ export const Users: React.FC = () => {
               <TableHead className="w-[12%] text-center">Aprovação</TableHead>
               <TableHead className="w-[18%] text-left">Aprovado por</TableHead>
               <TableHead className="w-[10%] text-center">Acesso</TableHead>
-              <TableHead className="w-[16%] min-w-[220px] text-center">Ações</TableHead>
+              <TableHead className={`${canDisableMfa ? "w-[18%] min-w-[260px]" : "w-[16%] min-w-[220px]"} text-center`}>Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.map((user) => (
+            {pagedUsers.map((user) => (
               <TableRow key={user.id} className="hover:bg-slate-50 min-h-14">
                 <TableCell className="w-[32%] px-4 py-4 align-middle">
                   <div className="space-y-0.5 leading-tight">
@@ -387,8 +440,8 @@ export const Users: React.FC = () => {
                     {user.isActive ? "Ativo" : "Inativo"}
                   </span>
                 </TableCell>
-                <TableCell className="w-[16%] min-w-[220px] px-4 py-4 align-middle">
-                  <div className="grid w-full grid-cols-4 items-center justify-items-center gap-3">
+                <TableCell className={`${canDisableMfa ? "w-[18%] min-w-[260px]" : "w-[16%] min-w-[220px]"} px-4 py-4 align-middle`}>
+                  <div className={`grid w-full items-center justify-items-center gap-2 ${canDisableMfa ? "grid-cols-5" : "grid-cols-4"}`}>
                     {user.approvalStatus !== 2 ? (
                       <button
                         title="Aprovar"
@@ -415,6 +468,26 @@ export const Users: React.FC = () => {
                       className="rounded p-2 text-indigo-600 hover:bg-indigo-50">
                       <Pencil className="h-4 w-4" />
                     </button>
+                    {canDisableMfa && user.twoFactorEnabled ? (
+                      <DeleteConfirmation
+                        children={
+                          <button
+                            title="Desativar MFA"
+                            className="rounded p-2 text-amber-700 hover:bg-amber-50">
+                            <ShieldOff className="h-4 w-4" />
+                          </button>
+                        }
+                        onDelete={() => disableMfa(user)}
+                        onCancel={() => {
+                          setSuccessMessage(null);
+                          setError(null);
+                        }}
+                        descriptionText="Tem certeza que deseja desativar a autenticação em duas etapas deste aluno?"
+                        confirmationText="Desativar MFA"
+                      />
+                    ) : canDisableMfa ? (
+                      <span aria-hidden="true" className="h-8 w-8" />
+                    ) : null}
                     {user.isActive ? (
                       <DeleteConfirmation
                         children={
@@ -473,6 +546,13 @@ export const Users: React.FC = () => {
           </TableBody>
         </Table>
       </div>
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={pageSize}
+        onPageChange={setPage}
+      />
       {showForm && (
         <div className="modal-backdrop">
           <div className="modal-panel max-w-xl">

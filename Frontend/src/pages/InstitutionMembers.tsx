@@ -17,12 +17,13 @@ import { CreateInstitutionMemberForm } from "@/components/users/CreateInstitutio
 import { PageHeader } from "@/components/PageHeader";
 
 export const InstitutionMembers: React.FC = () => {
-  const pageSize = 10;
+  const pageSize = 20;
   const [institutions, setInstitutions] = useState<OptionItem[]>([]);
   const [courses, setCourses] = useState<OptionItem[]>([]);
   const [userRoles, setUserRoles] = useState<OptionItem[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [editing, setIsEditing] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,7 +53,7 @@ export const InstitutionMembers: React.FC = () => {
   const [isUsersLoading, setIsUsersLoading] = useState(false);
   const [filters, setFilters] = useState<InstitutionMemberFilterState>();
   const [currentPage, setCurrentPage] = useState(1);
-  const { user } = useAuth();
+  const { user, syncAuth } = useAuth();
   const userInstitutionId = user?.institutionId || null;
 
   useEffect(() => {
@@ -170,6 +171,19 @@ export const InstitutionMembers: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+  const handleDisableMfa = async (userId: string) => {
+    setActionError(null);
+    try {
+      await api.post(`/users/${userId}/2fa/disable`);
+      if (userId === user?.id) await syncAuth();
+      fetchUsers();
+    } catch (err: any) {
+      setActionError(
+        err.response?.data?.message ||
+          "Não foi possível desativar a autenticação em duas etapas.",
+      );
+    }
+  };
   const handleDelete = async (userId: string, isActive: boolean) => {
     await api.patch(`/users/${userId}/active`, {
       isActive: isActive,
@@ -218,6 +232,13 @@ export const InstitutionMembers: React.FC = () => {
           }
         />
 
+        {actionError && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            <AlertCircle className="h-5 w-5" />
+            {actionError}
+          </div>
+        )}
+
         <InstitutionMemberList
           data={usersData}
           institutions={institutions}
@@ -227,6 +248,7 @@ export const InstitutionMembers: React.FC = () => {
           onPageChange={handlePageChange}
           handleStartEdition={handleStartEdition}
           handleDelete={handleDelete}
+          handleDisableMfa={handleDisableMfa}
           isLoading={isUsersLoading}
           userInstitutionId={userInstitutionId}
         />

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Header } from "./Header";
 import { TermsAcceptanceGate } from "./legal/TermsAcceptanceGate";
 import { Footer } from "./Footer";
 
 export function AuthenticatedLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const location = useLocation();
 
   return (
     <TermsAcceptanceGate>
@@ -15,11 +16,13 @@ export function AuthenticatedLayout() {
           onToggleCollapsed={() => setSidebarCollapsed((value) => !value)}
         />
         <main
-          className={`flex-1 px-4 pb-8 pt-[94px] transition-[margin] sm:px-6 ${
+          className={`flex-1 px-4 pb-8 pt-[94px] transition-[margin] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-6 ${
             sidebarCollapsed ? "lg:ml-[76px]" : "lg:ml-[240px]"
           }`}
         >
-          <Outlet />
+          <div key={location.pathname} className="page-enter">
+            <Outlet />
+          </div>
         </main>
         <Footer />
       </div>

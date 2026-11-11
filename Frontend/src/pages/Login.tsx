@@ -112,7 +112,7 @@ export function Login() {
   };
 
   return (
-    <div className="grid min-h-screen bg-white lg:grid-cols-[1.08fr_1fr]">
+    <div className="page-enter grid min-h-screen bg-white lg:grid-cols-[1.08fr_1fr]">
       <section className="relative hidden min-h-screen overflow-hidden bg-[#120b46] lg:block">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_30%,rgba(35,185,224,0.28),transparent_30%),radial-gradient(circle_at_15%_15%,rgba(92,76,193,0.38),transparent_26%),linear-gradient(145deg,#24176d_0%,#120b46_70%)]" />
         <div className="absolute -right-16 top-[17%] size-[440px] rounded-full border border-cyan-300/10" />
