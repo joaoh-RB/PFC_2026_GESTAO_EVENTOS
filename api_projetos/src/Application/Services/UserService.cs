@@ -107,7 +107,8 @@ namespace API_Gestao_Eventos.src.Application.Services
             InstitutionName = user.Institution!.Name,
             CoursesIds = (user is Teacher t ? t.Courses.Select(s => s.Id) : null),
             CoursesNames = (user is Teacher teacher ? teacher.Courses.Select(s => s.Name) : null),
-            IsActive = user.IsActive
+            IsActive = user.IsActive,
+            TwoFactorEnabled = user.TwoFactorEnabled
         };
         #endregion
         public async Task<StudentManagementResponseDto> GetByIdAsync(Guid id)
@@ -155,6 +156,30 @@ namespace API_Gestao_Eventos.src.Application.Services
             await userRepository.UpdateAsync(user);
             return ToResponse(user);
         }
+
+        public async Task DisableTwoFactorAsync(Guid targetUserId, Guid actorId)
+        {
+            var actor = await userRepository.GetByIdAsync(actorId)
+                ?? throw new UnauthorizedAccessException("Usuário autenticado não encontrado.");
+
+            if (actor.Role != UserRole.Administrador && actor.Role != UserRole.Secretaria)
+                throw new UnauthorizedAccessException("Somente administrador ou secretaria podem desativar a autenticação de outro usuário.");
+
+            var target = await userRepository.GetByIdAsync(targetUserId)
+                ?? throw new KeyNotFoundException("Usuário não encontrado.");
+
+            if (actor.Role == UserRole.Secretaria && actor.InstitutionId != target.InstitutionId)
+                throw new UnauthorizedAccessException("A secretaria só pode desativar a autenticação de usuários da própria instituição.");
+
+            if (!target.TwoFactorEnabled)
+                throw new InvalidOperationException("A autenticação em duas etapas já está desativada.");
+
+            target.TwoFactorEnabled = false;
+            target.TwoFactorSecretKey = null;
+            target.UpdatedAt = DateTime.UtcNow;
+            await userRepository.UpdateAsync(target);
+        }
+
         public async Task SetApprovalAsync(Guid id, UserApprovalStatus status, Guid approverId)
         {
             if (status == UserApprovalStatus.Pendente)
@@ -195,6 +220,7 @@ namespace API_Gestao_Eventos.src.Application.Services
             CourseId = user.CourseId,
             Role = user.Role,
             IsActive = user.IsActive,
+            TwoFactorEnabled = user.TwoFactorEnabled,
             ApprovalStatus = user.ApprovalStatus,
             ApprovedByUserId = user.ApprovedByUserId,
             ApprovedByUserName = user.ApprovedByUser?.Name,

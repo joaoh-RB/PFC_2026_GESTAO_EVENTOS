@@ -10,7 +10,7 @@ using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Integration
 {
-    public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
+    public class InstitutionControllerIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly HttpClient _client;
         private readonly CustomWebApplicationFactory _factory;
@@ -19,7 +19,7 @@ namespace API_Gestao_Eventos.Tests.Integration
             PropertyNameCaseInsensitive = true
         };
 
-        public ApiIntegrationTests(CustomWebApplicationFactory factory)
+        public InstitutionControllerIntegrationTests(CustomWebApplicationFactory factory)
         {
             _factory = factory;
             _client = factory.CreateClient();

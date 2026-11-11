@@ -2,7 +2,7 @@ using API_Gestao_Eventos.src.Application.DTO.Course;
 using API_Gestao_Eventos.src.Application.Validators.Course;
 using Xunit;
 
-namespace API_Gestao_Eventos.Tests.Validators
+namespace API_Gestao_Eventos.Tests.Validators.Course
 {
     public class CreateCourseValidatorTests
     {
@@ -13,61 +13,79 @@ namespace API_Gestao_Eventos.Tests.Validators
             _validator = new CreateCourseValidator();
         }
 
-        // Cenário 4: Caminho feliz
         [Fact]
         public void Validate_QuandoDadosForemValidos_DevePassarNaValidacao()
         {
-            // Arrange
             var dto = new CreateCourseDto
             {
                 Name = "Ciência da Computação",
                 InstitutionId = Guid.NewGuid()
             };
 
-            // Act
             var result = _validator.Validate(dto);
 
-            // Assert
             Assert.True(result.IsValid);
             Assert.Empty(result.Errors);
         }
 
-        // Cenário 5: Violação de regra/erro
         [Fact]
         public void Validate_QuandoNomeForVazio_DeveFalharComMensagemObrigatoria()
         {
-            // Arrange
             var dto = new CreateCourseDto
             {
                 Name = string.Empty,
                 InstitutionId = Guid.NewGuid()
             };
 
-            // Act
             var result = _validator.Validate(dto);
 
-            // Assert
             Assert.False(result.IsValid);
             Assert.Contains(result.Errors, e => e.ErrorMessage == "O nome do curso é obrigatório.");
         }
 
-        // Cenário 6: Caso-limite (comprimento exatamente no limite de 150 caracteres)
         [Fact]
         public void Validate_QuandoNomeTiverExatamente150Caracteres_DevePassarNaValidacao()
         {
-            // Arrange
             var dto = new CreateCourseDto
             {
                 Name = new string('A', 150),
                 InstitutionId = Guid.NewGuid()
             };
 
-            // Act
             var result = _validator.Validate(dto);
 
-            // Assert
             Assert.True(result.IsValid);
             Assert.Empty(result.Errors);
+        }
+
+        [Fact]
+        public void Validate_QuandoNomeExceder150Caracteres_DeveFalharNaValidacao()
+        {
+            var dto = new CreateCourseDto
+            {
+                Name = new string('A', 151),
+                InstitutionId = Guid.NewGuid()
+            };
+
+            var result = _validator.Validate(dto);
+
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Errors, e => e.PropertyName == nameof(CreateCourseDto.Name));
+        }
+
+        [Fact]
+        public void Validate_QuandoInstitutionIdForVazio_DeveFalharComMensagemObrigatoria()
+        {
+            var dto = new CreateCourseDto
+            {
+                Name = "Ciência da Computação",
+                InstitutionId = Guid.Empty
+            };
+
+            var result = _validator.Validate(dto);
+
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Errors, e => e.ErrorMessage == "A instituição é obrigatória.");
         }
     }
 }

@@ -1,6 +1,8 @@
-﻿import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { useClientPagination } from "../hooks/useClientPagination";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { DeleteConfirmation } from "../components/ui/deleteConfirm";
 import { PageHeader } from "../components/PageHeader";
 import { CreateInstitutionForm } from "../components/institutions/CreateInstitutionForm";
@@ -23,6 +25,8 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ExportExcelButton } from "@/components/ui/export-excel-button";
+import { exportToExcel } from "@/utils/exportExcel";
 
 interface InstitutionDetail {
   id: string;
@@ -178,6 +182,26 @@ const AllInstitutionsManager: React.FC = () => {
     [institutions, search],
   );
 
+  const {
+    page,
+    setPage,
+    totalPages,
+    pageItems: pagedInstitutions,
+    totalItems,
+    pageSize,
+  } = useClientPagination(filteredInstitutions, search);
+
+  const handleExportExcel = () => {
+    exportToExcel(
+      filteredInstitutions.map((item) => ({
+        Nome: item.name,
+        Acesso: item.isActive ? "Ativo" : "Inativo",
+      })),
+      "instituicoes.xlsx",
+      "Instituições",
+    );
+  };
+
   const openCreate = () => {
     setCurrentInstitutionBeingUpdated(null);
     setSubmitError(null);
@@ -314,8 +338,8 @@ const AllInstitutionsManager: React.FC = () => {
         />
       ) : (
         <>
-          <div className="filter-bar">
-            <div className="relative block">
+          <div className="filter-bar justify-between">
+            <div className="relative flex-1 max-w-md">
               <InputGroup>
                 <InputGroupInput
                   value={search}
@@ -327,6 +351,10 @@ const AllInstitutionsManager: React.FC = () => {
                 </InputGroupAddon>
               </InputGroup>
             </div>
+            <ExportExcelButton
+              onExport={handleExportExcel}
+              disabled={!filteredInstitutions.length}
+            />
           </div>
 
           <div className="surface-card overflow-x-auto">
@@ -339,7 +367,7 @@ const AllInstitutionsManager: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredInstitutions.map((item) => (
+                {pagedInstitutions.map((item) => (
                   <TableRow key={item.id} className="hover:bg-slate-50">
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-2 font-medium text-slate-900">
@@ -407,6 +435,13 @@ const AllInstitutionsManager: React.FC = () => {
               </TableBody>
             </Table>
           </div>
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+          />
         </>
       )}
     </main>

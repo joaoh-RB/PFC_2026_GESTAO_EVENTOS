@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using API_Gestao_Eventos.src.Common.Utils;
 using API_Gestao_Eventos.src.Infrastructure.Services.Email;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace API_Gestao_Eventos.src.Application.Services
 {
@@ -145,6 +148,25 @@ namespace API_Gestao_Eventos.src.Application.Services
             await _userRepository.UpdateAsync(user);
             return true;
         }
+
+        public async Task DisableTwoFactorAsync(Guid userId)
+        {
+            var user = await _userRepository.GetByIdAsync(userId)
+                ?? throw new KeyNotFoundException("Usuário não encontrado.");
+
+            if (!user.TwoFactorEnabled)
+                throw new InvalidOperationException("A autenticação em duas etapas já está desativada.");
+
+            user.TwoFactorEnabled = false;
+            user.TwoFactorSecretKey = null;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+            await _appDbContext.LogAuthEventAsync(
+                AuditOperationType.Update,
+                "Autenticação em duas etapas desativada",
+                user.Id
+            );
+        }
         public async Task<AuthResponseDto> ChangeInitialPasswordAsync(ChangeInitialPasswordDto dto)
         {
             var user = await _userRepository.GetByEmailAsync(dto.Email);
@@ -244,6 +266,128 @@ namespace API_Gestao_Eventos.src.Application.Services
                 user.Id
             );
         }
+
+        public async Task AnonymizePersonalDataAsync(Guid userId)
+        {
+            var user = await _userRepository.GetByIdAsync(userId)
+                ?? throw new KeyNotFoundException("Usuário não encontrado.");
+
+            if (user.Role == UserRole.Administrador)
+                throw new UnauthorizedAccessException("O administrador não pode excluir ou anonimizar dados por esta operação.");
+
+            var originalName = user.Name;
+            var originalEmail = user.Email;
+            var token = Guid.NewGuid().ToString("N");
+            var anonymizedName = "Usuário anonimizado";
+            var anonymizedEmail = $"anonimizado-{token}@removido.local";
+            var anonymizedIdentifier = token[..20];
+
+            user.Name = anonymizedName;
+            user.Email = anonymizedEmail;
+            user.PasswordHash = _passwordHasher.HashPassword(token);
+            user.IsActive = false;
+            user.IsPasswordChangeRequired = false;
+            user.PasswordResetTokenHash = null;
+            user.PasswordResetExpiresAt = null;
+            user.TwoFactorEnabled = false;
+            user.TwoFactorSecretKey = null;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            if (user is Student student)
+                student.UniqueIdentifier = anonymizedIdentifier;
+
+            await _userRepository.UpdateAsync(user);
+            await AnonymizeLinkedHistoryAsync(user.Id, originalName, originalEmail, anonymizedName, anonymizedEmail, anonymizedIdentifier);
+            await _appDbContext.LogAuthEventAsync(
+                AuditOperationType.Delete,
+                "Dados pessoais anonimizados",
+                user.Id
+            );
+        }
+
+        private async Task AnonymizeLinkedHistoryAsync(
+            Guid userId,
+            string originalName,
+            string originalEmail,
+            string anonymizedName,
+            string anonymizedEmail,
+            string anonymizedIdentifier)
+        {
+            var userIdText = userId.ToString();
+            var logs = await _appDbContext.AuditLogs
+                .Where(log => log.UserId == userId || log.EntityId == userIdText)
+                .ToListAsync();
+
+            foreach (var log in logs)
+            {
+                var isUserRecord = string.Equals(log.EntityId, userIdText, StringComparison.OrdinalIgnoreCase);
+                if (isUserRecord)
+                {
+                    log.OldValues = RedactUserIdentitySnapshot(log.OldValues, anonymizedName, anonymizedEmail, anonymizedIdentifier);
+                    log.NewValues = RedactUserIdentitySnapshot(log.NewValues, anonymizedName, anonymizedEmail, anonymizedIdentifier);
+                }
+                else
+                {
+                    log.OldValues = ReplaceLiteral(log.OldValues, originalEmail, anonymizedEmail);
+                    log.NewValues = ReplaceLiteral(log.NewValues, originalEmail, anonymizedEmail);
+                }
+
+                log.Description = ReplaceLiteral(log.Description, originalEmail, anonymizedEmail);
+                log.Description = ReplaceLiteral(log.Description, originalName, anonymizedName);
+            }
+
+            if (logs.Count > 0)
+                await _appDbContext.SaveChangesAsync();
+        }
+
+        private static string? RedactUserIdentitySnapshot(string? payload, string anonymizedName, string anonymizedEmail, string anonymizedIdentifier)
+        {
+            if (string.IsNullOrWhiteSpace(payload))
+                return payload;
+
+            try
+            {
+                if (JsonNode.Parse(payload) is not JsonObject snapshot)
+                    return payload;
+
+                foreach (var property in snapshot.ToList())
+                {
+                    if (property.Key.Equals("name", StringComparison.OrdinalIgnoreCase))
+                        snapshot[property.Key] = anonymizedName;
+                    else if (property.Key.Equals("email", StringComparison.OrdinalIgnoreCase))
+                        snapshot[property.Key] = anonymizedEmail;
+                    else if (property.Key.Equals("uniqueIdentifier", StringComparison.OrdinalIgnoreCase))
+                        snapshot[property.Key] = anonymizedIdentifier;
+                    else if (IsSecretAuditProperty(property.Key))
+                        snapshot[property.Key] = null;
+                }
+
+                return snapshot.ToJsonString(new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                });
+            }
+            catch (JsonException)
+            {
+                return payload;
+            }
+        }
+
+        private static bool IsSecretAuditProperty(string propertyName)
+        {
+            return propertyName.Equals("passwordHash", StringComparison.OrdinalIgnoreCase)
+                || propertyName.Equals("twoFactorSecretKey", StringComparison.OrdinalIgnoreCase)
+                || propertyName.Equals("passwordResetTokenHash", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? ReplaceLiteral(string? value, string original, string replacement)
+        {
+            if (string.IsNullOrEmpty(value) || string.IsNullOrWhiteSpace(original) || original.Length < 3)
+                return value;
+
+            return value.Replace(original, replacement, StringComparison.OrdinalIgnoreCase);
+        }
+
         public async Task<UserResponseDto> GetUserInfoAsync(Guid userId)
         {
             var user = await _userRepository.GetByIdAsync(userId)
@@ -266,9 +410,11 @@ namespace API_Gestao_Eventos.src.Application.Services
         Task<AuthResponseDto> LoginAsync(LoginRequestDto request);
         Task<TwoFactorCreateResponseDto> SetupTwoFactorAsync(Guid userId);
         Task<bool> EnableTwoFactorAsync(Guid userId, string code);
+        Task DisableTwoFactorAsync(Guid userId);
         Task<AuthResponseDto> ChangeInitialPasswordAsync(ChangeInitialPasswordDto dto);
         Task RequestPasswordResetAsync(ForgotPasswordRequestDto dto);
         Task ResetPasswordAsync(ResetPasswordRequestDto dto);
+        Task AnonymizePersonalDataAsync(Guid userId);
         Task<UserResponseDto> GetUserInfoAsync(Guid userId);
     }
 }

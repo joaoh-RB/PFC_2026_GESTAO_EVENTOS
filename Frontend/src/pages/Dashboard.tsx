@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { StaffDashboard } from "@/components/dashboard/StaffDashboard";
 import {
   ArrowRight,
   BookOpen,
@@ -96,6 +97,40 @@ export function Dashboard() {
   };
 
   const showAccessCard = user?.role !== "Aluno";
+
+  if (user?.role && user.role !== "Aluno") {
+    return (
+      <div className="app-page">
+        <StaffDashboard />
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-[#262242]">Acesso rápido</h2>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {linksWithDescriptions.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="surface-card group p-5 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+                  <div
+                    className={`flex size-10 items-center justify-center rounded-xl ${item.color}`}>
+                    <Icon className="size-[18px]" />
+                  </div>
+                  <h3 className="mt-4 text-sm font-semibold text-[#262242]">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1.5 min-h-10 text-xs leading-5 text-slate-500">
+                    {item.description}
+                  </p>
+                  <ArrowRight className="mt-4 size-4 text-slate-300 transition group-hover:translate-x-1 group-hover:text-[#12a7d4]" />
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="app-page">

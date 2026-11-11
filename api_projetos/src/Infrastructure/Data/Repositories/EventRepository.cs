@@ -35,23 +35,40 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
 
             if (currentEvent == null)
                 throw new KeyNotFoundException("Evento não encontrado.");
-            if (eventEntity.EventStudents != null)
+
+            if (eventEntity.EventStudents != null && eventEntity.EventStudents.Count > 0)
             {
-                foreach (var registration in eventEntity.EventStudents)
+                foreach (var incomingStudent in eventEntity.EventStudents)
                 {
-                    var current = currentEvent.EventStudents
-                        .FirstOrDefault(s => s.StudentId == registration.StudentId);
-                    if (current == null)
+                    var existingStudent = currentEvent.EventStudents
+                        .FirstOrDefault(es => es.StudentId == incomingStudent.StudentId);
+
+                    if (existingStudent != null)
                     {
-                        registration.Student = null!;
-                        currentEvent.EventStudents.Add(registration);
+                        existingStudent.Status = incomingStudent.Status;
+                        existingStudent.RegisteredAt = incomingStudent.RegisteredAt;
+                        existingStudent.CanceledAt = incomingStudent.CanceledAt;
+                        existingStudent.AttendedAt = incomingStudent.AttendedAt;
+                        existingStudent.AttendanceMethod = incomingStudent.AttendanceMethod;
+                        existingStudent.IsActive = incomingStudent.IsActive;
                     }
                     else
                     {
-                        _context.Entry(current).CurrentValues.SetValues(registration);
+                        currentEvent.EventStudents.Add(new EventStudent
+                        {
+                            EventId = currentEvent.Id,
+                            StudentId = incomingStudent.StudentId,
+                            Status = incomingStudent.Status,
+                            RegisteredAt = incomingStudent.RegisteredAt,
+                            CanceledAt = incomingStudent.CanceledAt,
+                            AttendedAt = incomingStudent.AttendedAt,
+                            AttendanceMethod = incomingStudent.AttendanceMethod,
+                            IsActive = incomingStudent.IsActive
+                        });
                     }
                 }
             }
+
             _context.Entry(currentEvent).CurrentValues.SetValues(eventEntity);
 
             var targetCourseIds = eventEntity.AllowedCourses.Select(c => c.Id).ToHashSet();

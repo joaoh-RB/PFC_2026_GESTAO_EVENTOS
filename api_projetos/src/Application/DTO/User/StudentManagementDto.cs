@@ -20,6 +20,7 @@ namespace API_Gestao_Eventos.src.Application.DTO.User
         public Guid CourseId { get; set; }
         public UserRole Role { get; set; }
         public bool IsActive { get; set; }
+        public bool TwoFactorEnabled { get; set; }
         public UserApprovalStatus ApprovalStatus { get; set; }
         public Guid? ApprovedByUserId { get; set; }
         public string? ApprovedByUserName { get; set; }
