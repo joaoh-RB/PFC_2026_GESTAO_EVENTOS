@@ -159,7 +159,6 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
   } = useClientPagination(feedbacks, event.id);
 
   const hasEventDatePassed = new Date(event.startDate).getTime() <= Date.now();
-  const isEventEnded = new Date(event.endDate).getTime() <= Date.now();
 
   const loadRegistrations = useCallback(
     async (page: number = 1) => {
