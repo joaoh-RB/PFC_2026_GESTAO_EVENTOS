@@ -29,7 +29,7 @@ namespace API_Gestao_Eventos.Tests.Validators.Auth
 
             var result = _validator.Validate(dto);
 
-            Assert.False(result.IsValid);
+            Assert.True(result.IsValid);
             Assert.Empty(result.Errors);
         }
 
