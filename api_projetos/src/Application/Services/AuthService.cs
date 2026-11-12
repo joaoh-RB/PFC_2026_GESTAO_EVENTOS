@@ -4,7 +4,6 @@ using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 using API_Gestao_Eventos.src.Infrastructure.Services.Security;
 using API_Gestao_Eventos.src.Domain.Enums;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using API_Gestao_Eventos.src.Common.Utils;
 using API_Gestao_Eventos.src.Infrastructure.Services.Email;

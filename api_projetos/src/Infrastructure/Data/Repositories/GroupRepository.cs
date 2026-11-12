@@ -1,7 +1,6 @@
 ﻿using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Data.Context;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories

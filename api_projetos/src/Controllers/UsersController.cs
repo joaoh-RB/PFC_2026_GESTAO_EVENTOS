@@ -1,5 +1,4 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.Auth;
-using API_Gestao_Eventos.src.Application.DTO.User;
+﻿using API_Gestao_Eventos.src.Application.DTO.User;
 using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Application.Services;
 using API_Gestao_Eventos.src.Domain.Enums;

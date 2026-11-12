@@ -1,5 +1,4 @@
 using System.Text;
-using Microsoft.Extensions.Hosting;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Services.Email
 {

@@ -3,7 +3,6 @@ using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Integration
 {

@@ -1,7 +1,6 @@
 using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Application.Validators.Event;
 using API_Gestao_Eventos.src.Domain.Enums;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Validators.Event
 {

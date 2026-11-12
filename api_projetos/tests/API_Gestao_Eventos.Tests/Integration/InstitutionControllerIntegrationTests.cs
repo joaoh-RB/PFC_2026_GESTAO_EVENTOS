@@ -6,7 +6,6 @@ using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Integration
 {

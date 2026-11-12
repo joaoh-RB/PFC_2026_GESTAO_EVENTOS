@@ -3,7 +3,6 @@ using API_Gestao_Eventos.src.Application.Services;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 using Moq;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Services
 {

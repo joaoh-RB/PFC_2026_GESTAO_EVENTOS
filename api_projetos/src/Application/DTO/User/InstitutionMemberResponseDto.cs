@@ -1,6 +1,4 @@
-﻿using API_Gestao_Eventos.src.Domain.Enums;
-
-namespace API_Gestao_Eventos.src.Application.DTO.User
+﻿namespace API_Gestao_Eventos.src.Application.DTO.User
 {
     public class InstitutionMemberResponseDto
     {

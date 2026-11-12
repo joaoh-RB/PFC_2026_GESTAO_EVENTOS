@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using System.Text;
 using API_Gestao_Eventos.src.Domain.Entities;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Services.Security

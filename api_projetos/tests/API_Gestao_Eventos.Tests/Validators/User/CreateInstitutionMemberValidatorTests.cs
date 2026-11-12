@@ -1,7 +1,6 @@
 using API_Gestao_Eventos.src.Application.DTO.User;
 using API_Gestao_Eventos.src.Application.Validators.User;
 using API_Gestao_Eventos.src.Domain.Enums;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Validators.User
 {

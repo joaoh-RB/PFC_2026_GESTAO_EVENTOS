@@ -6,7 +6,6 @@ using API_Gestao_Eventos.src.Infrastructure.Services.Storage;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using System.Text;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Services
 {
@@ -185,7 +184,7 @@ namespace API_Gestao_Eventos.Tests.Services
             var teacher = new Teacher { Id = Guid.NewGuid(), Courses = new List<Course> { new() { Id = courseId } } };
             _documentRepositoryMock.Setup(r => r.GetByIdAsync(doc.Id)).ReturnsAsync((Document)null!);
 
-             await Assert.ThrowsAsync<KeyNotFoundException>(() => _eventDocumentsService.ReviewDocumentAsync(doc.Id, teacher.Id, true, " Muito bom "));
+            await Assert.ThrowsAsync<KeyNotFoundException>(() => _eventDocumentsService.ReviewDocumentAsync(doc.Id, teacher.Id, true, " Muito bom "));
         }
 
         [Fact]

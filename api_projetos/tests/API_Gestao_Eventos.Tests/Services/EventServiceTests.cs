@@ -6,7 +6,6 @@ using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 using API_Gestao_Eventos.src.Infrastructure.Services.GoogleCalendar;
 using Moq;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Services
 {
@@ -57,21 +56,21 @@ namespace API_Gestao_Eventos.Tests.Services
             int capacity = 10,
             string? googleCalendarId = "google-event-id",
             DateTime? startDate = null) => new()
-        {
-            Id = id ?? Guid.NewGuid(),
-            Name = "Evento de Teste",
-            Description = "Descrição",
-            InstitutionId = institutionId ?? Guid.NewGuid(),
-            Institution = new Institution { Id = institutionId ?? Guid.NewGuid(), Name = "Instituição Teste" },
-            IsActive = isActive,
-            EventStatus = status,
-            Capacity = capacity,
-            GoogleCalendarEventId = googleCalendarId,
-            StartDate = startDate ?? DateTime.UtcNow.AddDays(1),
-            EndDate = DateTime.UtcNow.AddDays(2),
-            AllowedCourses = new List<Course> { new() { Id = Guid.NewGuid(), Name = "ADS" } },
-            EventStudents = new List<EventStudent>()
-        };
+            {
+                Id = id ?? Guid.NewGuid(),
+                Name = "Evento de Teste",
+                Description = "Descrição",
+                InstitutionId = institutionId ?? Guid.NewGuid(),
+                Institution = new Institution { Id = institutionId ?? Guid.NewGuid(), Name = "Instituição Teste" },
+                IsActive = isActive,
+                EventStatus = status,
+                Capacity = capacity,
+                GoogleCalendarEventId = googleCalendarId,
+                StartDate = startDate ?? DateTime.UtcNow.AddDays(1),
+                EndDate = DateTime.UtcNow.AddDays(2),
+                AllowedCourses = new List<Course> { new() { Id = Guid.NewGuid(), Name = "ADS" } },
+                EventStudents = new List<EventStudent>()
+            };
 
         private UserResponseDto SeedAuthUser(Guid? userId = null, string role = "Professor", Guid? institutionId = null)
         {
