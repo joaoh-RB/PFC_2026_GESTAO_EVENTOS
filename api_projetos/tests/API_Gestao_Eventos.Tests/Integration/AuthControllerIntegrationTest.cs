@@ -142,7 +142,7 @@ namespace API_Gestao_Eventos.Tests.Integration
         {
             var response = await _client.PostAsync($"{BasePath}/logout", null);
 
-            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var content = await response.Content.ReadAsStringAsync();
             Assert.Contains("Logout realizado com sucesso.", content);
         }
