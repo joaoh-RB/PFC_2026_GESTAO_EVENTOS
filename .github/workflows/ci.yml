@@ -1,0 +1,77 @@
+name: CI - API Backend
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Testes unitários
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v7
+
+      - name: Configurar .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: api_projetos/**/*.csproj
+
+      - name: Restaurar dependências
+        run: dotnet restore api_projetos/tests/API_Gestao_Eventos.Tests/API_Gestao_Eventos.Tests.csproj
+
+      - name: Executar testes unitários
+        run: dotnet test api_projetos/tests/API_Gestao_Eventos.Tests/API_Gestao_Eventos.Tests.csproj --no-restore --filter "FullyQualifiedName!~Integration"
+
+  integration-tests:
+    name: Testes de integração
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v7
+
+      - name: Configurar .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: api_projetos/**/*.csproj
+
+      - name: Restaurar dependências
+        run: dotnet restore api_projetos/tests/API_Gestao_Eventos.Tests/API_Gestao_Eventos.Tests.csproj
+
+      - name: Executar testes de integração
+        run: dotnet test api_projetos/tests/API_Gestao_Eventos.Tests/API_Gestao_Eventos.Tests.csproj --no-restore --filter "FullyQualifiedName~Integration"
+
+  linter:
+    name: Linter
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v7
+
+      - name: Configurar .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: api_projetos/**/*.csproj
+
+      - name: Restaurar dependências
+        run: |
+          dotnet restore api_projetos/API_Gestao_Eventos.csproj
+          dotnet restore api_projetos/tests/API_Gestao_Eventos.Tests/API_Gestao_Eventos.Tests.csproj
+
+      - name: Analisar estilo e formatação (dotnet format)
+        run: |
+          dotnet format api_projetos/API_Gestao_Eventos.csproj --no-restore --verify-no-changes
+          dotnet format api_projetos/tests/API_Gestao_Eventos.Tests/API_Gestao_Eventos.Tests.csproj --no-restore --verify-no-changes
