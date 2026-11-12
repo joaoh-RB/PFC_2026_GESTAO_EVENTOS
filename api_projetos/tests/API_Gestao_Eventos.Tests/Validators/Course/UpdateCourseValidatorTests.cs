@@ -1,6 +1,5 @@
 using API_Gestao_Eventos.src.Application.DTO.Course;
 using API_Gestao_Eventos.src.Application.Validators.Course;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Validators.Course
 {

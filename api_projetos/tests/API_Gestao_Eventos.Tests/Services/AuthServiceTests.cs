@@ -11,7 +11,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Moq;
 using SendGrid.Helpers.Mail;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Services
 {
@@ -34,10 +33,9 @@ namespace API_Gestao_Eventos.Tests.Services
             _userRepositoryMock = new Mock<IUserRepository>();
 
             var tempRoot = Path.Combine(Path.GetTempPath(), "symplosio_tests_env");
-            var templatesDir = Path.Combine(tempRoot, "Frontend", "public", "email-templates");
             var apiDir = Path.Combine(tempRoot, "api_projetos");
+            var templatesDir = Path.Combine(apiDir, "public", "Templates");
             Directory.CreateDirectory(templatesDir);
-            Directory.CreateDirectory(apiDir);
             var templateFile = Path.Combine(templatesDir, "notificacao-generica.html");
             if (!File.Exists(templateFile))
                 File.WriteAllText(templateFile, "<html>{{titulo}} {{nome}} {{mensagem}} {{link_acao}} {{texto_botao}}</html>");

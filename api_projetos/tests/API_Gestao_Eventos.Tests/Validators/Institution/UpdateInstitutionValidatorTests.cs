@@ -1,6 +1,5 @@
 using API_Gestao_Eventos.src.Application.DTO.Institution;
 using API_Gestao_Eventos.src.Application.Validators.Institution;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Validators.Institution
 {
@@ -76,7 +75,7 @@ namespace API_Gestao_Eventos.Tests.Validators.Institution
         public void Validate_QuandoNomeExceder150Caracteres_DeveFalhar()
         {
             var dto = CreateValidDto();
-            dto.Name= new string('a', 151);
+            dto.Name = new string('a', 151);
 
             var result = _validator.Validate(dto);
 
@@ -114,7 +113,7 @@ namespace API_Gestao_Eventos.Tests.Validators.Institution
         public void Validate_QuandoAddressExceder250Caracteres_DeveFalhar()
         {
             var dto = CreateValidDto();
-            dto.Address=new string('a', 251);
+            dto.Address = new string('a', 251);
 
             var result = _validator.Validate(dto);
 

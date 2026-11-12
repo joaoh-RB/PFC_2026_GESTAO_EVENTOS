@@ -1,6 +1,4 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.Auth;
-using API_Gestao_Eventos.src.Application.DTO.Event;
-using API_Gestao_Eventos.src.Application.DTO.User;
+﻿using API_Gestao_Eventos.src.Application.DTO.User;
 using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Common.Utils;
 using API_Gestao_Eventos.src.Domain.Entities;

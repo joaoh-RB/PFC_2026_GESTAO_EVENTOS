@@ -5,14 +5,11 @@ using System.Text.Json;
 using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Application.DTO.Group;
 using API_Gestao_Eventos.src.Application.DTO.Utils;
-using API_Gestao_Eventos.src.Controllers;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using static API_Gestao_Eventos.src.Controllers.EventsController;
 
 namespace API_Gestao_Eventos.Tests.Integration

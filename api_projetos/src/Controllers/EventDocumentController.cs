@@ -1,8 +1,5 @@
-using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Application.DTO.EventDocument;
-using API_Gestao_Eventos.src.Application.DTO.Utils;
 using API_Gestao_Eventos.src.Application.Services;
-using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

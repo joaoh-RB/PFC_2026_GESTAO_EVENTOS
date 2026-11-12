@@ -1,6 +1,5 @@
 using API_Gestao_Eventos.src.Application.DTO.Institution;
 using API_Gestao_Eventos.src.Application.Validators.Institution;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Validators.Institution
 {

@@ -1,5 +1,4 @@
 ﻿using API_Gestao_Eventos.src.Domain.Enums;
-using System.ComponentModel.DataAnnotations;
 
 namespace API_Gestao_Eventos.src.Application.DTO.Auth
 {

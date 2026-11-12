@@ -4,7 +4,6 @@ using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
 using Moq;
-using Xunit;
 
 namespace API_Gestao_Eventos.Tests.Services
 {
@@ -29,16 +28,16 @@ namespace API_Gestao_Eventos.Tests.Services
             DateTime? startDate = null,
             int? maxGroupSize = 3,
             Guid? courseId = null) => new()
-        {
-            Id = Guid.NewGuid(),
-            Name = "Evento Teste",
-            IsActive = isActive,
-            AllowDocuments = allowDocuments,
-            StartDate = startDate ?? DateTime.UtcNow.AddDays(2),
-            EndDate = DateTime.UtcNow.AddDays(3),
-            MaxGroupSize = maxGroupSize,
-            AllowedCourses = courseId.HasValue ? new List<Course> { new() { Id = courseId.Value, Name = "ADS" } } : new List<Course>()
-        };
+            {
+                Id = Guid.NewGuid(),
+                Name = "Evento Teste",
+                IsActive = isActive,
+                AllowDocuments = allowDocuments,
+                StartDate = startDate ?? DateTime.UtcNow.AddDays(2),
+                EndDate = DateTime.UtcNow.AddDays(3),
+                MaxGroupSize = maxGroupSize,
+                AllowedCourses = courseId.HasValue ? new List<Course> { new() { Id = courseId.Value, Name = "ADS" } } : new List<Course>()
+            };
 
         private static Group SeedGroup(Guid eventId, Guid leaderId, bool isActive = true)
         {

@@ -1,10 +1,8 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.Event;
-using API_Gestao_Eventos.src.Application.DTO.User;
+﻿using API_Gestao_Eventos.src.Application.DTO.User;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography.X509Certificates;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
 {
@@ -21,7 +19,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Repositories
                 .OfType<Teacher>()
                 .Include(t => t.Courses)
                 .Include(i => i.Institution)
-                .FirstOrDefaultAsync(t => t.Id == id);  
+                .FirstOrDefaultAsync(t => t.Id == id);
 
             if (teacher != null)
                 return teacher;
