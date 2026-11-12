@@ -30,6 +30,11 @@ namespace API_Gestao_Eventos.Tests.Integration
         {
             builder.UseEnvironment("Testing");
             builder.UseSetting("DatabaseProvider", "None");
+            builder.UseSetting("JwtSettings:Secret", "chave-secreta-exclusiva-para-testes-integracao-32bytes!");
+            builder.UseSetting("JwtSettings:Issuer", "GestaoEventosAPI");
+            builder.UseSetting("JwtSettings:Audience", "GestaoEventosFrontend");
+            builder.UseSetting("JwtSettings:ExpirationInMinutes", "120");
+            builder.UseSetting("FrontendInfo:BaseUrl", "http://localhost:3000");
 
             builder.ConfigureServices(services =>
             {
