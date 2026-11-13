@@ -36,6 +36,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 
 interface EventRegistrationItem {
   studentId: string;
+  uniqueIdentifier: string;
   studentName: string;
   courseName: string;
   registeredAt: string;
@@ -560,6 +561,7 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Aluno</TableHead>
+                          <TableHead>RGM</TableHead>
                           <TableHead>Curso</TableHead>
                           <TableHead>Data e hora da inscrição</TableHead>
                           <TableHead>Status</TableHead>
@@ -575,6 +577,7 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                               <TableCell className="font-medium text-slate-900">
                                 {item.studentName}
                               </TableCell>
+                              <TableCell>{item.uniqueIdentifier}</TableCell>
                               <TableCell>{item.courseName}</TableCell>
                               <TableCell>
                                 {formatDateForShort(item.registeredAt)}

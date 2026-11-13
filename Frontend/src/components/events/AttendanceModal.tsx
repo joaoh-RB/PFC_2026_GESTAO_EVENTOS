@@ -17,6 +17,7 @@ import type { EventFeedbackDto } from "./EventFeedbackModal";
 
 interface AttendanceRegistration {
   studentId: string;
+  uniqueIdentifier:string | null;
   studentName: string;
   courseName: string;
   attended: boolean;
@@ -170,8 +171,11 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
                         key={registration.studentId}
                         className="flex items-center justify-between gap-3 p-3">
                         <div className="min-w-0 text-sm text-slate-700">
-                          <p className="truncate font-medium">
+                          <p className="truncate font-medium text-base">
                             {registration.studentName}
+                          </p>
+                          <p className="truncate text-xs">
+                            RGM: {registration.uniqueIdentifier}
                           </p>
                           <p className="truncate text-xs text-slate-500">
                             {registration.courseName}

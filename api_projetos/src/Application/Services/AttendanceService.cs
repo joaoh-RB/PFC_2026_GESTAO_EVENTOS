@@ -50,6 +50,7 @@ namespace API_Gestao_Eventos.src.Application.Services
             {
                 StudentId = r.StudentId,
                 StudentName = r.Student.Name,
+                UniqueIdentifier = r.Student.UniqueIdentifier ?? "-",
                 CourseName = r.Student.Course.Name,
                 Attended = r.AttendedAt != null,
                 AttendedAt = r.AttendedAt,

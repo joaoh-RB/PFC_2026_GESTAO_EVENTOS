@@ -20,6 +20,7 @@ import {
   ComboboxEmpty,
   ComboboxItem,
   ComboboxList,
+  ComboboxSeparator,
   ComboboxValue,
   ComboboxChip,
   useComboboxAnchor,
@@ -38,6 +39,8 @@ import {
 } from "@/components/ui/select";
 import type { OptionItem } from "@/types/optionItem";
 import { formatWithBrazilTimezone } from "@/utils/format";
+
+const SELECT_ALL_COURSES_VALUE = "__ALL_COURSES__";
 
 interface CreateEventFormProps {
   institutions: OptionItem[];
@@ -321,40 +324,91 @@ export const CreateEventForm: React.FC<CreateEventFormProps> = ({
             <Controller
               name="allowedCourses"
               control={control}
-              render={({ field }) => (
-                <Combobox
-                  items={courses}
-                  multiple
-                  value={field.value.map((id) => id)}
-                  onValueChange={(selectedNames) => {
-                    field.onChange(selectedNames);
-                  }}>
-                  <ComboboxChips className={"w-full"} ref={anchor}>
-                    <ComboboxValue>
-                      {field.value.map((id) => {
-                        const course = courses.find((c) => c.value === id);
+              render={({ field }) => {
+                const allCourseIds = courses.map((c) => c.value);
+                const allSelected =
+                  courses.length > 0 &&
+                  allCourseIds.every((id) => field.value.includes(id));
+                const comboboxItems =
+                  courses.length > 0
+                    ? [
+                        {
+                          value: SELECT_ALL_COURSES_VALUE,
+                          label: "Selecionar todos os cursos",
+                        },
+                        ...courses,
+                      ]
+                    : courses;
+                const comboboxValue = allSelected
+                  ? [SELECT_ALL_COURSES_VALUE, ...field.value]
+                  : field.value.map((id) => id);
 
-                        return (
-                          <ComboboxChip key={id}>
-                            {course?.label ?? id}
-                          </ComboboxChip>
-                        );
-                      })}
-                    </ComboboxValue>
-                  </ComboboxChips>
-                  <ComboboxContent anchor={anchor}>
-                    <ComboboxEmpty>Nenhum curso disponível</ComboboxEmpty>
-                    <ComboboxList>
-                      {courses.map((course) => (
-                        <ComboboxItem key={course.value} value={course.value}>
-                          {course.label}
-                        </ComboboxItem>
-                      ))}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-              )}
+                return (
+                  <Combobox
+                    items={comboboxItems}
+                    multiple
+                    value={comboboxValue}
+                    onValueChange={(selectedValues) => {
+                      const hasSelectAllOption = selectedValues.includes(
+                        SELECT_ALL_COURSES_VALUE,
+                      );
+
+                      if (!allSelected && hasSelectAllOption) {
+                        field.onChange(allCourseIds);
+                        return;
+                      }
+
+                      if (allSelected && !hasSelectAllOption) {
+                        field.onChange([]);
+                        return;
+                      }
+
+                      field.onChange(
+                        selectedValues.filter(
+                          (val) => val !== SELECT_ALL_COURSES_VALUE,
+                        ),
+                      );
+                    }}>
+                    <ComboboxChips className={"w-full"} ref={anchor}>
+                      <ComboboxValue>
+                        {field.value.map((id) => {
+                          const course = courses.find((c) => c.value === id);
+
+                          return (
+                            <ComboboxChip key={id}>
+                              {course?.label ?? id}
+                            </ComboboxChip>
+                          );
+                        })}
+                      </ComboboxValue>
+                    </ComboboxChips>
+                    <ComboboxContent anchor={anchor}>
+                      <ComboboxEmpty>Nenhum curso disponível</ComboboxEmpty>
+                      <ComboboxList>
+                        {courses.length > 0 && (
+                          <>
+                            <ComboboxItem
+                              value={SELECT_ALL_COURSES_VALUE}
+                              className="font-medium text-[#109bc6]">
+                              Selecionar todos os cursos
+                            </ComboboxItem>
+                            <ComboboxSeparator />
+                          </>
+                        )}
+                        {courses.map((course) => (
+                          <ComboboxItem key={course.value} value={course.value}>
+                            {course.label}
+                          </ComboboxItem>
+                        ))}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                );
+              }}
             />
+            <p className="text-xs text-slate-500">
+              Selecione todos os cursos que podem participar do evento.
+            </p>
             {errors.allowedCourses && (
               <p className="text-xs text-red-600">
                 {errors.allowedCourses.message}
