@@ -220,22 +220,6 @@ namespace API_Gestao_Eventos.src.Controllers
             }
         }
 
-        [Authorize(Roles = nameof(UserRole.Professor) + "," + nameof(UserRole.Administrador) + "," + nameof(UserRole.Secretaria))]
-        [HttpGet("{id:guid}/attendance")]
-        public async Task<IActionResult> GetAttendance([FromRoute] Guid id)
-        {
-            try
-            {
-                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var registrations = await attendanceService.GetRegistrationsAsync(id, userId);
-                return Ok(registrations);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
         [Authorize(Roles = nameof(UserRole.Aluno))]
         [HttpPost("{id:guid}/attendance/confirm")]
         public async Task<IActionResult> ConfirmAttendance([FromRoute] Guid id, [FromBody] ConfirmAttendanceRequestDto request)

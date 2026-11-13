@@ -24,44 +24,29 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/services/api";
 import type { PagedResult } from "@/types/utils";
-import { GroupMemberStatus } from "@/types/group";
+import { GroupMemberStatus, type GroupMember } from "@/types/group";
+import {
+  attendanceMethodLabel,
+  fetchAllEventRegistrations,
+  fetchEventFeedbacks,
+  fetchEventRegistrationsPage,
+  toggleEventAttendance,
+  type EventRegistrationItem,
+} from "@/types/eventRegistration";
 import { formatDateForShort } from "@/utils/format";
 import type { EventFeedbackDto } from "./EventFeedbackModal";
 import type { EventItem } from "./EventList";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 import { ExportExcelButton } from "@/components/ui/export-excel-button";
-import { exportToExcel, fetchAllPages } from "@/utils/exportExcel";
+import { exportToExcel } from "@/utils/exportExcel";
 import { useClientPagination } from "@/hooks/useClientPagination";
 import { TablePagination } from "@/components/ui/table-pagination";
-
-interface EventRegistrationItem {
-  studentId: string;
-  uniqueIdentifier: string;
-  studentName: string;
-  courseName: string;
-  registeredAt: string;
-  attended: boolean;
-  attendedAt?: string | null;
-  method?: number | null;
-}
-
-const attendanceMethodLabel: Record<number, string> = {
-  1: "pelo código",
-  2: "manual",
-};
-
-interface GroupMemberItem {
-  studentId: string;
-  name: string;
-  status: number;
-  isLeader: boolean;
-}
 
 interface EventGroupItem {
   id: string;
   number: number;
   leaderName: string;
-  members: GroupMemberItem[];
+  members: GroupMember[];
 }
 
 interface EventDocumentItem {
@@ -167,17 +152,12 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
       setRegistrationsError(null);
 
       try {
-        const response = await api.get<PagedResult<EventRegistrationItem>>(
-          `/events/${event.id}/registrations`,
-          {
-            params: {
-              pageNumber: page,
-              pageSize: REGISTRATIONS_PAGE_SIZE,
-            },
-          },
+        const data = await fetchEventRegistrationsPage(
+          event.id,
+          page,
+          REGISTRATIONS_PAGE_SIZE,
         );
-
-        setRegistrationsData(response.data);
+        setRegistrationsData(data);
       } catch (error: unknown) {
         setRegistrationsError(
           getApiMessage(
@@ -197,10 +177,8 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
     setFeedbacksError(null);
 
     try {
-      const response = await api.get<EventFeedbackDto[]>(
-        `/events/${event.id}/feedbacks`,
-      );
-      setFeedbacks(Array.isArray(response.data) ? response.data : []);
+      const data = await fetchEventFeedbacks(event.id);
+      setFeedbacks(data);
     } catch (error: unknown) {
       setFeedbacksError(
         getApiMessage(
@@ -397,23 +375,18 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
     setRegistrationsError(null);
 
     try {
-      const url = `/events/${event.id}/attendance/${registration.studentId}`;
-      if (registration.attended) {
-        await api.delete(url);
-      } else {
-        await api.post(url);
-      }
-
-      const response = await api.get<PagedResult<EventRegistrationItem>>(
-        `/events/${event.id}/registrations`,
-        {
-          params: {
-            pageNumber: registrationsData.pageNumber,
-            pageSize: REGISTRATIONS_PAGE_SIZE,
-          },
-        },
+      await toggleEventAttendance(
+        event.id,
+        registration.studentId,
+        registration.attended,
       );
-      setRegistrationsData(response.data);
+
+      const data = await fetchEventRegistrationsPage(
+        event.id,
+        registrationsData.pageNumber,
+        REGISTRATIONS_PAGE_SIZE,
+      );
+      setRegistrationsData(data);
     } catch (error: unknown) {
       setRegistrationsError(
         getApiMessage(error, "Erro ao atualizar a presença do aluno."),
@@ -427,21 +400,12 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
     const items =
       registrationsData.totalPages <= 1
         ? registrationsData.items
-        : await fetchAllPages<EventRegistrationItem>(
-            async (pageNumber, pageSize) => {
-              const response = await api.get<
-                PagedResult<EventRegistrationItem>
-              >(`/events/${event.id}/registrations`, {
-                params: { pageNumber, pageSize },
-              });
-              return response.data;
-            },
-            50,
-          );
+        : await fetchAllEventRegistrations(event.id, 50);
 
     exportToExcel(
       items.map((item) => ({
         Aluno: item.studentName,
+        RGM: item.uniqueIdentifier,
         Curso: item.courseName,
         "Data e hora da inscrição": formatDateForShort(item.registeredAt),
         Status: item.attended

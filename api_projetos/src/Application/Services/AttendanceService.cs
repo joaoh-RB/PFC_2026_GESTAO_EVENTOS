@@ -1,4 +1,3 @@
-﻿using API_Gestao_Eventos.src.Application.DTO.Event;
 using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Data.Repositories;
@@ -41,21 +40,6 @@ namespace API_Gestao_Eventos.src.Application.Services
             if (!string.Equals(evt.AttendanceCode, code.Trim(), StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Código inválido.");
             await attendanceRepository.SetAttendanceAsync(registration, now, AttendanceMethod.Code);
-        }
-        public async Task<IEnumerable<AttendanceRegistrationDto>> GetRegistrationsAsync(Guid eventId, Guid userId)
-        {
-            await GetManageableEventAsync(eventId, userId);
-            var registrations = await attendanceRepository.GetRegistrationsAsync(eventId);
-            return registrations.Select(r => new AttendanceRegistrationDto
-            {
-                StudentId = r.StudentId,
-                StudentName = r.Student.Name,
-                UniqueIdentifier = r.Student.UniqueIdentifier ?? "-",
-                CourseName = r.Student.Course.Name,
-                Attended = r.AttendedAt != null,
-                AttendedAt = r.AttendedAt,
-                Method = r.AttendanceMethod
-            });
         }
         public async Task MarkAttendanceAsync(Guid eventId, Guid studentId, Guid userId)
         {

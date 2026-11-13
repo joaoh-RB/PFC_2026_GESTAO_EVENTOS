@@ -610,9 +610,9 @@ namespace API_Gestao_Eventos.Tests.Integration
             Assert.Equal(6, result.Code.Length);
         }
 
-        // GET /api/events/{id}/attendance
+        // GET /api/events/{id}/registrations (com presença registrada)
         [Fact]
-        public async Task GetAttendance_QuandoCaminhoFeliz_DeveRetornarStatus200EListaDePresencas()
+        public async Task GetRegistrations_QuandoHouverPresencaRegistrada_DeveRetornarStatus200EListaDeInscritosComPresenca()
         {
             var seed = await SeedScenarioAsync();
             Guid eventId;
@@ -650,14 +650,16 @@ namespace API_Gestao_Eventos.Tests.Integration
                 eventId = evt.Id;
             }
 
-            using var attReq = CreateAuthenticatedRequest(HttpMethod.Get, $"{BasePath}/{eventId}/attendance", seed.Admin.Id, UserRole.Administrador);
-            var attResp = await _client.SendAsync(attReq);
+            using var regReq = CreateAuthenticatedRequest(HttpMethod.Get, $"{BasePath}/{eventId}/registrations", seed.Admin.Id, UserRole.Administrador);
+            var regResp = await _client.SendAsync(regReq);
 
-            Assert.Equal(HttpStatusCode.OK, attResp.StatusCode);
-            var items = await attResp.Content.ReadFromJsonAsync<List<AttendanceRegistrationDto>>(_jsonOptions);
-            Assert.NotNull(items);
+            Assert.Equal(HttpStatusCode.OK, regResp.StatusCode);
+            var paged = await regResp.Content.ReadFromJsonAsync<PagedResponseDto<EventRegistrationDto>>(_jsonOptions);
+            Assert.NotNull(paged);
+            var items = paged.Items.ToList();
             Assert.Single(items);
             Assert.True(items[0].Attended);
+            Assert.Equal(AttendanceMethod.Manual, items[0].Method);
             Assert.Equal(seed.Student.Id, items[0].StudentId);
         }
 
