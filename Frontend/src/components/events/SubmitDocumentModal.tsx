@@ -57,6 +57,17 @@ export interface EventDocumentDto {
   reviewedAt?: string | null;
 }
 
+const ALLOWED_DOCUMENT_EXTENSIONS = new Set([".pdf", ".jpg", ".jpeg", ".png"]);
+const ALLOWED_DOCUMENT_ACCEPT =
+  ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
+
+const isAllowedDocumentFile = (candidate: File): boolean => {
+  const dotIndex = candidate.name.lastIndexOf(".");
+  if (dotIndex < 0) return false;
+  const ext = candidate.name.slice(dotIndex).toLowerCase();
+  return ALLOWED_DOCUMENT_EXTENSIONS.has(ext);
+};
+
 const submitDocument = async (eventId: string, file: File): Promise<void> => {
   const formData = new FormData();
   formData.append("file", file);
@@ -187,19 +198,9 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
 
     if (contentType) {
       const mime = contentType.toLowerCase();
-      if (mime.includes("wordprocessingml") || mime.includes("msword"))
-        return "DOCX";
-      if (mime.includes("spreadsheetml") || mime.includes("ms-excel"))
-        return "XLSX";
-      if (mime.includes("presentationml") || mime.includes("ms-powerpoint"))
-        return "PPTX";
       if (mime.includes("pdf")) return "PDF";
       if (mime.includes("jpeg") || mime.includes("jpg")) return "JPG";
       if (mime.includes("png")) return "PNG";
-      if (mime.includes("webp")) return "WEBP";
-      if (mime.includes("csv")) return "CSV";
-      if (mime.includes("plain")) return "TXT";
-      if (mime.includes("zip")) return "ZIP";
 
       const sub = mime.split("/")[1];
       if (sub && sub.length <= 6 && !sub.includes("vnd.")) {
@@ -252,13 +253,31 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
     }
   }, [hasGroup, loadDocuments]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-      setError(null);
-    } else {
+  const selectValidatedFile = (selectedFile: File | null) => {
+    if (!selectedFile) {
       setFile(null);
+      return;
     }
+
+    if (!isAllowedDocumentFile(selectedFile)) {
+      setFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      setError(
+        "Formato de arquivo não suportado. Apenas PDF, JPG, JPEG e PNG são permitidos.",
+      );
+      return;
+    }
+
+    setFile(selectedFile);
+    setError(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile =
+      e.target.files && e.target.files.length > 0 ? e.target.files[0] : null;
+    selectValidatedFile(selectedFile);
   };
 
   const handleRemoveFile = () => {
@@ -606,6 +625,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
                     ref={fileInputRef}
                     id="document-upload"
                     type="file"
+                    accept={ALLOWED_DOCUMENT_ACCEPT}
                     onChange={handleFileChange}
                     disabled={isSubmitting}
                     className="hidden"
@@ -624,8 +644,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
                           e.dataTransfer.files &&
                           e.dataTransfer.files.length > 0
                         ) {
-                          setFile(e.dataTransfer.files[0]);
-                          setError(null);
+                          selectValidatedFile(e.dataTransfer.files[0]);
                         }
                       }}>
                       <AttachmentMedia className="w-10 h-10 rounded-full bg-slate-100 text-[#109bc6] mb-2 shrink-0">
@@ -636,7 +655,7 @@ export const SubmitDocumentModal: React.FC<SubmitDocumentModalProps> = ({
                           Clique para selecionar ou arraste o arquivo
                         </AttachmentTitle>
                         <AttachmentDescription className="text-xs text-slate-500 truncate block w-full max-w-full">
-                          Formatos aceitos: PDF, DOCX, PNG, JPG, etc.
+                          Formatos aceitos: PDF, JPG, JPEG e PNG.
                         </AttachmentDescription>
                       </AttachmentContent>
                     </Attachment>

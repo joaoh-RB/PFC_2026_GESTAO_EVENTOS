@@ -22,9 +22,6 @@ export const createEventSchema = z.object({
 }).refine((data) => new Date(data.startDate) > new Date(), {
   message: "A data de início deve ser no futuro",
   path: ["startDate"],
-}).refine((data) => !data.allowDocuments || !data.submissionDeadline || new Date(data.submissionDeadline) < new Date(data.startDate), {
-  message: "O prazo deve ser antes da data de início do evento",
-  path: ["submissionDeadline"],
 }).refine((data) => new Date(data.endDate) > new Date(data.startDate), {
   message: "A data de término deve ser maior que a data de início",
   path: ["endDate"],

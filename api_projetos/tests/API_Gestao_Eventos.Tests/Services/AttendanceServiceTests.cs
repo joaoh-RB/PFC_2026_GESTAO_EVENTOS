@@ -260,23 +260,6 @@ namespace API_Gestao_Eventos.Tests.Services
         }
 
         [Fact]
-        public async Task GetRegistrationsAsync_QuandoChamadoPorGestorAutorizado_DeveRetornarInscricoesMapeadas()
-        {
-            var evt = SeedEvent();
-            var admin = SeedAdmin();
-            var registration = SeedRegistration(evt.Id, attendedAt: DateTime.UtcNow);
-            _attendanceRepositoryMock.Setup(r => r.GetEventAsync(evt.Id)).ReturnsAsync(evt);
-            _attendanceRepositoryMock.Setup(r => r.GetRegistrationsAsync(evt.Id)).ReturnsAsync(new[] { registration });
-
-            var result = (await _attendanceService.GetRegistrationsAsync(evt.Id, admin.Id)).ToList();
-
-            Assert.Single(result);
-            Assert.Equal(registration.StudentId, result[0].StudentId);
-            Assert.True(result[0].Attended);
-            Assert.Equal(AttendanceMethod.Code, result[0].Method);
-        }
-
-        [Fact]
         public async Task MarkAttendanceAsync_QuandoEventoNaoComecou_DeveLancarInvalidOperationException()
         {
             var evt = SeedEvent(startDate: DateTime.UtcNow.AddHours(1));
@@ -389,4 +372,3 @@ namespace API_Gestao_Eventos.Tests.Services
         }
     }
 }
-

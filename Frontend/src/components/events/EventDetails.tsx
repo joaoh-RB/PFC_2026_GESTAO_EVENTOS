@@ -24,43 +24,29 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/services/api";
 import type { PagedResult } from "@/types/utils";
-import { GroupMemberStatus } from "@/types/group";
+import { GroupMemberStatus, type GroupMember } from "@/types/group";
+import {
+  attendanceMethodLabel,
+  fetchAllEventRegistrations,
+  fetchEventFeedbacks,
+  fetchEventRegistrationsPage,
+  toggleEventAttendance,
+  type EventRegistrationItem,
+} from "@/types/eventRegistration";
 import { formatDateForShort } from "@/utils/format";
 import type { EventFeedbackDto } from "./EventFeedbackModal";
 import type { EventItem } from "./EventList";
 import { DeleteConfirmation } from "@/components/ui/deleteConfirm";
 import { ExportExcelButton } from "@/components/ui/export-excel-button";
-import { exportToExcel, fetchAllPages } from "@/utils/exportExcel";
+import { exportToExcel } from "@/utils/exportExcel";
 import { useClientPagination } from "@/hooks/useClientPagination";
 import { TablePagination } from "@/components/ui/table-pagination";
-
-interface EventRegistrationItem {
-  studentId: string;
-  studentName: string;
-  courseName: string;
-  registeredAt: string;
-  attended: boolean;
-  attendedAt?: string | null;
-  method?: number | null;
-}
-
-const attendanceMethodLabel: Record<number, string> = {
-  1: "pelo código",
-  2: "manual",
-};
-
-interface GroupMemberItem {
-  studentId: string;
-  name: string;
-  status: number;
-  isLeader: boolean;
-}
 
 interface EventGroupItem {
   id: string;
   number: number;
   leaderName: string;
-  members: GroupMemberItem[];
+  members: GroupMember[];
 }
 
 interface EventDocumentItem {
@@ -166,17 +152,12 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
       setRegistrationsError(null);
 
       try {
-        const response = await api.get<PagedResult<EventRegistrationItem>>(
-          `/events/${event.id}/registrations`,
-          {
-            params: {
-              pageNumber: page,
-              pageSize: REGISTRATIONS_PAGE_SIZE,
-            },
-          },
+        const data = await fetchEventRegistrationsPage(
+          event.id,
+          page,
+          REGISTRATIONS_PAGE_SIZE,
         );
-
-        setRegistrationsData(response.data);
+        setRegistrationsData(data);
       } catch (error: unknown) {
         setRegistrationsError(
           getApiMessage(
@@ -196,10 +177,8 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
     setFeedbacksError(null);
 
     try {
-      const response = await api.get<EventFeedbackDto[]>(
-        `/events/${event.id}/feedbacks`,
-      );
-      setFeedbacks(Array.isArray(response.data) ? response.data : []);
+      const data = await fetchEventFeedbacks(event.id);
+      setFeedbacks(data);
     } catch (error: unknown) {
       setFeedbacksError(
         getApiMessage(
@@ -280,13 +259,20 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
   }, [loadRegistrations, loadFeedbacks]);
 
   const handleReviewDocument = async (documentId: string, approve: boolean) => {
+    const trimmedFeedback = (feedbackByDocument[documentId] ?? "").trim();
+
+    if (!approve && !trimmedFeedback) {
+      setDocumentsError("O feedback é obrigatório para reprovar um documento.");
+      return;
+    }
+
     setReviewingDocumentId(documentId);
     setDocumentsError(null);
 
     try {
       await api.post(`/eventdocuments/${documentId}/review`, {
         approve,
-        feedback: feedbackByDocument[documentId] || null,
+        feedback: trimmedFeedback || null,
       });
 
       setFeedbackByDocument((current) => {
@@ -396,23 +382,18 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
     setRegistrationsError(null);
 
     try {
-      const url = `/events/${event.id}/attendance/${registration.studentId}`;
-      if (registration.attended) {
-        await api.delete(url);
-      } else {
-        await api.post(url);
-      }
-
-      const response = await api.get<PagedResult<EventRegistrationItem>>(
-        `/events/${event.id}/registrations`,
-        {
-          params: {
-            pageNumber: registrationsData.pageNumber,
-            pageSize: REGISTRATIONS_PAGE_SIZE,
-          },
-        },
+      await toggleEventAttendance(
+        event.id,
+        registration.studentId,
+        registration.attended,
       );
-      setRegistrationsData(response.data);
+
+      const data = await fetchEventRegistrationsPage(
+        event.id,
+        registrationsData.pageNumber,
+        REGISTRATIONS_PAGE_SIZE,
+      );
+      setRegistrationsData(data);
     } catch (error: unknown) {
       setRegistrationsError(
         getApiMessage(error, "Erro ao atualizar a presença do aluno."),
@@ -426,21 +407,12 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
     const items =
       registrationsData.totalPages <= 1
         ? registrationsData.items
-        : await fetchAllPages<EventRegistrationItem>(
-            async (pageNumber, pageSize) => {
-              const response = await api.get<
-                PagedResult<EventRegistrationItem>
-              >(`/events/${event.id}/registrations`, {
-                params: { pageNumber, pageSize },
-              });
-              return response.data;
-            },
-            50,
-          );
+        : await fetchAllEventRegistrations(event.id, 50);
 
     exportToExcel(
       items.map((item) => ({
         Aluno: item.studentName,
+        RGM: item.uniqueIdentifier,
         Curso: item.courseName,
         "Data e hora da inscrição": formatDateForShort(item.registeredAt),
         Status: item.attended
@@ -560,6 +532,7 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Aluno</TableHead>
+                          <TableHead>RGM</TableHead>
                           <TableHead>Curso</TableHead>
                           <TableHead>Data e hora da inscrição</TableHead>
                           <TableHead>Status</TableHead>
@@ -575,6 +548,7 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                               <TableCell className="font-medium text-slate-900">
                                 {item.studentName}
                               </TableCell>
+                              <TableCell>{item.uniqueIdentifier}</TableCell>
                               <TableCell>{item.courseName}</TableCell>
                               <TableCell>
                                 {formatDateForShort(item.registeredAt)}
@@ -939,92 +913,106 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                           </div>
                         ) : (
                           <div className="space-y-3">
-                            {groupPendingDocuments.map((doc) => (
-                              <div
-                                key={doc.id}
-                                className="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="truncate text-sm font-semibold text-slate-900">
-                                      {doc.originalFileName}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                      Enviado por {doc.senderName}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                      Em {formatDateForShort(doc.submittedAt)}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-2 cursor-pointer shrink-0"
-                                    disabled={downloadingDocumentId === doc.id}
-                                    onClick={() =>
-                                      void handleDownloadDocument(doc)
-                                    }>
-                                    {downloadingDocumentId === doc.id ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Download className="h-4 w-4" />
-                                    )}
-                                    Baixar
-                                  </Button>
-                                </div>
+                            {groupPendingDocuments.map((doc) => {
+                              const hasFeedback =
+                                (feedbackByDocument[doc.id] ?? "").trim()
+                                  .length > 0;
 
-                                <Textarea
-                                  value={feedbackByDocument[doc.id] ?? ""}
-                                  onChange={(e) =>
-                                    setFeedbackByDocument((current) => ({
-                                      ...current,
-                                      [doc.id]: e.target.value,
-                                    }))
-                                  }
-                                  placeholder="Feedback da avaliação (opcional)."
-                                  className="min-h-[78px]"
-                                />
-
-                                <div className="flex items-center justify-end gap-2">
-                                  <DeleteConfirmation
-                                    descriptionText={`Deseja reprovar o documento "${doc.originalFileName}"?`}
-                                    confirmationText="Confirmar reprovação"
-                                    onDelete={() => {
-                                      void handleReviewDocument(doc.id, false);
-                                    }}>
+                              return (
+                                <div
+                                  key={doc.id}
+                                  className="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-semibold text-slate-900">
+                                        {doc.originalFileName}
+                                      </p>
+                                      <p className="text-xs text-slate-500">
+                                        Enviado por {doc.senderName}
+                                      </p>
+                                      <p className="text-xs text-slate-500">
+                                        Em {formatDateForShort(doc.submittedAt)}
+                                      </p>
+                                    </div>
                                     <Button
                                       type="button"
                                       variant="outline"
-                                      className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
-                                      disabled={reviewingDocumentId === doc.id}>
-                                      {reviewingDocumentId === doc.id ? (
+                                      size="sm"
+                                      className="gap-2 cursor-pointer shrink-0"
+                                      disabled={downloadingDocumentId === doc.id}
+                                      onClick={() =>
+                                        void handleDownloadDocument(doc)
+                                      }>
+                                      {downloadingDocumentId === doc.id ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                       ) : (
-                                        "Reprovar"
+                                        <Download className="h-4 w-4" />
                                       )}
+                                      Baixar
                                     </Button>
-                                  </DeleteConfirmation>
-                                  <DeleteConfirmation
-                                    descriptionText={`Deseja aprovar o documento "${doc.originalFileName}"?`}
-                                    confirmationText="Confirmar aprovação"
-                                    deleteButtonClassName="bg-emerald-600 hover:bg-emerald-700"
-                                    onDelete={() => {
-                                      void handleReviewDocument(doc.id, true);
-                                    }}>
-                                    <Button
-                                      type="button"
-                                      className="primary-action cursor-pointer"
-                                      disabled={reviewingDocumentId === doc.id}>
-                                      {reviewingDocumentId === doc.id ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        "Aprovar"
-                                      )}
-                                    </Button>
-                                  </DeleteConfirmation>
+                                  </div>
+
+                                  <Textarea
+                                    value={feedbackByDocument[doc.id] ?? ""}
+                                    onChange={(e) =>
+                                      setFeedbackByDocument((current) => ({
+                                        ...current,
+                                        [doc.id]: e.target.value,
+                                      }))
+                                    }
+                                    placeholder="Feedback da avaliação (obrigatório em caso de reprovação)."
+                                    className="min-h-[78px]"
+                                  />
+
+                                  <div className="flex items-center justify-end gap-2">
+                                    <DeleteConfirmation
+                                      descriptionText={`Deseja reprovar o documento "${doc.originalFileName}"?`}
+                                      confirmationText="Confirmar reprovação"
+                                      onDelete={() => {
+                                        void handleReviewDocument(doc.id, false);
+                                      }}>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        title={
+                                          !hasFeedback
+                                            ? "Preencha o feedback para reprovar o documento"
+                                            : undefined
+                                        }
+                                        className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                                        disabled={
+                                          reviewingDocumentId === doc.id ||
+                                          !hasFeedback
+                                        }>
+                                        {reviewingDocumentId === doc.id ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          "Reprovar"
+                                        )}
+                                      </Button>
+                                    </DeleteConfirmation>
+                                    <DeleteConfirmation
+                                      descriptionText={`Deseja aprovar o documento "${doc.originalFileName}"?`}
+                                      confirmationText="Confirmar aprovação"
+                                      deleteButtonClassName="bg-emerald-600 hover:bg-emerald-700"
+                                      onDelete={() => {
+                                        void handleReviewDocument(doc.id, true);
+                                      }}>
+                                      <Button
+                                        type="button"
+                                        className="primary-action cursor-pointer"
+                                        disabled={reviewingDocumentId === doc.id}>
+                                        {reviewingDocumentId === doc.id ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          "Aprovar"
+                                        )}
+                                      </Button>
+                                    </DeleteConfirmation>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>

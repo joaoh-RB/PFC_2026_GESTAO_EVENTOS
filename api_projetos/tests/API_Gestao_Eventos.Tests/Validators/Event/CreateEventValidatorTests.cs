@@ -218,19 +218,6 @@ namespace API_Gestao_Eventos.Tests.Validators.Event
         }
 
         [Fact]
-        public void Validate_QuandoSubmissionDeadlineForAnteriorOuIgualAoStartDateComAllowDocumentsTrue_DeveFalhar()
-        {
-            var dto = CreateValidDto();
-            dto.AllowDocuments = true;
-            dto.SubmissionDeadline = dto.StartDate;
-
-            var result = _validator.Validate(dto);
-
-            Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.ErrorMessage == "O prazo de entrega deve ser posterior ao início do evento.");
-        }
-
-        [Fact]
         public void Validate_QuandoAllowDocumentsForFalseESubmissionDeadlineAnteriorAoStartDate_DevePassarNaValidacao()
         {
             var dto = CreateValidDto();

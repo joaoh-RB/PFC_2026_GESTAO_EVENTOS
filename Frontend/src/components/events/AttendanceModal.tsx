@@ -11,29 +11,22 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import api from "@/services/api";
+import {
+  attendanceMethodLabel,
+  fetchAllEventRegistrations,
+  fetchEventFeedbacks,
+  toggleEventAttendance,
+  type EventRegistrationItem,
+} from "@/types/eventRegistration";
 import { formatDateForShort } from "@/utils/format";
 import type { EventItem } from "./EventList";
 import type { EventFeedbackDto } from "./EventFeedbackModal";
-
-interface AttendanceRegistration {
-  studentId: string;
-  studentName: string;
-  courseName: string;
-  attended: boolean;
-  attendedAt: string | null;
-  method: number | null;
-}
 
 interface AttendanceModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   event: EventItem | null;
 }
-
-const methodLabel: Record<number, string> = {
-  1: "pelo código",
-  2: "manual",
-};
 
 const getErrorMessage = (err: unknown, fallback: string): string => {
   const errorObj = err as {
@@ -49,7 +42,7 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
   event,
 }) => {
   const [code, setCode] = useState<string | null>(null);
-  const [registrations, setRegistrations] = useState<AttendanceRegistration[]>(
+  const [registrations, setRegistrations] = useState<EventRegistrationItem[]>(
     [],
   );
   const [feedbacks, setFeedbacks] = useState<EventFeedbackDto[]>([]);
@@ -62,14 +55,14 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      const [codeRes, listRes, feedbacksRes] = await Promise.all([
+      const [codeRes, allRegistrations, allFeedbacks] = await Promise.all([
         api.get<{ code: string }>(`/events/${event.id}/attendance/code`),
-        api.get<AttendanceRegistration[]>(`/events/${event.id}/attendance`),
-        api.get<EventFeedbackDto[]>(`/events/${event.id}/feedbacks`),
+        fetchAllEventRegistrations(event.id),
+        fetchEventFeedbacks(event.id),
       ]);
       setCode(codeRes.data.code);
-      setRegistrations(listRes.data);
-      setFeedbacks(Array.isArray(feedbacksRes.data) ? feedbacksRes.data : []);
+      setRegistrations(allRegistrations);
+      setFeedbacks(allFeedbacks);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Não foi possível carregar a presença."));
     } finally {
@@ -84,21 +77,18 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
     });
   }, [isOpen, loadData]);
 
-  const handleToggle = async (registration: AttendanceRegistration) => {
+  const handleToggle = async (registration: EventRegistrationItem) => {
     if (!event) return;
     setWorkingId(registration.studentId);
     setError(null);
     try {
-      const url = `/events/${event.id}/attendance/${registration.studentId}`;
-      if (registration.attended) {
-        await api.delete(url);
-      } else {
-        await api.post(url);
-      }
-      const listRes = await api.get<AttendanceRegistration[]>(
-        `/events/${event.id}/attendance`,
+      await toggleEventAttendance(
+        event.id,
+        registration.studentId,
+        registration.attended,
       );
-      setRegistrations(listRes.data);
+      const allRegistrations = await fetchAllEventRegistrations(event.id);
+      setRegistrations(allRegistrations);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Erro ao atualizar a presença."));
     } finally {
@@ -170,8 +160,11 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
                         key={registration.studentId}
                         className="flex items-center justify-between gap-3 p-3">
                         <div className="min-w-0 text-sm text-slate-700">
-                          <p className="truncate font-medium">
+                          <p className="truncate font-medium text-base">
                             {registration.studentName}
+                          </p>
+                          <p className="truncate text-xs">
+                            RGM: {registration.uniqueIdentifier}
                           </p>
                           <p className="truncate text-xs text-slate-500">
                             {registration.courseName}
@@ -182,7 +175,7 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
                               Presente em{" "}
                               {formatDateForShort(registration.attendedAt)}
                               {registration.method
-                                ? ` (${methodLabel[registration.method]})`
+                                ? ` (${attendanceMethodLabel[registration.method]})`
                                 : ""}
                             </p>
                           )}

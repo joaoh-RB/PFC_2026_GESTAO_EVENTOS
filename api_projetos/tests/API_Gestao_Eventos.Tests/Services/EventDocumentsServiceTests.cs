@@ -76,10 +76,14 @@ namespace API_Gestao_Eventos.Tests.Services
             SubmittedAt = DateTime.UtcNow
         };
 
-        private static IFormFile SeedFormFile(string fileName = "artigo.pdf", string contentType = "application/pdf", long length = 1024)
+        private static IFormFile SeedFormFile(
+            string fileName = "artigo.pdf",
+            string contentType = "application/pdf",
+            long length = 1024,
+            byte[]? contentBytes = null)
         {
             var fileMock = new Mock<IFormFile>();
-            var bytes = Encoding.UTF8.GetBytes("conteudo-pdf");
+            var bytes = contentBytes ?? Encoding.ASCII.GetBytes("%PDF-1.4 conteudo-pdf");
             fileMock.Setup(f => f.FileName).Returns(fileName);
             fileMock.Setup(f => f.ContentType).Returns(contentType);
             fileMock.Setup(f => f.Length).Returns(length);
@@ -175,6 +179,30 @@ namespace API_Gestao_Eventos.Tests.Services
             _documentRepositoryMock.Verify(r => r.AddApprovalAsync(It.Is<DocumentApprovalHistory>(h => h.Status == DocumentStatus.Approved)), Times.Once);
             _storageServiceMock.Verify(s => s.DeleteFileAsync($"events/{evt.Id}/compiled-documents.zip"), Times.Once);
         }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public async Task ReviewDocumentAsync_QuandoReprovarSemFeedback_DeveLancarArgumentException(string? feedback)
+        {
+            var courseId = Guid.NewGuid();
+            var evt = SeedEvent(courseId: courseId);
+            var group = SeedGroup(evt, Guid.NewGuid());
+            var doc = SeedDocument(group, group.LeaderId);
+            var teacher = new Teacher { Id = Guid.NewGuid(), Courses = new List<Course> { new() { Id = courseId } } };
+
+            _documentRepositoryMock.Setup(r => r.GetByIdAsync(doc.Id)).ReturnsAsync(doc);
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(teacher.Id)).ReturnsAsync(teacher);
+
+            var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+                _eventDocumentsService.ReviewDocumentAsync(doc.Id, teacher.Id, false, feedback));
+
+            Assert.Equal("O feedback é obrigatório para reprovar um documento.", exception.Message);
+            _documentRepositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Document>()), Times.Never);
+            _documentRepositoryMock.Verify(r => r.AddApprovalAsync(It.IsAny<DocumentApprovalHistory>()), Times.Never);
+        }
+
         [Fact]
         public async Task ReviewDocumentAsync_QuandoNaoExistir_DeveLancarKeyNotFoundException()
         {
@@ -216,10 +244,33 @@ namespace API_Gestao_Eventos.Tests.Services
             _groupRepositoryMock.Setup(r => r.GetGroupForStudentInEventAsync(studentId, evt.Id)).ReturnsAsync(group);
 
             var invalidFormatFile = SeedFormFile("script.exe", "application/octet-stream");
+            var docxFile = SeedFormFile("trabalho.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
             var oversizedFile = SeedFormFile("grande.pdf", "application/pdf", 20 * 1024 * 1024);
 
             await Assert.ThrowsAsync<ArgumentException>(() => _eventDocumentsService.AddEventDocumentAsync(evt.Id, studentId, invalidFormatFile));
+            await Assert.ThrowsAsync<ArgumentException>(() => _eventDocumentsService.AddEventDocumentAsync(evt.Id, studentId, docxFile));
             await Assert.ThrowsAsync<ArgumentException>(() => _eventDocumentsService.AddEventDocumentAsync(evt.Id, studentId, oversizedFile));
+        }
+
+        [Fact]
+        public async Task AddEventDocumentAsync_QuandoExtensaoValidaMasBytesInvalidos_DeveLancarArgumentException()
+        {
+            var evt = SeedEvent();
+            var studentId = Guid.NewGuid();
+            var group = SeedGroup(evt, studentId);
+            _groupRepositoryMock.Setup(r => r.GetGroupForStudentInEventAsync(studentId, evt.Id)).ReturnsAsync(group);
+
+            var fakePdfFile = SeedFormFile(
+                "falso.pdf",
+                "application/pdf",
+                1024,
+                Encoding.UTF8.GetBytes("ISTO_NAO_E_UM_PDF"));
+
+            var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+                _eventDocumentsService.AddEventDocumentAsync(evt.Id, studentId, fakePdfFile));
+
+            Assert.Equal("O conteúdo do arquivo não corresponde a um formato válido (PDF, JPG, JPEG ou PNG).", exception.Message);
+            _documentRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Document>()), Times.Never);
         }
 
         [Fact]
@@ -283,4 +334,3 @@ namespace API_Gestao_Eventos.Tests.Services
         }
     }
 }
-

@@ -17,18 +17,20 @@ namespace API_Gestao_Eventos.src.Application.Services
         private const long MaxFileSizeBytes = 15 * 1024 * 1024;
         private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ".pdf", ".docx", ".zip", ".png", ".jpg", ".jpeg"
+            ".pdf", ".png", ".jpg", ".jpeg"
         };
 
         private static readonly HashSet<string> AllowedMimeTypes = new(StringComparer.OrdinalIgnoreCase)
         {
             "application/pdf",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/zip",
-            "application/x-zip-compressed",
             "image/png",
-            "image/jpeg"
+            "image/jpeg",
+            "image/jpg"
         };
+
+        private static readonly byte[] PdfSignature = [0x25, 0x50, 0x44, 0x46]; // %PDF
+        private static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+        private static readonly byte[] JpegSignature = [0xFF, 0xD8, 0xFF];
 
         private static string GetCompiledZipStorageKey(Guid eventId) => $"events/{eventId}/compiled-documents.zip";
 
@@ -70,6 +72,9 @@ namespace API_Gestao_Eventos.src.Application.Services
             var reviewStatus = approve ? DocumentStatus.Approved : DocumentStatus.Rejected;
             var normalizedFeedback = string.IsNullOrWhiteSpace(feedback) ? null : feedback.Trim();
 
+            if (!approve && string.IsNullOrEmpty(normalizedFeedback))
+                throw new ArgumentException("O feedback é obrigatório para reprovar um documento.");
+
             document.Status = reviewStatus;
             await documentRepository.UpdateAsync(document);
 
@@ -108,11 +113,17 @@ namespace API_Gestao_Eventos.src.Application.Services
                 throw new ArgumentException($"O tamanho do arquivo excede o limite máximo permitido de {MaxFileSizeBytes / (1024 * 1024)} MB.");
             var extension = Path.GetExtension(file.FileName);
             if (string.IsNullOrEmpty(extension) || !AllowedExtensions.Contains(extension) || !AllowedMimeTypes.Contains(file.ContentType))
-                throw new ArgumentException("Formato de arquivo não suportado.");
+                throw new ArgumentException("Formato de arquivo não suportado. Apenas PDF, JPG, JPEG e PNG são permitidos.");
 
             string storageKey;
             using (var stream = file.OpenReadStream())
             {
+                if (!HasValidFileSignature(stream, extension, file.ContentType))
+                    throw new ArgumentException("O conteúdo do arquivo não corresponde a um formato válido (PDF, JPG, JPEG ou PNG).");
+
+                if (stream.CanSeek)
+                    stream.Position = 0;
+
                 var uniqueFileName = $"groups/{group.Id}/{Guid.NewGuid()}{extension}";
                 storageKey = await storageService.UploadFileAsync(stream, uniqueFileName, file.ContentType);
             }
@@ -130,6 +141,50 @@ namespace API_Gestao_Eventos.src.Application.Services
             };
             await documentRepository.AddAsync(document);
             return MapToDto(document);
+        }
+
+        private static bool HasValidFileSignature(Stream stream, string extension, string contentType)
+        {
+            if (stream == null) return false;
+
+            byte[] expectedSignature;
+            bool validMimeForExtension;
+
+            switch (extension.ToLowerInvariant())
+            {
+                case ".pdf":
+                    expectedSignature = PdfSignature;
+                    validMimeForExtension = string.Equals(contentType, "application/pdf", StringComparison.OrdinalIgnoreCase);
+                    break;
+                case ".png":
+                    expectedSignature = PngSignature;
+                    validMimeForExtension = string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase);
+                    break;
+                case ".jpg":
+                case ".jpeg":
+                    expectedSignature = JpegSignature;
+                    validMimeForExtension =
+                        string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(contentType, "image/jpg", StringComparison.OrdinalIgnoreCase);
+                    break;
+                default:
+                    return false;
+            }
+
+            if (!validMimeForExtension)
+                return false;
+
+            var header = new byte[expectedSignature.Length];
+            var totalRead = 0;
+            while (totalRead < header.Length)
+            {
+                var bytesRead = stream.Read(header, totalRead, header.Length - totalRead);
+                if (bytesRead == 0)
+                    return false;
+                totalRead += bytesRead;
+            }
+
+            return header.AsSpan().SequenceEqual(expectedSignature);
         }
 
         public async Task<(Stream FileStream, string ContentType, string FileName)> DownloadDocumentAsync(Guid documentId, Guid userId)
