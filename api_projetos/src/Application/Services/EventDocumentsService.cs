@@ -70,6 +70,9 @@ namespace API_Gestao_Eventos.src.Application.Services
             var reviewStatus = approve ? DocumentStatus.Approved : DocumentStatus.Rejected;
             var normalizedFeedback = string.IsNullOrWhiteSpace(feedback) ? null : feedback.Trim();
 
+            if (!approve && string.IsNullOrEmpty(normalizedFeedback))
+                throw new ArgumentException("O feedback é obrigatório para reprovar um documento.");
+
             document.Status = reviewStatus;
             await documentRepository.UpdateAsync(document);
 

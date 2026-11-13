@@ -259,13 +259,20 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
   }, [loadRegistrations, loadFeedbacks]);
 
   const handleReviewDocument = async (documentId: string, approve: boolean) => {
+    const trimmedFeedback = (feedbackByDocument[documentId] ?? "").trim();
+
+    if (!approve && !trimmedFeedback) {
+      setDocumentsError("O feedback é obrigatório para reprovar um documento.");
+      return;
+    }
+
     setReviewingDocumentId(documentId);
     setDocumentsError(null);
 
     try {
       await api.post(`/eventdocuments/${documentId}/review`, {
         approve,
-        feedback: feedbackByDocument[documentId] || null,
+        feedback: trimmedFeedback || null,
       });
 
       setFeedbackByDocument((current) => {
@@ -906,92 +913,106 @@ export const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                           </div>
                         ) : (
                           <div className="space-y-3">
-                            {groupPendingDocuments.map((doc) => (
-                              <div
-                                key={doc.id}
-                                className="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="truncate text-sm font-semibold text-slate-900">
-                                      {doc.originalFileName}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                      Enviado por {doc.senderName}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                      Em {formatDateForShort(doc.submittedAt)}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-2 cursor-pointer shrink-0"
-                                    disabled={downloadingDocumentId === doc.id}
-                                    onClick={() =>
-                                      void handleDownloadDocument(doc)
-                                    }>
-                                    {downloadingDocumentId === doc.id ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Download className="h-4 w-4" />
-                                    )}
-                                    Baixar
-                                  </Button>
-                                </div>
+                            {groupPendingDocuments.map((doc) => {
+                              const hasFeedback =
+                                (feedbackByDocument[doc.id] ?? "").trim()
+                                  .length > 0;
 
-                                <Textarea
-                                  value={feedbackByDocument[doc.id] ?? ""}
-                                  onChange={(e) =>
-                                    setFeedbackByDocument((current) => ({
-                                      ...current,
-                                      [doc.id]: e.target.value,
-                                    }))
-                                  }
-                                  placeholder="Feedback da avaliação (opcional)."
-                                  className="min-h-[78px]"
-                                />
-
-                                <div className="flex items-center justify-end gap-2">
-                                  <DeleteConfirmation
-                                    descriptionText={`Deseja reprovar o documento "${doc.originalFileName}"?`}
-                                    confirmationText="Confirmar reprovação"
-                                    onDelete={() => {
-                                      void handleReviewDocument(doc.id, false);
-                                    }}>
+                              return (
+                                <div
+                                  key={doc.id}
+                                  className="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-semibold text-slate-900">
+                                        {doc.originalFileName}
+                                      </p>
+                                      <p className="text-xs text-slate-500">
+                                        Enviado por {doc.senderName}
+                                      </p>
+                                      <p className="text-xs text-slate-500">
+                                        Em {formatDateForShort(doc.submittedAt)}
+                                      </p>
+                                    </div>
                                     <Button
                                       type="button"
                                       variant="outline"
-                                      className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
-                                      disabled={reviewingDocumentId === doc.id}>
-                                      {reviewingDocumentId === doc.id ? (
+                                      size="sm"
+                                      className="gap-2 cursor-pointer shrink-0"
+                                      disabled={downloadingDocumentId === doc.id}
+                                      onClick={() =>
+                                        void handleDownloadDocument(doc)
+                                      }>
+                                      {downloadingDocumentId === doc.id ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                       ) : (
-                                        "Reprovar"
+                                        <Download className="h-4 w-4" />
                                       )}
+                                      Baixar
                                     </Button>
-                                  </DeleteConfirmation>
-                                  <DeleteConfirmation
-                                    descriptionText={`Deseja aprovar o documento "${doc.originalFileName}"?`}
-                                    confirmationText="Confirmar aprovação"
-                                    deleteButtonClassName="bg-emerald-600 hover:bg-emerald-700"
-                                    onDelete={() => {
-                                      void handleReviewDocument(doc.id, true);
-                                    }}>
-                                    <Button
-                                      type="button"
-                                      className="primary-action cursor-pointer"
-                                      disabled={reviewingDocumentId === doc.id}>
-                                      {reviewingDocumentId === doc.id ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        "Aprovar"
-                                      )}
-                                    </Button>
-                                  </DeleteConfirmation>
+                                  </div>
+
+                                  <Textarea
+                                    value={feedbackByDocument[doc.id] ?? ""}
+                                    onChange={(e) =>
+                                      setFeedbackByDocument((current) => ({
+                                        ...current,
+                                        [doc.id]: e.target.value,
+                                      }))
+                                    }
+                                    placeholder="Feedback da avaliação (obrigatório em caso de reprovação)."
+                                    className="min-h-[78px]"
+                                  />
+
+                                  <div className="flex items-center justify-end gap-2">
+                                    <DeleteConfirmation
+                                      descriptionText={`Deseja reprovar o documento "${doc.originalFileName}"?`}
+                                      confirmationText="Confirmar reprovação"
+                                      onDelete={() => {
+                                        void handleReviewDocument(doc.id, false);
+                                      }}>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        title={
+                                          !hasFeedback
+                                            ? "Preencha o feedback para reprovar o documento"
+                                            : undefined
+                                        }
+                                        className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                                        disabled={
+                                          reviewingDocumentId === doc.id ||
+                                          !hasFeedback
+                                        }>
+                                        {reviewingDocumentId === doc.id ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          "Reprovar"
+                                        )}
+                                      </Button>
+                                    </DeleteConfirmation>
+                                    <DeleteConfirmation
+                                      descriptionText={`Deseja aprovar o documento "${doc.originalFileName}"?`}
+                                      confirmationText="Confirmar aprovação"
+                                      deleteButtonClassName="bg-emerald-600 hover:bg-emerald-700"
+                                      onDelete={() => {
+                                        void handleReviewDocument(doc.id, true);
+                                      }}>
+                                      <Button
+                                        type="button"
+                                        className="primary-action cursor-pointer"
+                                        disabled={reviewingDocumentId === doc.id}>
+                                        {reviewingDocumentId === doc.id ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          "Aprovar"
+                                        )}
+                                      </Button>
+                                    </DeleteConfirmation>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>

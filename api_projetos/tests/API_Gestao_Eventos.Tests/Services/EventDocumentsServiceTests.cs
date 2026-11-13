@@ -175,6 +175,30 @@ namespace API_Gestao_Eventos.Tests.Services
             _documentRepositoryMock.Verify(r => r.AddApprovalAsync(It.Is<DocumentApprovalHistory>(h => h.Status == DocumentStatus.Approved)), Times.Once);
             _storageServiceMock.Verify(s => s.DeleteFileAsync($"events/{evt.Id}/compiled-documents.zip"), Times.Once);
         }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public async Task ReviewDocumentAsync_QuandoReprovarSemFeedback_DeveLancarArgumentException(string? feedback)
+        {
+            var courseId = Guid.NewGuid();
+            var evt = SeedEvent(courseId: courseId);
+            var group = SeedGroup(evt, Guid.NewGuid());
+            var doc = SeedDocument(group, group.LeaderId);
+            var teacher = new Teacher { Id = Guid.NewGuid(), Courses = new List<Course> { new() { Id = courseId } } };
+
+            _documentRepositoryMock.Setup(r => r.GetByIdAsync(doc.Id)).ReturnsAsync(doc);
+            _userRepositoryMock.Setup(r => r.GetByIdAsync(teacher.Id)).ReturnsAsync(teacher);
+
+            var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+                _eventDocumentsService.ReviewDocumentAsync(doc.Id, teacher.Id, false, feedback));
+
+            Assert.Equal("O feedback é obrigatório para reprovar um documento.", exception.Message);
+            _documentRepositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Document>()), Times.Never);
+            _documentRepositoryMock.Verify(r => r.AddApprovalAsync(It.IsAny<DocumentApprovalHistory>()), Times.Never);
+        }
+
         [Fact]
         public async Task ReviewDocumentAsync_QuandoNaoExistir_DeveLancarKeyNotFoundException()
         {
@@ -283,4 +307,3 @@ namespace API_Gestao_Eventos.Tests.Services
         }
     }
 }
-
