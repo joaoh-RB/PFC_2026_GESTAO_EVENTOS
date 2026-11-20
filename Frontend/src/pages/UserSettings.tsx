@@ -59,7 +59,7 @@ export const UserSettings: React.FC = () => {
         setIsActivating(true);
 
         try {
-            await api.post(`/auth/2fa/enable/`, { code });
+            await api.post(`/auth/2fa/enable`, { code });
             setIs2FAEnabled(true);
             setSetupData(null);
             setCode('');
