@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>SYMPLOSIO — Apresentação PFC 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    @page {
+      size: 13.333in 7.5in;
+      margin: 0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Geist", "Segoe UI", system-ui, sans-serif;
+      color: #1d193d;
+      background: #111;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .slide {
+      width: 13.333in;
+      height: 7.5in;
+      page-break-after: always;
+      break-after: page;
+      position: relative;
+      overflow: hidden;
+      background: #f6f7fb;
+    }
+
+    .slide:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #139dc7;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: #17104f;
+      color: #67e8f9;
+      display: grid;
+      place-items: center;
+    }
+
+    .brand-mark.inverse {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .brand-mark svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .brand-kicker {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+
+    .brand-name {
+      margin-top: 4px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      color: #17104f;
+    }
+
+    .brand.inverse .brand-kicker { color: rgba(255,255,255,0.55); }
+    .brand.inverse .brand-name { color: #fff; }
+
+    .umc {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #0b3d6e;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 12px;
+      min-width: 220px;
+    }
+
+    .umc-circle {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #f5f7fa;
+      color: #0b3d6e;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .umc strong {
+      display: block;
+      font-size: 18px;
+      letter-spacing: 0.08em;
+      line-height: 1;
+    }
+
+    .umc span {
+      display: block;
+      margin-top: 4px;
+      font-size: 10px;
+      color: #9ec4e8;
+    }
+
+    /* ===== SLIDE 1 ===== */
+    .title-slide {
+      background: #120b46;
+      color: #fff;
+      padding: 48px 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .title-slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 78% 22%, rgba(35,185,224,0.28), transparent 28%),
+        radial-gradient(circle at 12% 18%, rgba(92,76,193,0.4), transparent 24%),
+        linear-gradient(145deg, #24176d 0%, #120b46 72%);
+    }
+
+    .title-slide::after {
+      content: "";
+      position: absolute;
+      right: -40px;
+      top: 10%;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      border: 1px solid rgba(103, 232, 249, 0.12);
+    }
+
+    .title-slide > * { position: relative; z-index: 1; }
+
+    .title-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .title-slide h1 {
+      font-size: 72px;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-top: 14px;
+    }
+
+    .title-slide .eyebrow {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(103, 232, 249, 0.85);
+    }
+
+    .title-slide .lead {
+      margin-top: 18px;
+      max-width: 620px;
+      font-size: 18px;
+      line-height: 1.55;
+      color: rgba(255,255,255,0.62);
+    }
+
+    .title-slide .course {
+      margin-top: 14px;
+      font-size: 16px;
+      font-weight: 500;
+      color: rgba(165, 243, 252, 0.95);
+    }
+
+    .title-footer {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 24px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 24px;
+    }
+
+    .title-footer .label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: 10px;
+    }
+
+    .title-footer ul {
+      list-style: none;
+      font-size: 16px;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .title-footer p {
+      font-size: 16px;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 16px;
+    }
+
+    /* ===== CONTENT SLIDES ===== */
+    .content-slide {
+      padding: 42px 52px 36px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content-slide h2 {
+      margin-top: 10px;
+      font-size: 36px;
+      font-weight: 600;
+      letter-spacing: -0.035em;
+      color: #1d193d;
+    }
+
+    .content-slide .subtitle {
+      margin-top: 10px;
+      max-width: 900px;
+      font-size: 16px;
+      line-height: 1.55;
+      color: #64748b;
+    }
+
+    .grid-2 {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      flex: 1;
+    }
+
+    .grid-3 {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      flex: 1;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e1e4ea;
+      border-radius: 16px;
+      padding: 22px 22px;
+      box-shadow: 0 1px 2px rgba(20,18,55,0.03);
+    }
+
+    .card h3 {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #1d193d;
+      margin-bottom: 8px;
+    }
+
+    .card p, .card li {
+      font-size: 14.5px;
+      line-height: 1.55;
+      color: #475569;
+    }
+
+    .icon-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: #17104f;
+      color: #67e8f9;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      margin-bottom: 14px;
+    }
+
+    .feature-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #fff;
+      border: 1px solid #e1e4ea;
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+
+    .feature-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: rgba(18,167,212,0.12);
+      color: #0d91bc;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .feature-item p {
+      font-size: 14.5px;
+      line-height: 1.45;
+      color: #302d4c;
+    }
+
+    .features-grid {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      flex: 1;
+      align-content: start;
+    }
+
+    .tech-col h4 {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #139dc7;
+      margin-bottom: 16px;
+    }
+
+    .tech-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tech-col li {
+      position: relative;
+      padding-left: 16px;
+      font-size: 14.5px;
+      line-height: 1.45;
+      color: #302d4c;
+    }
+
+    .tech-col li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 7px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #12a7d4;
+    }
+
+    /* Architecture */
+    .arch-layout {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 18px;
+      flex: 1;
+    }
+
+    .layer {
+      background: linear-gradient(90deg, rgba(18,167,212,0.1), #fff 55%);
+      border: 1px solid #e1e4ea;
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .layer + .layer-connector {
+      width: 1px;
+      height: 10px;
+      background: #cfd5e0;
+      margin: 0 auto;
+    }
+
+    .layer strong {
+      display: block;
+      font-size: 15px;
+      color: #1d193d;
+    }
+
+    .layer span {
+      display: block;
+      margin-top: 2px;
+      font-size: 12.5px;
+      color: #64748b;
+    }
+
+    .side-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Demo */
+    .demo-panel {
+      margin-top: 24px;
+      flex: 1;
+      border-radius: 20px;
+      background: #120b46;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .demo-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 70% 40%, rgba(35,185,224,0.25), transparent 32%),
+        linear-gradient(145deg, #24176d 0%, #120b46 75%);
+    }
+
+    .demo-panel > * { position: relative; z-index: 1; }
+
+    .demo-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      margin-bottom: 22px;
+    }
+
+    .demo-panel h3 {
+      font-size: 34px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+    }
+
+    .demo-panel p {
+      margin-top: 14px;
+      max-width: 640px;
+      font-size: 16px;
+      line-height: 1.55;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .demo-url {
+      margin-top: 22px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
+      color: #a5f3fc;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    /* Conclusion */
+    .conclusion-layout {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 16px;
+      flex: 1;
+    }
+
+    .success-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .success-list li {
+      font-size: 14.5px;
+      line-height: 1.45;
+      color: #302d4c;
+      padding-left: 18px;
+      position: relative;
+    }
+
+    .success-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #12a7d4;
+      font-weight: 700;
+    }
+
+    .tests-box {
+      margin-top: 14px;
+      background: #17104f;
+      color: #fff;
+      border-radius: 16px;
+      padding: 20px 22px;
+    }
+
+    .tests-box .label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(103,232,249,0.85);
+    }
+
+    .tests-box .number {
+      margin-top: 8px;
+      font-size: 48px;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .tests-box .hint {
+      margin-top: 8px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .improve-list {
+      list-style: none;
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .improve-list li {
+      background: #f8f9fb;
+      border: 1px solid #eef0f4;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: #302d4c;
+    }
+
+    .thanks {
+      margin-top: auto;
+      padding-top: 16px;
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .slide-footer {
+      margin-top: auto;
+      padding-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SLIDE 1 -->
+  <section class="slide title-slide">
+    <div class="title-top">
+      <div class="brand inverse">
+        <div class="brand-mark inverse">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 2v3M16 2v3M3 9h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+            <path d="m9 14 2 2 4-4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-kicker">Gestão acadêmica</div>
+          <div class="brand-name">SYMPLOSIO</div>
+        </div>
+      </div>
+      <div class="umc">
+        <div class="umc-circle">UMC</div>
+        <div>
+          <strong>UMC</strong>
+          <span>Universidade de Mogi das Cruzes</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="eyebrow">Projeto de Final de Curso · 2026</div>
+      <h1>SYMPLOSIO</h1>
+      <p class="lead">
+        Gestão de palestras e eventos acadêmicos — plataforma integrada para
+        instituições, cursos, professores e alunos.
+      </p>
+      <p class="course">Desenvolvimento de Software Corporativo</p>
+    </div>
+
+    <div class="title-footer">
+      <div>
+        <div class="label">Participantes</div>
+        <ul>
+          <li>Gabriel Antonio Vieira Cordeiro</li>
+          <li>João Henrique Rodrigues Batista</li>
+          <li>Pedro Henrique Santos de Andrade</li>
+        </ul>
+      </div>
+      <div>
+        <div class="label">Orientadora</div>
+        <p>Viviane Guimarães Ribeiro</p>
+        <div class="label">Instituição</div>
+        <p style="margin-bottom:0">Universidade de Mogi das Cruzes · UMC</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2 -->
+  <section class="slide content-slide">
+    <div class="badge">O problema</div>
+    <h2>O que o Symplosio soluciona</h2>
+    <p class="subtitle">
+      Centraliza divulgação, inscrição e gestão de eventos acadêmicos em um único
+      fluxo digital, com papéis claros e rastreabilidade.
+    </p>
+    <div class="grid-2">
+      <div class="card">
+        <div class="icon-dot">1</div>
+        <h3>Divulgação fragmentada</h3>
+        <p>Eventos espalhados em murais, grupos e planilhas, sem um canal oficial da instituição.</p>
+      </div>
+      <div class="card">
+        <div class="icon-dot">2</div>
+        <h3>Inscrição e presença manuais</h3>
+        <p>Controle difícil de vagas, listas de presença e confirmação de participação.</p>
+      </div>
+      <div class="card">
+        <div class="icon-dot">3</div>
+        <h3>Gestão sem rastreio</h3>
+        <p>Grupos, documentos e aprovações sem histórico claro entre os diferentes perfis.</p>
+      </div>
+      <div class="card">
+        <div class="icon-dot">4</div>
+        <h3>Falta de visão gerencial</h3>
+        <p>Instituições sem indicadores consolidados de engajamento e acompanhamento acadêmico.</p>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>SYMPLOSIO · PFC 2026</span>
+      <span>2 / 7</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 3 -->
+  <section class="slide content-slide">
+    <div class="badge">Produto</div>
+    <h2>Principais funcionalidades</h2>
+    <p class="subtitle">
+      Do cadastro à presença, passando por grupos, documentos e dashboard —
+      com perfis de Administrador, Secretaria, Professor e Aluno.
+    </p>
+    <div class="features-grid">
+      <div class="feature-item"><div class="feature-num">01</div><p>Autenticação com JWT, 2FA e recuperação de senha</p></div>
+      <div class="feature-item"><div class="feature-num">02</div><p>Cadastro e aprovação de alunos, instituições e cursos</p></div>
+      <div class="feature-item"><div class="feature-num">03</div><p>Gestão completa de eventos, vagas e prazos</p></div>
+      <div class="feature-item"><div class="feature-num">04</div><p>Inscrição, grupos de trabalho e envio de documentos</p></div>
+      <div class="feature-item"><div class="feature-num">05</div><p>Controle de presença por código ou de forma manual</p></div>
+      <div class="feature-item"><div class="feature-num">06</div><p>Dashboard, feedback do evento e exportação XLSX</p></div>
+      <div class="feature-item"><div class="feature-num">07</div><p>Google Calendar, e-mails SendGrid e aceite LGPD</p></div>
+      <div class="feature-item"><div class="feature-num">08</div><p>Solicitação de eventos pelo aluno com aprovação</p></div>
+      <div class="feature-item"><div class="feature-num">09</div><p>Avaliação de documentos com histórico e ZIP</p></div>
+    </div>
+    <div class="slide-footer">
+      <span>SYMPLOSIO · PFC 2026</span>
+      <span>3 / 7</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 4 -->
+  <section class="slide content-slide">
+    <div class="badge">Stack</div>
+    <h2>Tecnologias utilizadas</h2>
+    <p class="subtitle">
+      Front-end, back-end e serviços em nuvem integrados para um monólito em
+      camadas pronto para demonstração e evolução.
+    </p>
+    <div class="grid-3">
+      <div class="card tech-col">
+        <h4>Front-end</h4>
+        <ul>
+          <li>React 19 + TypeScript + Vite</li>
+          <li>Tailwind CSS 4 + shadcn/ui</li>
+          <li>React Router 7</li>
+          <li>React Hook Form + Zod</li>
+          <li>Axios, Recharts e xlsx</li>
+          <li>Hospedagem na Vercel</li>
+        </ul>
+      </div>
+      <div class="card tech-col">
+        <h4>Back-end</h4>
+        <ul>
+          <li>.NET 10 + C#</li>
+          <li>Entity Framework Core + Npgsql</li>
+          <li>FluentValidation + Swagger</li>
+          <li>xUnit + Moq</li>
+          <li>JWT em cookie HttpOnly</li>
+          <li>Hospedagem no Render (Docker)</li>
+        </ul>
+      </div>
+      <div class="card tech-col">
+        <h4>Serviços</h4>
+        <ul>
+          <li>Supabase — PostgreSQL e arquivos</li>
+          <li>SendGrid — envio de e-mails</li>
+          <li>Google Calendar — sincronização</li>
+          <li>Vercel — front-end</li>
+          <li>Render — API</li>
+          <li>CI com testes automatizados</li>
+        </ul>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>SYMPLOSIO · PFC 2026</span>
+      <span>4 / 7</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 5 -->
+  <section class="slide content-slide">
+    <div class="badge">Arquitetura</div>
+    <h2>Monólito em camadas</h2>
+    <p class="subtitle">
+      Uma API .NET organizada por responsabilidades, consumida pelo front React —
+      simples de operar e clara para evoluir.
+    </p>
+    <div class="arch-layout">
+      <div class="card" style="display:flex;flex-direction:column;justify-content:center;gap:0;">
+        <div class="layer">
+          <div class="icon-dot" style="margin:0">C</div>
+          <div>
+            <strong>Controllers</strong>
+            <span>Endpoints HTTP · JWT · autorização por perfil</span>
+          </div>
+        </div>
+        <div class="layer-connector"></div>
+        <div class="layer">
+          <div class="icon-dot" style="margin:0">A</div>
+          <div>
+            <strong>Application</strong>
+            <span>Services · DTOs · FluentValidation · regras de negócio</span>
+          </div>
+        </div>
+        <div class="layer-connector"></div>
+        <div class="layer">
+          <div class="icon-dot" style="margin:0">D</div>
+          <div>
+            <strong>Domain</strong>
+            <span>Entidades · enums · Value Objects · herança TPH de usuários</span>
+          </div>
+        </div>
+        <div class="layer-connector"></div>
+        <div class="layer">
+          <div class="icon-dot" style="margin:0">I</div>
+          <div>
+            <strong>Infrastructure</strong>
+            <span>EF Core · Repositories · SendGrid · Google Calendar · Supabase</span>
+          </div>
+        </div>
+      </div>
+      <div class="side-stack">
+        <div class="card">
+          <h4 style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#139dc7;margin-bottom:14px;">Deploy</h4>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;font-size:14.5px;color:#302d4c;">
+            <li>Front-end → Vercel</li>
+            <li>API monólito → Render (Docker)</li>
+            <li>Dados e arquivos → Supabase</li>
+          </ul>
+        </div>
+        <div class="card" style="flex:1;">
+          <h4 style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#139dc7;margin-bottom:14px;">Por que camadas?</h4>
+          <p style="font-size:14.5px;line-height:1.55;color:#64748b;">
+            Isola o domínio da infraestrutura, facilita testes unitários e mantém
+            o fluxo Controllers → Application → Domain / Infrastructure previsível.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>SYMPLOSIO · PFC 2026</span>
+      <span>5 / 7</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 6 -->
+  <section class="slide content-slide">
+    <div class="badge">Ao vivo</div>
+    <h2>Demonstração do sistema</h2>
+    <p class="subtitle">
+      A partir daqui, saímos dos slides e entramos no Symplosio real.
+    </p>
+    <div class="demo-panel">
+      <div class="demo-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+      </div>
+      <h3>Hora de mostrar o produto</h3>
+      <p>
+        Login por perfil, criação e inscrição em eventos, grupos, documentos,
+        presença e dashboard — no ambiente publicado.
+      </p>
+      <div class="demo-url">https://symplosio.vercel.app</div>
+    </div>
+    <div class="slide-footer">
+      <span>SYMPLOSIO · PFC 2026</span>
+      <span>6 / 7</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 7 -->
+  <section class="slide content-slide">
+    <div class="badge">Encerramento</div>
+    <h2>Conclusão</h2>
+    <p class="subtitle">
+      O que deu certo, a evidência dos testes e o caminho de evolução.
+    </p>
+    <div class="conclusion-layout">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card" style="flex:1;">
+          <h4 style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#139dc7;">Por que deu certo</h4>
+          <ul class="success-list">
+            <li>Escopo alinhado a um problema real da rotina acadêmica</li>
+            <li>Arquitetura em camadas com responsabilidades claras</li>
+            <li>Integrações úteis: e-mail, calendário, storage e deploy</li>
+            <li>Cobertura automatizada desde services até endpoints</li>
+            <li>UX consistente entre perfis e fluxos críticos</li>
+          </ul>
+        </div>
+        <div class="tests-box">
+          <div class="label">Testes realizados</div>
+          <div class="number">331</div>
+          <div class="hint">casos automatizados (services, validators e integração HTTP)</div>
+        </div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;">
+        <h4 style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#139dc7;">Melhorias futuras</h4>
+        <ul class="improve-list">
+          <li>Notificações em tempo real (WebSocket / SignalR)</li>
+          <li>App mobile ou PWA para presença em campo</li>
+          <li>Relatórios analíticos avançados por instituição</li>
+          <li>Fila assíncrona para e-mails e jobs pesados</li>
+          <li>Observabilidade com métricas e tracing</li>
+        </ul>
+        <p class="thanks">Obrigado — perguntas e feedback são bem-vindos.</p>
+      </div>
+    </div>
+    <div class="slide-footer">
+      <span>SYMPLOSIO · PFC 2026</span>
+      <span>7 / 7</span>
+    </div>
+  </section>
+
+</body>
+</html>
