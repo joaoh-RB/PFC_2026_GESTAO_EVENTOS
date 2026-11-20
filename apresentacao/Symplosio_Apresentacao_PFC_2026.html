@@ -598,7 +598,7 @@
 
     .tests-box .number {
       margin-top: 4px;
-      font-size: 32px;
+      font-size: 40px;
       font-weight: 700;
       letter-spacing: -0.04em;
       line-height: 1.1;
@@ -606,10 +606,61 @@
 
     .tests-box .hint {
       margin-top: 4px;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 500;
       color: rgba(255,255,255,0.7);
       line-height: 1.35;
+    }
+
+    /* Thank-you */
+    .thanks-slide {
+      background: #120b46;
+      color: #fff;
+      padding: 48px 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .thanks-slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 78% 22%, rgba(35,185,224,0.28), transparent 28%),
+        radial-gradient(circle at 12% 18%, rgba(92,76,193,0.4), transparent 24%),
+        linear-gradient(145deg, #24176d 0%, #120b46 72%);
+    }
+
+    .thanks-slide > * { position: relative; z-index: 1; }
+
+    .thanks-slide .brand-mark {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      margin: 0 auto 22px;
+    }
+
+    .thanks-slide .brand-mark svg {
+      width: 34px;
+      height: 34px;
+    }
+
+    .thanks-slide .wordmark {
+      font-size: 72px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .thanks-slide .slide-footer {
+      position: absolute;
+      left: 56px;
+      right: 56px;
+      bottom: 28px;
+      color: rgba(255,255,255,0.45);
     }
 
     .improve-list {
@@ -741,7 +792,7 @@
     </div>
     <div class="slide-footer">
       <span>SYMPLOSIO · PFC 2026</span>
-      <span>2 / 7</span>
+      <span>2 / 8</span>
     </div>
   </section>
 
@@ -765,7 +816,7 @@
     </div>
     <div class="slide-footer">
       <span>SYMPLOSIO · PFC 2026</span>
-      <span>3 / 7</span>
+      <span>3 / 8</span>
     </div>
   </section>
 
@@ -813,7 +864,7 @@
     </div>
     <div class="slide-footer">
       <span>SYMPLOSIO · PFC 2026</span>
-      <span>4 / 7</span>
+      <span>4 / 8</span>
     </div>
   </section>
 
@@ -889,7 +940,7 @@
     </div>
     <div class="slide-footer">
       <span>SYMPLOSIO · PFC 2026</span>
-      <span>5 / 7</span>
+      <span>5 / 8</span>
     </div>
   </section>
 
@@ -897,7 +948,6 @@
   <section class="slide content-slide">
     <div class="badge">Ao vivo</div>
     <h2>Demonstração do sistema</h2>
-    <p class="subtitle">Saímos dos slides e entramos no Symplosio real.</p>
     <div class="demo-panel">
       <h3>Hora de mostrar o produto</h3>
       <div class="demo-row">
@@ -912,7 +962,7 @@
     </div>
     <div class="slide-footer">
       <span>SYMPLOSIO · PFC 2026</span>
-      <span>6 / 7</span>
+      <span>6 / 8</span>
     </div>
   </section>
 
@@ -927,7 +977,7 @@
           <div class="section-title">O que entregamos</div>
           <ul class="success-list">
             <li>17 requisitos funcionais: auth, eventos, grupos, docs e presença</li>
-            <li>4 perfis com aprovação institucional e controle de vagas</li>
+            <li>4 perfis com papéis distintos; aprovação de cadastro de alunos e controle de vagas</li>
             <li>Feedback com média, Calendar, LGPD versionada e auditoria</li>
             <li>Produção: React/Vercel + API .NET/Render + PostgreSQL</li>
           </ul>
@@ -942,8 +992,8 @@
         </div>
         <div class="tests-box">
           <div class="label">Evidência de qualidade</div>
-          <div class="number">349 testes</div>
-          <div class="hint">170 services · 138 validators · 41 integração<br>82,5% de cobertura</div>
+          <div class="number">82,5%</div>
+          <div class="hint">349 testes no total</div>
         </div>
       </div>
       <div class="card" style="display:flex;flex-direction:column;">
@@ -954,12 +1004,28 @@
           <li>Lista de espera quando as vagas acabam</li>
           <li>Identidade visual por instituição (logo e cores)</li>
         </ul>
-        <p class="thanks">Obrigado — perguntas e feedback são bem-vindos.</p>
       </div>
     </div>
     <div class="slide-footer">
       <span>SYMPLOSIO · PFC 2026</span>
-      <span>7 / 7</span>
+      <span>7 / 8</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 8 -->
+  <section class="slide thanks-slide">
+    <div>
+      <div class="brand-mark inverse">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8 2v3M16 2v3M3 9h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+          <path d="m9 14 2 2 4-4"/>
+        </svg>
+      </div>
+      <div class="wordmark">SYMPLOSIO</div>
+    </div>
+    <div class="slide-footer">
+      <span>SYMPLOSIO · PFC 2026</span>
+      <span>8 / 8</span>
     </div>
   </section>
 

@@ -304,7 +304,31 @@
       letter-spacing: -.04em;
       margin: 4px 0;
     }
-    .tests .h { font-size: 14px; color: rgba(255,255,255,.65); font-weight: 500; }
+    .tests .h { font-size: 15px; color: rgba(255,255,255,.65); font-weight: 500; }
+    .thanks-slide {
+      background: linear-gradient(145deg, #24176d 0%, #120b46 72%);
+      color: #fff;
+      border-radius: 18px;
+      min-height: 100%;
+      padding: 40px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 18px;
+    }
+    .thanks-slide .mark {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+    }
+    .thanks-slide .wordmark {
+      font-size: clamp(36px, 10vw, 48px);
+      font-weight: 800;
+      letter-spacing: -.04em;
+      color: #fff;
+    }
     .ok { list-style: none; }
     .ok li {
       position: relative;
@@ -399,7 +423,7 @@
 <body>
   <div class="app">
     <div class="top">
-      <span id="counter">1 / 7</span>
+      <span id="counter">1 / 8</span>
       <a href="./Symplosio_Apresentacao_PFC_2026.pdf">Baixar PDF</a>
     </div>
 
@@ -526,7 +550,6 @@
       <section class="slide" data-i="5">
         <div class="badge">Ao vivo</div>
         <h2>Demonstração</h2>
-        <p class="lead">Saímos dos slides e entramos no Symplosio real.</p>
         <div class="demo">
           <h3>Hora de mostrar o produto</h3>
           <p>Aponte a câmera para abrir</p>
@@ -545,7 +568,7 @@
           <div class="badge">O que entregamos</div>
           <ul class="ok">
             <li>17 requisitos funcionais: auth, eventos, grupos, docs e presença</li>
-            <li>4 perfis com aprovação institucional e controle de vagas</li>
+            <li>4 perfis com papéis distintos; aprovação de cadastro de alunos e controle de vagas</li>
             <li>Feedback com média, Calendar, LGPD versionada e auditoria</li>
             <li>Produção: React/Vercel + API .NET/Render + PostgreSQL</li>
           </ul>
@@ -560,8 +583,8 @@
         </div>
         <div class="tests">
           <div class="label">Evidência de qualidade</div>
-          <div class="n">349 testes</div>
-          <div class="h">170 services · 138 validators · 41 integração · 82,5% cobertura</div>
+          <div class="n">82,5%</div>
+          <div class="h">349 testes no total</div>
         </div>
         <div class="card" style="margin-top:10px">
           <div class="badge">Melhorias futuras</div>
@@ -569,7 +592,15 @@
           <div class="improve">Certificado/comprovante com carga horária</div>
           <div class="improve">Lista de espera quando as vagas acabam</div>
           <div class="improve">Identidade visual por instituição (logo e cores)</div>
-          <p style="margin-top:10px;font-size:15px;font-weight:600;color:#64748b">Obrigado — perguntas são bem-vindas.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-i="7">
+        <div class="thanks-slide">
+          <div class="mark">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 2v3M16 2v3M3 9h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="m9 14 2 2 4-4"/></svg>
+          </div>
+          <div class="wordmark">SYMPLOSIO</div>
         </div>
       </section>
     </div>
