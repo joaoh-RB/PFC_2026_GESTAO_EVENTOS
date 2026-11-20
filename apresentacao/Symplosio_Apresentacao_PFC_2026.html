@@ -636,23 +636,52 @@
 
     .thanks-slide > * { position: relative; z-index: 1; }
 
+    .thanks-slide .thanks-hero {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      width: 100%;
+    }
+
+    .thanks-slide .thanks-title {
+      font-size: 120px;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      color: #fff;
+      text-shadow: 0 0 48px rgba(103, 232, 249, 0.3);
+    }
+
+    .thanks-slide .thanks-brand {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
     .thanks-slide .brand-mark {
-      width: 72px;
-      height: 72px;
-      border-radius: 20px;
-      margin: 0 auto 22px;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      margin: 0;
     }
 
     .thanks-slide .brand-mark svg {
-      width: 34px;
-      height: 34px;
+      width: 20px;
+      height: 20px;
     }
 
     .thanks-slide .wordmark {
-      font-size: 72px;
+      font-size: 16px;
       font-weight: 700;
-      letter-spacing: -0.04em;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
       line-height: 1;
+      color: rgba(255,255,255,0.72);
     }
 
     .thanks-slide .slide-footer {
@@ -1014,7 +1043,10 @@
 
   <!-- SLIDE 8 -->
   <section class="slide thanks-slide">
-    <div>
+    <div class="thanks-hero">
+      <div class="thanks-title">Obrigado</div>
+    </div>
+    <div class="thanks-brand">
       <div class="brand-mark inverse">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M8 2v3M16 2v3M3 9h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
@@ -1024,7 +1056,7 @@
       <div class="wordmark">SYMPLOSIO</div>
     </div>
     <div class="slide-footer">
-      <span>SYMPLOSIO · PFC 2026</span>
+      <span></span>
       <span>8 / 8</span>
     </div>
   </section>
