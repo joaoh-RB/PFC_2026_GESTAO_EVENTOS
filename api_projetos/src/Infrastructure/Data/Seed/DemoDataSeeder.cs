@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
 {
@@ -21,6 +22,10 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
     {
         public const string DefaultAdminEmail = "contapfcgestaoeventos@gmail.com";
         public const string DefaultTestPassword = "SenhaAdmin.1";
+
+        // Mesmas regras do AttendanceService.GenerateCode()
+        private const int AttendanceCodeLength = 6;
+        private const string AttendanceCodeChars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
         public static async Task RunIfEnabledAsync(IHost app, CancellationToken cancellationToken = default)
         {
@@ -121,10 +126,12 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 .Where(d => d.IsActive)
                 .ToListAsync(cancellationToken);
 
+            var usedAttendanceCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var pack in packs)
             {
                 // Hash por usuário: cada chamada do IHasher gera salt BCrypt distinto.
-                SeedInstitutionScenario(db, pack, admin, hasher, testPassword, now, legalDocs);
+                SeedInstitutionScenario(db, pack, admin, hasher, testPassword, now, legalDocs, usedAttendanceCodes);
             }
 
             await db.SaveChangesAsync(cancellationToken);
@@ -172,7 +179,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             IHasher hasher,
             string testPassword,
             DateTime now,
-            IReadOnlyList<LegalDocument> legalDocs)
+            IReadOnlyList<LegalDocument> legalDocs,
+            HashSet<string> usedAttendanceCodes)
         {
             var secretaria = new AcademicDepartment
             {
@@ -288,7 +296,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             foreach (var s in approved)
                 AcceptTerms(db, legalDocs, s);
 
-            // Evento passado com documentos/grupos
+            // Eventos passados: código aleatório único (mesma regra do AttendanceService).
+            // Eventos futuros/solicitados: sem código (só é gerado após o início do evento).
             var pastDocs = NewEvent(
                 pack.Institution.Id,
                 $"Simulação acadêmica {pack.Institution.Name.Split('(')[0].Trim()}",
@@ -300,12 +309,11 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 maxGroupSize: 4,
                 submissionDeadline: now.AddDays(-12),
                 EventType.Simpósio,
-                "PASS01",
+                CreateUniqueAttendanceCode(usedAttendanceCodes),
                 EventStatus.Agendado,
                 professor1.Id,
                 pack.Courses);
 
-            // Evento passado simples
             var pastSimple = NewEvent(
                 pack.Institution.Id,
                 $"Palestra aberta — {pack.Slug.ToUpperInvariant()}",
@@ -317,12 +325,11 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 maxGroupSize: null,
                 submissionDeadline: null,
                 EventType.Palestra,
-                "PASS02",
+                CreateUniqueAttendanceCode(usedAttendanceCodes),
                 EventStatus.Agendado,
                 professor2.Id,
                 pack.Courses);
 
-            // Evento futuro
             var future = NewEvent(
                 pack.Institution.Id,
                 $"Congresso futuro — {pack.Slug.ToUpperInvariant()}",
@@ -334,12 +341,11 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 maxGroupSize: 5,
                 submissionDeadline: now.AddDays(12),
                 EventType.Congresso,
-                "FUTU01",
+                null,
                 EventStatus.Agendado,
                 secretaria.Id,
                 pack.Courses);
 
-            // Evento solicitado por aluno aprovado
             var requested = NewEvent(
                 pack.Institution.Id,
                 $"Meetup solicitado — {pack.Slug.ToUpperInvariant()}",
@@ -628,6 +634,26 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 IsActive = true,
                 IsPasswordChangeRequired = false
             };
+
+        /// <summary>
+        /// Gera código de presença com as mesmas regras do AttendanceService:
+        /// 6 chars de A-Z/2-9 (sem I, L, O, 0, 1), via RandomNumberGenerator, único no seed.
+        /// </summary>
+        private static string CreateUniqueAttendanceCode(HashSet<string> usedCodes)
+        {
+            for (var attempt = 0; attempt < 100; attempt++)
+            {
+                var chars = new char[AttendanceCodeLength];
+                for (var i = 0; i < AttendanceCodeLength; i++)
+                    chars[i] = AttendanceCodeChars[RandomNumberGenerator.GetInt32(AttendanceCodeChars.Length)];
+
+                var code = new string(chars);
+                if (usedCodes.Add(code))
+                    return code;
+            }
+
+            throw new InvalidOperationException("Não foi possível gerar um código de presença único para o seed.");
+        }
 
         private static Event NewEvent(
             Guid institutionId,
