@@ -3,12 +3,14 @@ using API_Gestao_Eventos.src.Domain.Entities;
 using API_Gestao_Eventos.src.Domain.Enums;
 using API_Gestao_Eventos.src.Infrastructure.Data.Context;
 using API_Gestao_Eventos.src.Infrastructure.Services.Security;
+using API_Gestao_Eventos.src.Infrastructure.Services.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
 {
@@ -45,6 +47,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 return;
 
             var hasher = sp.GetRequiredService<IHasher>();
+            var storage = sp.GetRequiredService<IStorageService>();
             var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("DemoDataSeeder");
             var forceReseed = config.GetValue("Seed:ForceReseed", false);
 
@@ -60,12 +63,13 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             var adminEmail = config["Seed:AdminEmail"] ?? DefaultAdminEmail;
             var password = config["Seed:TestPassword"] ?? DefaultTestPassword;
 
-            await SeedAsync(db, hasher, adminEmail, password, logger, cancellationToken);
+            await SeedAsync(db, hasher, storage, adminEmail, password, logger, cancellationToken);
         }
 
         public static async Task SeedAsync(
             AppDbContext db,
             IHasher hasher,
+            IStorageService storage,
             string adminEmail,
             string testPassword,
             ILogger logger,
@@ -131,7 +135,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             foreach (var pack in packs)
             {
                 // Hash por usuário: cada chamada do IHasher gera salt BCrypt distinto.
-                SeedInstitutionScenario(db, pack, admin, hasher, testPassword, now, legalDocs, usedAttendanceCodes);
+                await SeedInstitutionScenarioAsync(
+                    db, pack, admin, hasher, storage, testPassword, now, legalDocs, usedAttendanceCodes, logger, cancellationToken);
             }
 
             await db.SaveChangesAsync(cancellationToken);
@@ -172,15 +177,18 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             await db.Institutions.ExecuteDeleteAsync(ct);
         }
 
-        private static void SeedInstitutionScenario(
+        private static async Task SeedInstitutionScenarioAsync(
             AppDbContext db,
             InstitutionPack pack,
             User admin,
             IHasher hasher,
+            IStorageService storage,
             string testPassword,
             DateTime now,
             IReadOnlyList<LegalDocument> legalDocs,
-            HashSet<string> usedAttendanceCodes)
+            HashSet<string> usedAttendanceCodes,
+            ILogger logger,
+            CancellationToken cancellationToken)
         {
             var secretaria = new AcademicDepartment
             {
@@ -306,7 +314,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 now.AddDays(-10).AddHours(4),
                 capacity: 80,
                 allowDocuments: true,
-                maxGroupSize: 4,
+                maxGroupSize: 5,
                 submissionDeadline: now.AddDays(-12),
                 EventType.Simpósio,
                 CreateUniqueAttendanceCode(usedAttendanceCodes),
@@ -362,7 +370,60 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 approved[1].Id,
                 pack.Courses.Take(1).ToList());
 
-            db.Events.AddRange(pastDocs, pastSimple, future, requested);
+            // Evento reprovado (solicitação negada)
+            var rejected = NewEvent(
+                pack.Institution.Id,
+                $"Evento reprovado — {pack.Slug.ToUpperInvariant()}",
+                "Solicitação de evento reprovada pela coordenação.",
+                now.AddDays(40),
+                now.AddDays(40).AddHours(2),
+                capacity: 30,
+                allowDocuments: false,
+                maxGroupSize: null,
+                submissionDeadline: null,
+                EventType.Palestra,
+                null,
+                EventStatus.Reprovado,
+                approved[2].Id,
+                pack.Courses.Take(1).ToList());
+
+            // Evento inativo (já existia e foi desativado antes de começar)
+            var inactive = NewEvent(
+                pack.Institution.Id,
+                $"Evento inativo — {pack.Slug.ToUpperInvariant()}",
+                "Evento desativado para demonstração de IsActive=false.",
+                now.AddDays(7),
+                now.AddDays(7).AddHours(2),
+                capacity: 50,
+                allowDocuments: false,
+                maxGroupSize: null,
+                submissionDeadline: null,
+                EventType.Palestra,
+                null,
+                EventStatus.Agendado,
+                secretaria.Id,
+                pack.Courses,
+                isActive: false);
+
+            // Capacidade lotada: capacity == inscritos confirmados
+            var fullCapacity = Math.Min(5, approved.Count);
+            var full = NewEvent(
+                pack.Institution.Id,
+                $"Evento lotado — {pack.Slug.ToUpperInvariant()}",
+                "Evento futuro com todas as vagas preenchidas.",
+                now.AddDays(16),
+                now.AddDays(16).AddHours(3),
+                capacity: fullCapacity,
+                allowDocuments: false,
+                maxGroupSize: null,
+                submissionDeadline: null,
+                EventType.Palestra,
+                null,
+                EventStatus.Agendado,
+                professor1.Id,
+                pack.Courses);
+
+            db.Events.AddRange(pastDocs, pastSimple, future, requested, rejected, inactive, full);
 
             // Inscrições: só alunos aprovados do curso permitido
             // 5 inscritos; 4 presentes (subconjunto). Nunca presença sem inscrição.
@@ -383,6 +444,12 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             toCancel.AttendedAt = null;
             toCancel.AttendanceMethod = null;
 
+            // Lotado: exatamente Capacity inscritos confirmados
+            RegisterStudents(full, approved.Take(fullCapacity).ToList(), now.AddDays(-2));
+
+            // Inativo: mantém inscrição histórica (não deve aceitar novas)
+            RegisterStudents(inactive, approved.Take(2).ToList(), now.AddDays(-4));
+
             db.Set<EventAddedToCalendar>().Add(new EventAddedToCalendar
             {
                 EventId = future.Id,
@@ -391,47 +458,102 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 IsActive = true
             });
 
-            // Grupo apenas com inscritos presentes/confirmados do pastDocs
-            var groupMembers = pastDocsRegs
+            // Grupo com fluxo completo: Accepted / Invited / Declined / Requested
+            // Todos precisam estar inscritos no pastDocs.
+            var registeredStudents = pastDocsRegs
                 .Where(r => r.Status == RegistrationStatus.Confirmed)
-                .Take(3)
                 .Select(r => r.Student!)
                 .ToList();
 
-            if (groupMembers.Count >= 2)
+            if (registeredStudents.Count >= 5)
             {
+                var leader = registeredStudents[0];
+                var accepted = registeredStudents[1];
+                var invited = registeredStudents[2];
+                var declined = registeredStudents[3];
+                var requestedMember = registeredStudents[4];
+
                 var group = new Group
                 {
                     Id = Guid.NewGuid(),
                     EventId = pastDocs.Id,
-                    LeaderId = groupMembers[0].Id,
+                    LeaderId = leader.Id,
                     Number = 1,
                     IsActive = true,
                     CreatedAt = now.AddDays(-15)
                 };
                 db.Groups.Add(group);
 
-                foreach (var member in groupMembers)
-                {
-                    db.Set<GroupMember>().Add(new GroupMember
+                db.Set<GroupMember>().AddRange(
+                    new GroupMember
                     {
                         GroupId = group.Id,
-                        StudentId = member.Id,
+                        StudentId = leader.Id,
+                        EventId = pastDocs.Id,
+                        JoinedAt = now.AddDays(-15),
+                        Status = GroupMemberStatus.Accepted
+                    },
+                    new GroupMember
+                    {
+                        GroupId = group.Id,
+                        StudentId = accepted.Id,
                         EventId = pastDocs.Id,
                         JoinedAt = now.AddDays(-14),
                         Status = GroupMemberStatus.Accepted
+                    },
+                    new GroupMember
+                    {
+                        GroupId = group.Id,
+                        StudentId = invited.Id,
+                        EventId = pastDocs.Id,
+                        JoinedAt = now.AddDays(-13),
+                        Status = GroupMemberStatus.Invited
+                    },
+                    new GroupMember
+                    {
+                        GroupId = group.Id,
+                        StudentId = declined.Id,
+                        EventId = pastDocs.Id,
+                        JoinedAt = now.AddDays(-13),
+                        Status = GroupMemberStatus.Declined
+                    },
+                    new GroupMember
+                    {
+                        GroupId = group.Id,
+                        StudentId = requestedMember.Id,
+                        EventId = pastDocs.Id,
+                        JoinedAt = now.AddDays(-12),
+                        Status = GroupMemberStatus.Requested
                     });
-                }
+
+                var approvedPdf = await UploadSeedPdfAsync(
+                    storage,
+                    $"groups/{group.Id}/{Guid.NewGuid()}.pdf",
+                    "Artigo final seed",
+                    logger,
+                    cancellationToken);
+                var pendingPdf = await UploadSeedPdfAsync(
+                    storage,
+                    $"groups/{group.Id}/{Guid.NewGuid()}.pdf",
+                    "Slides seed",
+                    logger,
+                    cancellationToken);
+                var rejectedPdf = await UploadSeedPdfAsync(
+                    storage,
+                    $"groups/{group.Id}/{Guid.NewGuid()}.pdf",
+                    "Rascunho seed",
+                    logger,
+                    cancellationToken);
 
                 var approvedDoc = new Document
                 {
                     Id = Guid.NewGuid(),
                     GroupId = group.Id,
-                    SenderId = groupMembers[0].Id,
+                    SenderId = leader.Id,
                     OriginalFileName = "artigo-final.pdf",
-                    StorageKey = $"seed/{pack.Slug}/{pastDocs.Id}/artigo-final.pdf",
+                    StorageKey = approvedPdf.StorageKey,
                     ContentType = "application/pdf",
-                    FileSizeBytes = 245_760,
+                    FileSizeBytes = approvedPdf.SizeBytes,
                     SubmittedAt = now.AddDays(-13),
                     Status = DocumentStatus.Approved
                 };
@@ -439,23 +561,23 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 {
                     Id = Guid.NewGuid(),
                     GroupId = group.Id,
-                    SenderId = groupMembers[0].Id,
+                    SenderId = leader.Id,
                     OriginalFileName = "slides.pdf",
-                    StorageKey = $"seed/{pack.Slug}/{pastDocs.Id}/slides.pdf",
+                    StorageKey = pendingPdf.StorageKey,
                     ContentType = "application/pdf",
-                    FileSizeBytes = 512_000,
-                    SubmittedAt = now.AddDays(-12),
+                    FileSizeBytes = pendingPdf.SizeBytes,
+                    SubmittedAt = now.AddDays(-12).AddHours(-1),
                     Status = DocumentStatus.Pending
                 };
                 var rejectedDoc = new Document
                 {
                     Id = Guid.NewGuid(),
                     GroupId = group.Id,
-                    SenderId = groupMembers[1].Id,
+                    SenderId = accepted.Id,
                     OriginalFileName = "rascunho-v1.pdf",
-                    StorageKey = $"seed/{pack.Slug}/{pastDocs.Id}/rascunho-v1.pdf",
+                    StorageKey = rejectedPdf.StorageKey,
                     ContentType = "application/pdf",
-                    FileSizeBytes = 102_400,
+                    FileSizeBytes = rejectedPdf.SizeBytes,
                     SubmittedAt = now.AddDays(-13),
                     Status = DocumentStatus.Rejected
                 };
@@ -480,6 +602,46 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                         ReviewedAt = now.AddDays(-12)
                     });
             }
+        }
+
+        private static async Task<(string StorageKey, long SizeBytes)> UploadSeedPdfAsync(
+            IStorageService storage,
+            string storageKey,
+            string title,
+            ILogger logger,
+            CancellationToken cancellationToken)
+        {
+            var bytes = BuildMinimalPdf(title);
+            await using var stream = new MemoryStream(bytes);
+            var key = await storage.UploadFileAsync(stream, storageKey, "application/pdf");
+            logger.LogInformation("Demo seed: PDF enviado para Storage ({Key}, {Bytes} bytes).", key, bytes.Length);
+            return (key, bytes.Length);
+        }
+
+        private static byte[] BuildMinimalPdf(string title)
+        {
+            // PDF mínimo válido (assinatura %PDF) para passar na validação de conteúdo da API.
+            var safeTitle = new string(title.Where(char.IsLetterOrDigit).DefaultIfEmpty('X').ToArray());
+            var content =
+                "%PDF-1.4\n" +
+                "1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj\n" +
+                "2 0 obj<< /Type /Pages /Count 1 /Kids [3 0 R] >>endobj\n" +
+                "3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R /Resources<< /Font<< /F1 5 0 R >> >> >>endobj\n" +
+                "4 0 obj<< /Length 68 >>stream\n" +
+                $"BT /F1 18 Tf 40 70 Td ({safeTitle}) Tj ET\n" +
+                "endstream\n" +
+                "endobj\n" +
+                "5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj\n" +
+                "xref\n0 6\n" +
+                "0000000000 65535 f \n" +
+                "0000000009 00000 n \n" +
+                "0000000058 00000 n \n" +
+                "0000000115 00000 n \n" +
+                "0000000266 00000 n \n" +
+                "0000000384 00000 n \n" +
+                "trailer<< /Size 6 /Root 1 0 R >>\n" +
+                "startxref\n461\n%%EOF\n";
+            return Encoding.ASCII.GetBytes(content);
         }
 
         private static List<EventStudent> RegisterStudents(Event evt, List<Student> students, DateTime registeredAt)
@@ -669,7 +831,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             string? attendanceCode,
             EventStatus status,
             Guid createdBy,
-            IReadOnlyList<Course> allowedCourses)
+            IReadOnlyList<Course> allowedCourses,
+            bool isActive = true)
         {
             var evt = new Event
             {
@@ -680,7 +843,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 StartDate = start,
                 EndDate = end,
                 Capacity = capacity,
-                IsActive = true,
+                IsActive = isActive,
                 AllowDocuments = allowDocuments,
                 MaxGroupSize = maxGroupSize,
                 SubmissionDeadline = submissionDeadline,
