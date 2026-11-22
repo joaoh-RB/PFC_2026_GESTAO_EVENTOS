@@ -1,5 +1,6 @@
 using API_Gestao_Eventos.src.Application;
 using API_Gestao_Eventos.src.Infrastructure;
+using API_Gestao_Eventos.src.Infrastructure.Data.Seed;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,6 +45,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Seed local (Development): limpa dados de teste e recria massa válida via entidades C#.
+// Preserva admin contapfcgestaoeventos@gmail.com e LegalDocuments.
+await DemoDataSeeder.RunIfEnabledAsync(app);
 
 app.Run();
 
