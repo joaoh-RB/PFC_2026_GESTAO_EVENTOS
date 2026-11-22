@@ -85,7 +85,6 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             admin.InstitutionId = null;
             admin.ApprovedByUserId = null;
 
-            var passwordHash = hasher.HashPassword(testPassword);
             var now = DateTime.UtcNow;
 
             logger.LogInformation("Demo seed: criando instituições, cursos, usuários, eventos e vínculos...");
@@ -124,7 +123,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
 
             foreach (var pack in packs)
             {
-                SeedInstitutionScenario(db, pack, admin, passwordHash, now, legalDocs);
+                // Hash por usuário: cada chamada do IHasher gera salt BCrypt distinto.
+                SeedInstitutionScenario(db, pack, admin, hasher, testPassword, now, legalDocs);
             }
 
             await db.SaveChangesAsync(cancellationToken);
@@ -169,7 +169,8 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             AppDbContext db,
             InstitutionPack pack,
             User admin,
-            string passwordHash,
+            IHasher hasher,
+            string testPassword,
             DateTime now,
             IReadOnlyList<LegalDocument> legalDocs)
         {
@@ -177,7 +178,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             {
                 Name = pack.SecretaryName,
                 Email = $"secretaria.{pack.Slug}@teste.com",
-                PasswordHash = passwordHash,
+                PasswordHash = hasher.HashPassword(testPassword),
                 InstitutionId = pack.Institution.Id,
                 ApprovalStatus = UserApprovalStatus.Aprovado,
                 ApprovedByUserId = admin.Id,
@@ -190,7 +191,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             {
                 Name = pack.Teacher1Name,
                 Email = $"professor.{pack.Slug}@teste.com",
-                PasswordHash = passwordHash,
+                PasswordHash = hasher.HashPassword(testPassword),
                 InstitutionId = pack.Institution.Id,
                 ApprovalStatus = UserApprovalStatus.Aprovado,
                 ApprovedByUserId = secretaria.Id,
@@ -204,7 +205,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             {
                 Name = pack.Teacher2Name,
                 Email = $"professor2.{pack.Slug}@teste.com",
-                PasswordHash = passwordHash,
+                PasswordHash = hasher.HashPassword(testPassword),
                 InstitutionId = pack.Institution.Id,
                 ApprovalStatus = UserApprovalStatus.Aprovado,
                 ApprovedByUserId = secretaria.Id,
@@ -217,7 +218,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             var teste = NewStudent(
                 $"Aluno Teste {pack.Slug.ToUpperInvariant()}",
                 $"aluno.{pack.Slug}@teste.com",
-                passwordHash,
+                hasher.HashPassword(testPassword),
                 pack.Institution.Id,
                 pack.Courses[0].Id,
                 $"{pack.Slug.ToUpperInvariant()}-TESTE",
@@ -240,7 +241,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                     var student = NewStudent(
                         name,
                         EmailFromName(name, j + 1, pack.EmailDomain),
-                        passwordHash,
+                        hasher.HashPassword(testPassword),
                         pack.Institution.Id,
                         pack.Courses[i].Id,
                         $"{pack.Slug.ToUpperInvariant()[..3]}2026{1000 + i * 10 + j + 1}",
@@ -260,7 +261,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
                 db.Users.Add(NewStudent(
                     name,
                     EmailFromName(name, $"pendente{p + 1}", pack.EmailDomain),
-                    passwordHash,
+                    hasher.HashPassword(testPassword),
                     pack.Institution.Id,
                     pack.Courses[0].Id,
                     $"{pack.Slug.ToUpperInvariant()[..3]}2026{9001 + p}",
@@ -274,7 +275,7 @@ namespace API_Gestao_Eventos.src.Infrastructure.Data.Seed
             db.Users.Add(NewStudent(
                 rejectedName,
                 EmailFromName(rejectedName, "reprovado", pack.EmailDomain),
-                passwordHash,
+                hasher.HashPassword(testPassword),
                 pack.Institution.Id,
                 pack.Courses[0].Id,
                 $"{pack.Slug.ToUpperInvariant()[..3]}20269999",
